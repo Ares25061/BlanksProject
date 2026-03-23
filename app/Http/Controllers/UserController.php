@@ -23,7 +23,6 @@ class UserController extends Controller
      */
     public function index(Request $request)
     {
-        $this->authorize('view-list',User::class);
         $users = User::paginate($request->per_page ?? 10, ['*'], 'page', $request->page ?? 1);
         if ($users->isEmpty()) {
             return response()->json(['error' => 'Users not found'], 404);
@@ -56,7 +55,6 @@ class UserController extends Controller
         if (is_null($user)) {
             return response()->json(['error' => 'User not found'], 404);
         }
-        $this->authorize('view',$user);
         return response()->json([
             'status'=> 'success',
             'user' => $user,
@@ -131,8 +129,6 @@ class UserController extends Controller
     {
         $validated = $request->validated();
         $validated['password'] = Hash::make($validated['password']);
-        $roleId = DB::table('roles')->where('name', 'user')->value('id');
-        $validated['role_id'] = $roleId;
         $user = User::create($validated);
         $token = Auth::login($user);
         return response()->json([

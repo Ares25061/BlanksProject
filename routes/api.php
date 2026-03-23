@@ -2,8 +2,12 @@
 
 use App\Http\Controllers\TestController;
 use App\Http\Controllers\BlankFormController;
+use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 
+Route::apiResource('/user', UserController::class);
+Route::post('/register', [UserController::class, 'register']);
+Route::post('/login', [UserController::class, 'login']);
 // Защищенные маршруты (требуют аутентификации)
 Route::middleware('auth:api')->group(function () {
     // Тесты
@@ -18,4 +22,9 @@ Route::middleware('auth:api')->group(function () {
     Route::post('blank-forms/{blank_form}/check', [BlankFormController::class, 'check']);
     Route::post('blank-forms/check-multiple', [BlankFormController::class, 'checkMultiple']);
     Route::get('blank-forms/{blank_form}/grade', [BlankFormController::class, 'getGrade']);
+
+
+    Route::post('/logout', [UserController::class, 'logout']);
+    Route::post('/refresh', [UserController::class, 'refresh']);
+    Route::post('/user/edit', [UserController::class, 'edit']);
 });
