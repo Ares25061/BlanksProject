@@ -11,15 +11,18 @@ class Test extends Model
 
     protected $fillable = [
         'title',
+        'subject_name',
         'description',
         'created_by',
         'time_limit',
-        'is_active'
+        'is_active',
+        'grade_criteria',
     ];
 
     protected $casts = [
         'is_active' => 'boolean',
-        'time_limit' => 'integer'
+        'time_limit' => 'integer',
+        'grade_criteria' => 'array',
     ];
 
     public function creator()
@@ -35,5 +38,15 @@ class Test extends Model
     public function blankForms()
     {
         return $this->hasMany(BlankForm::class);
+    }
+
+    public function getSubjectDisplayNameAttribute(): string
+    {
+        return trim((string) ($this->subject_name ?: $this->title));
+    }
+
+    public function getMaxScoreAttribute(): int
+    {
+        return (int) $this->questions->sum('points');
     }
 }

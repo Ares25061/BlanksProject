@@ -1,8 +1,8 @@
 <?php
 
-use App\Models\Test;
-use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\TestController;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Route;
 
 
 Route::get('/', function () {
@@ -32,9 +32,17 @@ Route::get('/tests/{id}', function ($id) {
     return view('tests.show', ['id' => $id]);
 })->name('tests.show');
 
-Route::get('/tests/{id}/print', function ($id) {
-    $test = Test::with('questions.answers')->findOrFail($id);
-    return view('tests.print', ['test' => $test]);
-})->name('tests.print');
+Route::get('/tests/{id}/edit', function ($id) {
+    return view('tests.edit', ['id' => $id]);
+})->name('tests.edit');
 
-
+Route::get('/tests/{test}/print', [TestController::class, 'print'])->name('tests.print');
+Route::get('/blank-forms/results', function () {
+    return view('blank-forms.results');
+})->name('blank-forms.results');
+Route::get('/groups', function () {
+    return view('groups.index');
+})->name('groups.index');
+Route::get('/groups/{id}', function ($id) {
+    return view('groups.show', ['id' => $id]);
+})->name('groups.show');

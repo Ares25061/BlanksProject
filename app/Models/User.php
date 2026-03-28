@@ -80,4 +80,14 @@ class User extends Authenticatable implements JWTSubject
     {
         return $this->hasMany(BlankForm::class, 'checked_by');
     }
+
+    public function studentGroups()
+    {
+        return $this->hasMany(StudentGroup::class, 'created_by');
+    }
+
+    public function assignedStudentGrades()
+    {
+        return $this->hasMany(BlankForm::class, 'assigned_grade_by');
+    }
 }

@@ -4,13 +4,20 @@ namespace App\Services;
 use App\Models\BlankForm;
 use App\Models\StudentAnswer;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class GradingService
 {
+    public function __construct(
+        private StudentGradeService $studentGradeService,
+    ) {
+    }
+
     public function checkBlankForm(BlankForm $blankForm)
     {
         return DB::transaction(function () use ($blankForm) {
             $totalScore = 0;
+            $blankForm->loadMissing('test.questions.answers', 'studentAnswers');
             $questions = $blankForm->test->questions;
 
             foreach ($questions as $question) {
@@ -26,6 +33,7 @@ class GradingService
 
             $blankForm->update([
                 'total_score' => $totalScore,
+                'grade_label' => $this->calculateGrade($blankForm->test, $totalScore, (int) $questions->sum('points')),
                 'status' => 'checked',
                 'checked_by' => auth()->id(),
                 'checked_at' => now()
@@ -51,9 +59,26 @@ class GradingService
     {
         if ($question->type === 'single') {
             $correctAnswer = $question->answers()->where('is_correct', true)->first();
-            $isCorrect = $correctAnswer && $studentAnswer->answer_id == $correctAnswer->id;
+            $selectedAnswers = collect($studentAnswer->selected_answers ?? [])
+                ->map(fn ($id) => (int) $id)
+                ->filter()
+                ->values()
+                ->all();
+
+            $answerId = $studentAnswer->answer_id;
+
+            if (!$answerId && count($selectedAnswers) === 1) {
+                $answerId = $selectedAnswers[0];
+            }
+
+            $isCorrect = $correctAnswer
+                && $answerId == $correctAnswer->id
+                && count($selectedAnswers) <= 1;
+
             $studentAnswer->update([
-                'is_correct' => $isCorrect,
+                'answer_id' => $answerId,
+                'selected_answers' => count($selectedAnswers) > 1 ? $selectedAnswers : null,
+                'is_correct' => (bool) $isCorrect,
                 'points_earned' => $isCorrect ? $question->points : 0
             ]);
         } else {
@@ -76,22 +101,66 @@ class GradingService
         $studentScore = $blankForm->total_score ?? 0;
 
         return [
-            'student_name' => $blankForm->last_name . ' ' . $blankForm->first_name,
+            'student_name' => $blankForm->student_full_name,
             'group' => $blankForm->group_name,
             'score' => $studentScore,
             'max_score' => $maxScore,
             'percentage' => $maxScore > 0 ? round(($studentScore / $maxScore) * 100, 2) : 0,
-            'grade' => $this->calculateGrade($studentScore, $maxScore)
+            'grade' => $blankForm->grade_label ?: $this->calculateGrade($blankForm->test, $studentScore, $maxScore)
         ];
     }
 
-    protected function calculateGrade($score, $maxScore)
+    public function assignStudentGrade(BlankForm $blankForm, array $data): BlankForm
     {
-        if ($maxScore == 0) return 'N/A';
+        if ($blankForm->status !== 'checked') {
+            throw ValidationException::withMessages([
+                'blank_form' => 'Оценку можно поставить только после проверки работы.',
+            ]);
+        }
+
+        if (!$blankForm->group_student_id) {
+            throw ValidationException::withMessages([
+                'blank_form' => 'Этот бланк не привязан к студенту учебной группы.',
+            ]);
+        }
+
+        $blankForm->update([
+            'assigned_grade_value' => trim((string) $data['grade_value']),
+            'assigned_grade_date' => $data['grade_date'],
+            'assigned_grade_by' => auth()->id(),
+        ]);
+
+        $blankForm->loadMissing('test');
+        $this->studentGradeService->syncFromBlankForm($blankForm);
+
+        return $blankForm->fresh([
+            'test.questions.answers',
+            'studentAnswers.question.answers',
+            'studentGroup',
+            'groupStudent',
+            'gradeAssigner',
+        ]);
+    }
+
+    protected function calculateGrade($test, $score, $maxScore)
+    {
+        if ($maxScore == 0) {
+            return 'N/A';
+        }
+
+        $criteria = collect($test->grade_criteria ?? [])
+            ->sortByDesc('min_points')
+            ->values();
+
+        if ($criteria->isNotEmpty()) {
+            $criterion = $criteria->first(fn ($item) => (int) $score >= (int) $item['min_points']);
+
+            return $criterion['label'] ?? $criteria->last()['label'];
+        }
 
         $percentage = ($score / $maxScore) * 100;
 
-        return match(true) {
+        return match (true) {
             $percentage >= 90 => '5 (Отлично)',
             $percentage >= 75 => '4 (Хорошо)',
             $percentage >= 60 => '3 (Удовлетворительно)',

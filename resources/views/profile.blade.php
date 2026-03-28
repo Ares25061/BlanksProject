@@ -29,53 +29,6 @@
 </div>
 
 <script>
-    // API сервис с автоматическим обновлением токена
-    async function apiService(url, options = {}) {
-        let token = localStorage.getItem('auth_token');
-        const headers = {
-            'Authorization': `Bearer ${token}`,
-            'Accept': 'application/json',
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
-            ...options.headers
-        };
-
-        let response = await fetch(url, { ...options, headers });
-
-        // Если токен истек, пробуем обновить
-        if (response.status === 401) {
-            try {
-                const refreshRes = await fetch('/api/refresh', {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Accept': 'application/json'
-                    }
-                });
-
-                if (refreshRes.ok) {
-                    const data = await refreshRes.json();
-                    localStorage.setItem('auth_token', data.authorization?.token || data.token);
-                    localStorage.setItem('user', JSON.stringify(data.user));
-
-                    // Повторяем исходный запрос с новым токеном
-                    headers['Authorization'] = `Bearer ${localStorage.getItem('auth_token')}`;
-                    return await fetch(url, { ...options, headers });
-                } else {
-                    // Не удалось обновить токен
-                    localStorage.clear();
-                    window.location.href = '/user/login?error=expired';
-                    return response;
-                }
-            } catch (error) {
-                console.error('Refresh error:', error);
-                localStorage.clear();
-                window.location.href = '/user/login?error=expired';
-                return response;
-            }
-        }
-        return response;
-    }
-
     function formatDate(dateString) {
         if (!dateString) return 'Не указано';
         try {
@@ -94,19 +47,33 @@
 
     async function loadProfile() {
         try {
-            // Проверяем авторизацию
-            const token = localStorage.getItem('auth_token');
-            const userData = localStorage.getItem('user');
-
-            if (!token || !userData) {
-                window.location.href = '/user/login';
+            if (!await ensureAuthenticatedPage()) {
                 return;
             }
 
-            const user = JSON.parse(userData);
+            let user = getStoredUser();
+            if (!user?.id) {
+                const refreshed = await refreshAuthToken({ suppressRedirect: true });
+                if (!refreshed) {
+                    clearAuthState();
+                    redirectToLogin('expired');
+                    return;
+                }
 
-            // Загружаем актуальные данные с сервера
-            const response = await apiService(`/api/user/${user.id}`);
+                user = getStoredUser();
+            }
+
+            if (!user?.id) {
+                clearAuthState();
+                redirectToLogin('missing');
+                return;
+            }
+
+            const response = await authApiFetch(`/api/user/${user.id}`, {
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || ''
+                }
+            });
 
             if (response.ok) {
                 const data = await response.json();
@@ -216,11 +183,11 @@
 
     async function logout() {
         try {
-            await apiService('/api/logout', { method: 'POST' });
+            await authApiFetch('/api/logout', { method: 'POST' }, { suppressRedirect: true });
         } catch (e) {
             console.error('Logout error:', e);
         } finally {
-            localStorage.clear();
+            clearAuthState();
             window.location.href = '/user/login';
         }
     }

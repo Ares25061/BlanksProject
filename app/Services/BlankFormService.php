@@ -3,9 +3,14 @@ namespace App\Services;
 
 use App\Models\Test;
 use App\Models\BlankForm;
+use App\Models\StudentGrade;
+use App\Models\StudentGroup;
 use App\Models\StudentAnswer;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
+use App\Support\StudentName;
 
 class BlankFormService
 {
@@ -13,22 +18,27 @@ class BlankFormService
     {
         return DB::transaction(function () use ($test, $studentData) {
             $formNumber = $this->generateFormNumber($test);
+            $parsedName = StudentName::parse($studentData['full_name'] ?? null);
 
             $blankForm = BlankForm::create([
                 'test_id' => $test->id,
+                'student_group_id' => $studentData['student_group_id'] ?? null,
+                'group_student_id' => $studentData['group_student_id'] ?? null,
                 'form_number' => $formNumber,
-                'last_name' => $studentData['last_name'] ?? null,
-                'first_name' => $studentData['first_name'] ?? null,
+                'last_name' => $studentData['last_name'] ?? $parsedName['last_name'],
+                'first_name' => $studentData['first_name'] ?? $parsedName['first_name'],
+                'patronymic' => $studentData['patronymic'] ?? $parsedName['patronymic'],
                 'group_name' => $studentData['group_name'] ?? null,
                 'submission_date' => $studentData['submission_date'] ?? null,
                 'status' => 'generated',
                 'metadata' => [
                     'generated_at' => now(),
-                    'generated_by' => auth()->id()
+                    'generated_by' => auth()->id(),
+                    'student_full_name' => $studentData['full_name'] ?? $parsedName['full_name'],
                 ]
             ]);
 
-            return $blankForm->load('test.questions.answers');
+            return $blankForm->load(['test.questions.answers', 'studentGroup', 'groupStudent']);
         });
     }
 
@@ -41,52 +51,140 @@ class BlankFormService
         return $forms;
     }
 
+    public function generateBlankFormsForGroup(Test $test, StudentGroup $group, array $studentIds = []): array
+    {
+        $normalizedStudentIds = collect($studentIds)
+            ->map(fn ($id) => (int) $id)
+            ->filter(fn ($id) => $id > 0)
+            ->unique()
+            ->values();
+
+        $studentsQuery = $group->students();
+
+        if ($normalizedStudentIds->isNotEmpty()) {
+            $studentsQuery->whereIn('id', $normalizedStudentIds->all());
+        }
+
+        $students = $studentsQuery->get();
+
+        if ($normalizedStudentIds->isNotEmpty() && $students->count() !== $normalizedStudentIds->count()) {
+            throw ValidationException::withMessages([
+                'group_student_ids' => 'Некоторые выбранные студенты не относятся к этой группе.',
+            ]);
+        }
+
+        if ($students->isEmpty()) {
+            throw ValidationException::withMessages([
+                'student_group_id' => 'В выбранной группе нет студентов для генерации бланков.',
+            ]);
+        }
+
+        $forms = [];
+
+        foreach ($students as $student) {
+            $forms[] = $this->generateBlankForm($test, [
+                'full_name' => $student->full_name,
+                'group_name' => $group->name,
+                'student_group_id' => $group->id,
+                'group_student_id' => $student->id,
+            ]);
+        }
+
+        return $forms;
+    }
+
     public function submitStudentAnswers(BlankForm $blankForm, array $answers)
     {
         return DB::transaction(function () use ($blankForm, $answers) {
-            // Обновляем информацию о студенте
             $blankForm->update([
                 'last_name' => $answers['last_name'] ?? $blankForm->last_name,
                 'first_name' => $answers['first_name'] ?? $blankForm->first_name,
+                'patronymic' => $answers['patronymic'] ?? $blankForm->patronymic,
                 'group_name' => $answers['group_name'] ?? $blankForm->group_name,
                 'submission_date' => $answers['submission_date'] ?? now(),
                 'status' => 'submitted'
             ]);
 
-            // Сохраняем ответы на вопросы
-            foreach ($answers['questions'] as $questionId => $answerData) {
-                $this->saveStudentAnswer($blankForm, $questionId, $answerData);
-            }
+            $this->storeStudentAnswers($blankForm, $answers['questions']);
 
             return $blankForm->load('studentAnswers');
         });
+    }
+
+    public function replaceStudentAnswersFromScan(BlankForm $blankForm, array $answers, array $scanMetadata = []): BlankForm
+    {
+        return DB::transaction(function () use ($blankForm, $answers, $scanMetadata) {
+            $blankForm->studentAnswers()->delete();
+
+            $metadata = $blankForm->metadata ?? [];
+            $metadata['scan'] = array_merge($metadata['scan'] ?? [], $scanMetadata, [
+                'processed_at' => now()->toIso8601String(),
+            ]);
+
+            $blankForm->update([
+                'submission_date' => now(),
+                'status' => 'submitted',
+                'scan_path' => $scanMetadata['scan_path'] ?? $blankForm->scan_path,
+                'scanned_at' => now(),
+                'metadata' => $metadata,
+            ]);
+
+            $this->storeStudentAnswers($blankForm, $answers);
+
+            return $blankForm->fresh(['studentAnswers', 'test.questions.answers', 'studentGroup', 'groupStudent']);
+        });
+    }
+
+    protected function storeStudentAnswers(BlankForm $blankForm, array $questions): void
+    {
+        foreach ($questions as $questionId => $answerData) {
+            $this->saveStudentAnswer($blankForm, (int) $questionId, $answerData);
+        }
     }
 
     protected function saveStudentAnswer(BlankForm $blankForm, int $questionId, $answerData)
     {
         $question = $blankForm->test->questions()->findOrFail($questionId);
 
-        $studentAnswer = new StudentAnswer([
+        $payload = [
             'blank_form_id' => $blankForm->id,
-            'question_id' => $questionId
-        ]);
+            'question_id' => $questionId,
+            'answer_id' => null,
+            'selected_answers' => null,
+            'is_correct' => false,
+            'points_earned' => 0,
+        ];
 
         if ($question->type === 'single') {
-            $studentAnswer->answer_id = $answerData;
-            $selectedAnswer = $question->answers()->find($answerData);
-            $studentAnswer->is_correct = $selectedAnswer ? $selectedAnswer->is_correct : false;
-            $studentAnswer->points_earned = $studentAnswer->is_correct ? $question->points : 0;
+            $selectedAnswerIds = is_array($answerData)
+                ? array_values(array_unique(array_map('intval', $answerData)))
+                : [(int) $answerData];
+
+            $selectedAnswerIds = array_values(array_filter($selectedAnswerIds));
+            $selectedAnswer = count($selectedAnswerIds) === 1
+                ? $question->answers()->find($selectedAnswerIds[0])
+                : null;
+
+            $payload['answer_id'] = $selectedAnswer?->id;
+            $payload['selected_answers'] = count($selectedAnswerIds) > 1 ? $selectedAnswerIds : null;
+            $payload['is_correct'] = $selectedAnswer ? (bool) $selectedAnswer->is_correct : false;
+            $payload['points_earned'] = $payload['is_correct'] ? $question->points : 0;
         } else {
-            // Множественный выбор
-            $studentAnswer->selected_answers = $answerData;
-            $correctAnswers = $question->answers()->where('is_correct', true)->pluck('id')->toArray();
-            $studentAnswer->is_correct = empty(array_diff($correctAnswers, $answerData)) &&
-                empty(array_diff($answerData, $correctAnswers));
-            $studentAnswer->points_earned = $studentAnswer->is_correct ? $question->points : 0;
+            $selectedAnswerIds = collect(is_array($answerData) ? $answerData : [])
+                ->map(fn ($value) => (int) $value)
+                ->filter()
+                ->unique()
+                ->values()
+                ->all();
+
+            $correctAnswers = $question->answers()->where('is_correct', true)->pluck('id')->map(fn ($id) => (int) $id)->all();
+            $payload['selected_answers'] = $selectedAnswerIds;
+            $payload['is_correct'] = empty(array_diff($correctAnswers, $selectedAnswerIds))
+                && empty(array_diff($selectedAnswerIds, $correctAnswers));
+            $payload['points_earned'] = $payload['is_correct'] ? $question->points : 0;
         }
 
-        $studentAnswer->save();
-        return $studentAnswer;
+        return StudentAnswer::create($payload);
     }
 
     protected function generateFormNumber(Test $test): string
@@ -96,5 +194,20 @@ class BlankFormService
         } while (BlankForm::where('form_number', $number)->exists());
 
         return $number;
+    }
+
+    public function deleteBlankForm(BlankForm $blankForm): void
+    {
+        DB::transaction(function () use ($blankForm) {
+            $scanPath = $blankForm->scan_path;
+
+            StudentGrade::where('blank_form_id', $blankForm->id)->delete();
+            $blankForm->studentAnswers()->delete();
+            $blankForm->delete();
+
+            if ($scanPath) {
+                Storage::disk('local')->delete($scanPath);
+            }
+        });
     }
 }

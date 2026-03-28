@@ -12,13 +12,22 @@ class BlankForm extends Model
 
     protected $fillable = [
         'test_id',
+        'student_group_id',
+        'group_student_id',
         'form_number',
         'last_name',
         'first_name',
+        'patronymic',
         'group_name',
         'submission_date',
         'status',
         'total_score',
+        'grade_label',
+        'assigned_grade_value',
+        'assigned_grade_date',
+        'assigned_grade_by',
+        'scan_path',
+        'scanned_at',
         'metadata',
         'checked_by',
         'checked_at'
@@ -26,7 +35,9 @@ class BlankForm extends Model
 
     protected $casts = [
         'submission_date' => 'date',
+        'assigned_grade_date' => 'date',
         'checked_at' => 'datetime',
+        'scanned_at' => 'datetime',
         'metadata' => 'array',
         'total_score' => 'integer'
     ];
@@ -41,8 +52,32 @@ class BlankForm extends Model
         return $this->hasMany(StudentAnswer::class);
     }
 
+    public function studentGroup()
+    {
+        return $this->belongsTo(StudentGroup::class, 'student_group_id');
+    }
+
+    public function groupStudent()
+    {
+        return $this->belongsTo(GroupStudent::class, 'group_student_id');
+    }
+
     public function checker()
     {
         return $this->belongsTo(User::class, 'checked_by');
+    }
+
+    public function gradeAssigner()
+    {
+        return $this->belongsTo(User::class, 'assigned_grade_by');
+    }
+
+    public function getStudentFullNameAttribute(): string
+    {
+        return trim(implode(' ', array_filter([
+            $this->last_name,
+            $this->first_name,
+            $this->patronymic,
+        ])));
     }
 }

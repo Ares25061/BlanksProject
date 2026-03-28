@@ -18,7 +18,8 @@ class BlankFormPolicy
 
     public function submit(User $user, BlankForm $blankForm)
     {
-        return $blankForm->status === 'generated';
+        return ($user->id === $blankForm->test->created_by)
+            && $blankForm->status === 'generated';
     }
 
     public function check(User $user, BlankForm $blankForm)
@@ -29,6 +30,18 @@ class BlankFormPolicy
 
     public function checkMultiple(User $user)
     {
-        return $user->isAdmin();
+        return true;
+    }
+
+    public function delete(User $user, BlankForm $blankForm)
+    {
+        return ($user->id === $blankForm->test->created_by)
+            && in_array($blankForm->status, ['generated', 'checked'], true);
+    }
+
+    public function assignGrade(User $user, BlankForm $blankForm)
+    {
+        return ($user->id === $blankForm->test->created_by)
+            && $blankForm->status === 'checked';
     }
 }

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Создание теста | BlanksProject</title>
+    <title>Редактирование теста | BlanksProject</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
@@ -18,114 +18,118 @@
 @include('layouts.nav')
 
 <div class="container mx-auto px-4 py-8 max-w-5xl">
-    <div class="mb-8">
-        <p class="text-sm uppercase tracking-[0.3em] text-sky-700 font-semibold">Новый тест</p>
-        <h1 class="text-3xl font-bold mt-2">Создание теста</h1>
-        <p class="text-slate-600 mt-2">Соберите вопросы, укажите предмет, баллы и шкалу оценивания, по которой будут считаться результаты сканирования.</p>
+    <div id="loading" class="text-center py-12">
+        <div class="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-sky-500"></div>
+        <p class="text-slate-600 mt-4">Загружаю тест для редактирования...</p>
     </div>
 
-    <form id="testForm" class="space-y-6">
-        <section class="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 space-y-4">
-            <div class="flex flex-wrap justify-between gap-4 items-center">
-                <h2 class="text-xl font-semibold">Основная информация</h2>
-                <div class="text-sm text-slate-500">
-                    Формат бланка: до <span class="font-semibold text-slate-700">15 вопросов</span> и до <span class="font-semibold text-slate-700">5 вариантов ответа</span> на вопрос
-                </div>
+    <div id="pageContent" class="hidden">
+            <div class="mb-8">
+                <p class="text-sm uppercase tracking-[0.3em] text-sky-700 font-semibold">Редактирование</p>
+                <h1 class="text-3xl font-bold mt-2">Настройка теста</h1>
+                <p class="text-slate-600 mt-2">Измените предмет, вопросы, баллы и критерии оценивания. Новые пороги будут использоваться при следующих проверках сканов.</p>
             </div>
 
-            <div>
-                <label for="subject_name" class="block text-sm font-medium text-slate-700 mb-2">Предмет</label>
-                <input id="subject_name" type="text" required
-                       class="w-full px-4 py-3 rounded-2xl border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
-                       placeholder="Например: Информатика">
-                <p class="text-xs text-slate-500 mt-2">Один и тот же класс можно будет вести по нескольким предметам через отдельные журналы.</p>
-            </div>
-
-            <div>
-                <label for="title" class="block text-sm font-medium text-slate-700 mb-2">Название теста</label>
-                <input id="title" type="text" required
-                       class="w-full px-4 py-3 rounded-2xl border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
-                       placeholder="Например: Контрольная работа №3">
-            </div>
-
-            <div>
-                <label for="description" class="block text-sm font-medium text-slate-700 mb-2">Описание</label>
-                <textarea id="description" rows="3"
-                          class="w-full px-4 py-3 rounded-2xl border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
-                          placeholder="Кратко опишите тему, формат или особенности проведения"></textarea>
-            </div>
-
-            <div class="grid md:grid-cols-2 gap-4">
-                <div>
-                    <label for="time_limit" class="block text-sm font-medium text-slate-700 mb-2">Время выполнения</label>
-                    <input id="time_limit" type="number" min="1"
-                           class="w-full px-4 py-3 rounded-2xl border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
-                           placeholder="Минуты">
+        <form id="testForm" class="space-y-6">
+            <section class="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 space-y-4">
+                <div class="flex flex-wrap justify-between gap-4 items-center">
+                    <h2 class="text-xl font-semibold">Основная информация</h2>
+                    <div class="text-sm text-slate-500">
+                        Формат бланка: до <span class="font-semibold text-slate-700">15 вопросов</span> и до <span class="font-semibold text-slate-700">5 вариантов ответа</span> на вопрос
+                    </div>
+                    <button type="button" onclick="window.location.href=`/tests/${testId}`" class="text-slate-600 hover:text-slate-900">
+                        Вернуться к тесту
+                    </button>
                 </div>
 
                 <div>
-                    <label for="is_active" class="block text-sm font-medium text-slate-700 mb-2">Статус</label>
-                    <select id="is_active" class="w-full px-4 py-3 rounded-2xl border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500">
-                        <option value="1">Активен</option>
-                        <option value="0">Черновик</option>
-                    </select>
+                    <label for="subject_name" class="block text-sm font-medium text-slate-700 mb-2">Предмет</label>
+                    <input id="subject_name" type="text" required
+                           class="w-full px-4 py-3 rounded-2xl border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500">
                 </div>
-            </div>
-        </section>
 
-        <section class="bg-white rounded-3xl shadow-sm border border-slate-200 p-6">
-            <div class="flex flex-wrap justify-between items-center gap-3 mb-4">
                 <div>
-                    <h2 class="text-xl font-semibold">Критерии оценивания</h2>
-                    <p class="text-slate-500 mt-1">Шкала используется при автопроверке после загрузки сканов.</p>
+                    <label for="title" class="block text-sm font-medium text-slate-700 mb-2">Название теста</label>
+                    <input id="title" type="text" required
+                           class="w-full px-4 py-3 rounded-2xl border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500">
                 </div>
-                <button type="button" onclick="fillSuggestedCriteria()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-xl transition">
-                    Подставить рекомендуемые пороги
+
+                <div>
+                    <label for="description" class="block text-sm font-medium text-slate-700 mb-2">Описание</label>
+                    <textarea id="description" rows="3"
+                              class="w-full px-4 py-3 rounded-2xl border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500"></textarea>
+                </div>
+
+                <div class="grid md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="time_limit" class="block text-sm font-medium text-slate-700 mb-2">Время выполнения</label>
+                        <input id="time_limit" type="number" min="1"
+                               class="w-full px-4 py-3 rounded-2xl border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500">
+                    </div>
+
+                    <div>
+                        <label for="is_active" class="block text-sm font-medium text-slate-700 mb-2">Статус</label>
+                        <select id="is_active" class="w-full px-4 py-3 rounded-2xl border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500">
+                            <option value="1">Активен</option>
+                            <option value="0">Черновик</option>
+                        </select>
+                    </div>
+                </div>
+            </section>
+
+            <section class="bg-white rounded-3xl shadow-sm border border-slate-200 p-6">
+                <div class="flex flex-wrap justify-between items-center gap-3 mb-4">
+                    <div>
+                        <h2 class="text-xl font-semibold">Критерии оценивания</h2>
+                        <p class="text-slate-500 mt-1">Измените пороги по баллам при необходимости.</p>
+                    </div>
+                    <button type="button" onclick="fillSuggestedCriteria()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-xl transition">
+                        Обновить рекомендуемые пороги
+                    </button>
+                </div>
+
+                <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-3 mb-4" id="gradeCriteriaContainer"></div>
+
+                <button type="button" onclick="addGradeCriterion()" class="text-sky-600 hover:text-sky-800 text-sm font-medium flex items-center gap-2">
+                    <i class="fas fa-plus-circle"></i>
+                    Добавить уровень оценки
+                </button>
+
+                <div class="mt-4 bg-sky-50 border border-sky-100 rounded-2xl p-4 text-sm text-sky-900">
+                    Текущий максимальный балл:
+                    <span id="totalPointsSummary" class="font-semibold">0</span>
+                </div>
+            </section>
+
+            <section class="bg-white rounded-3xl shadow-sm border border-slate-200 p-6">
+                <div class="flex flex-wrap justify-between items-center gap-3 mb-4">
+                    <div>
+                        <h2 class="text-xl font-semibold">Вопросы</h2>
+                        <p class="text-slate-500 mt-1">Изменения сразу повлияют на новые проверки. Для печатного бланка доступно максимум 15 вопросов и 5 вариантов ответа.</p>
+                    </div>
+                    <button type="button" onclick="addQuestion()" class="bg-emerald-600 text-white px-4 py-2 rounded-xl hover:bg-emerald-500 transition flex items-center gap-2">
+                        <i class="fas fa-plus"></i>
+                        Добавить вопрос
+                    </button>
+                </div>
+
+                <div id="questionsContainer" class="space-y-5"></div>
+                <div id="noQuestions" class="text-center py-10 border-2 border-dashed border-slate-300 rounded-2xl text-slate-500 hidden">
+                    В тесте не осталось вопросов.
+                </div>
+            </section>
+
+            <div class="flex flex-wrap justify-end gap-3">
+                <button type="button" onclick="window.location.href=`/tests/${testId}`" class="px-6 py-3 rounded-2xl border border-slate-300 text-slate-700 hover:bg-slate-50 transition">
+                    Отмена
+                </button>
+                <button type="submit" class="px-6 py-3 rounded-2xl bg-sky-600 text-white hover:bg-sky-500 transition shadow-sm flex items-center gap-2">
+                    <i class="fas fa-save"></i>
+                    Сохранить изменения
                 </button>
             </div>
-
-            <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-3 mb-4" id="gradeCriteriaContainer"></div>
-
-            <button type="button" onclick="addGradeCriterion()" class="text-sky-600 hover:text-sky-800 text-sm font-medium flex items-center gap-2">
-                <i class="fas fa-plus-circle"></i>
-                Добавить уровень оценки
-            </button>
-
-            <div class="mt-4 bg-sky-50 border border-sky-100 rounded-2xl p-4 text-sm text-sky-900">
-                Текущий максимальный балл по вопросам:
-                <span id="totalPointsSummary" class="font-semibold">0</span>
-            </div>
-        </section>
-
-        <section class="bg-white rounded-3xl shadow-sm border border-slate-200 p-6">
-            <div class="flex flex-wrap justify-between items-center gap-3 mb-4">
-                <div>
-                    <h2 class="text-xl font-semibold">Вопросы</h2>
-                    <p class="text-slate-500 mt-1">Укажите текст, тип и баллы за каждый вопрос. Для печатного бланка доступно максимум 15 вопросов и 5 вариантов ответа.</p>
-                </div>
-                <button type="button" onclick="addQuestion()" class="bg-emerald-600 text-white px-4 py-2 rounded-xl hover:bg-emerald-500 transition flex items-center gap-2">
-                    <i class="fas fa-plus"></i>
-                    Добавить вопрос
-                </button>
-            </div>
-
-            <div id="questionsContainer" class="space-y-5"></div>
-
-            <div id="noQuestions" class="text-center py-10 border-2 border-dashed border-slate-300 rounded-2xl text-slate-500">
-                Вопросов пока нет. Добавьте хотя бы один вопрос.
-            </div>
-        </section>
-
-        <div class="flex flex-wrap justify-end gap-3">
-            <button type="button" onclick="window.location.href='/tests'" class="px-6 py-3 rounded-2xl border border-slate-300 text-slate-700 hover:bg-slate-50 transition">
-                Отмена
-            </button>
-            <button type="submit" class="px-6 py-3 rounded-2xl bg-sky-600 text-white hover:bg-sky-500 transition shadow-sm flex items-center gap-2">
-                <i class="fas fa-save"></i>
-                Сохранить тест
-            </button>
-        </div>
-    </form>
+        </form>
+    </div>
 </div>
 
 <template id="questionTemplate">
@@ -140,8 +144,7 @@
         <div class="space-y-4">
             <div>
                 <label class="block text-sm font-medium text-slate-700 mb-2">Текст вопроса</label>
-                <input type="text" class="question-text w-full px-4 py-3 rounded-2xl border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
-                       placeholder="Введите текст вопроса">
+                <input type="text" class="question-text w-full px-4 py-3 rounded-2xl border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500">
             </div>
 
             <div class="grid md:grid-cols-2 gap-4">
@@ -174,10 +177,9 @@
 </template>
 
 <template id="answerTemplate">
-    <div class="answer-item flex items-center gap-3">
+    <div class="answer-item flex items-center gap-3" data-id="">
         <input type="radio" class="answer-correct w-4 h-4 text-sky-600 border-slate-300">
-        <input type="text" class="answer-text flex-1 px-4 py-3 rounded-2xl border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
-               placeholder="Вариант ответа">
+        <input type="text" class="answer-text flex-1 px-4 py-3 rounded-2xl border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500">
         <button type="button" onclick="removeAnswer(this)" class="text-rose-600 hover:text-rose-800">
             <i class="fas fa-times"></i>
         </button>
@@ -192,19 +194,55 @@
                 <i class="fas fa-times"></i>
             </button>
         </div>
-        <input type="text" class="criterion-label w-full px-3 py-2 rounded-xl border border-slate-300 mb-3 focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
-               placeholder="Например: 5 (Отлично)">
-        <input type="number" min="0" class="criterion-min-points w-full px-3 py-2 rounded-xl border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
-               placeholder="Минимум баллов">
+        <input type="text" class="criterion-label w-full px-3 py-2 rounded-xl border border-slate-300 mb-3 focus:ring-2 focus:ring-sky-500 focus:border-sky-500">
+        <input type="number" min="0" class="criterion-min-points w-full px-3 py-2 rounded-xl border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500">
     </div>
 </template>
 
 <script>
+    const testId = {{ $id }};
     const MAX_QUESTIONS = 15;
     const MAX_ANSWERS = 5;
+    let currentTest = null;
 
     function createUid() {
         return `q_${Date.now()}_${Math.random().toString(16).slice(2)}`;
+    }
+
+    async function apiFetch(url, options = {}) {
+        return authApiFetch(url, options);
+    }
+
+    async function loadTest() {
+        const response = await apiFetch(`/api/tests/${testId}`);
+        if (!response.ok) {
+            throw new Error('Не удалось загрузить тест');
+        }
+
+        currentTest = (await response.json()).data;
+        fillForm();
+
+        document.getElementById('loading').classList.add('hidden');
+        document.getElementById('pageContent').classList.remove('hidden');
+    }
+
+    function fillForm() {
+        document.getElementById('subject_name').value = currentTest.subject_name || currentTest.title || '';
+        document.getElementById('title').value = currentTest.title || '';
+        document.getElementById('description').value = currentTest.description || '';
+        document.getElementById('time_limit').value = currentTest.time_limit || '';
+        document.getElementById('is_active').value = currentTest.is_active ? '1' : '0';
+
+        document.getElementById('questionsContainer').innerHTML = '';
+        (currentTest.questions || []).forEach((question) => addQuestion(question));
+
+        document.getElementById('gradeCriteriaContainer').innerHTML = '';
+        (currentTest.grade_criteria || []).forEach((criterion) => addGradeCriterion(criterion));
+        if (!(currentTest.grade_criteria || []).length) {
+            fillSuggestedCriteria();
+        }
+
+        updateTotalPoints();
     }
 
     function addQuestion(question = null) {
@@ -346,19 +384,48 @@
         }));
     }
 
+    function collectQuestions() {
+        return Array.from(document.querySelectorAll('.question-item')).map((question, index) => {
+            const questionId = question.dataset.id;
+            const questionPayload = {
+                question_text: question.querySelector('.question-text').value.trim(),
+                type: question.querySelector('.question-type').value,
+                points: parseInt(question.querySelector('.question-points').value, 10) || 1,
+                order: index,
+                answers: Array.from(question.querySelectorAll('.answer-item')).map((answer, answerIndex) => {
+                    const answerPayload = {
+                        answer_text: answer.querySelector('.answer-text').value.trim(),
+                        is_correct: answer.querySelector('.answer-correct').checked,
+                        order: answerIndex
+                    };
+
+                    if (answer.dataset.id && !String(answer.dataset.id).startsWith('q_')) {
+                        answerPayload.id = parseInt(answer.dataset.id, 10);
+                    }
+
+                    return answerPayload;
+                })
+            };
+
+            if (questionId && !String(questionId).startsWith('q_')) {
+                questionPayload.id = parseInt(questionId, 10);
+            }
+
+            return questionPayload;
+        });
+    }
+
     function validateForm() {
         let valid = true;
         document.querySelectorAll('.error-border').forEach((item) => item.classList.remove('error-border'));
 
-        const title = document.getElementById('title');
-        const subjectName = document.getElementById('subject_name');
-        if (!subjectName.value.trim()) {
-            subjectName.classList.add('error-border');
+        if (!document.getElementById('subject_name').value.trim()) {
+            document.getElementById('subject_name').classList.add('error-border');
             valid = false;
         }
 
-        if (!title.value.trim()) {
-            title.classList.add('error-border');
+        if (!document.getElementById('title').value.trim()) {
+            document.getElementById('title').classList.add('error-border');
             valid = false;
         }
 
@@ -377,7 +444,6 @@
             const questionText = question.querySelector('.question-text');
             const points = question.querySelector('.question-points');
             const answers = question.querySelectorAll('.answer-item');
-            const filledAnswers = [];
             let hasCorrect = false;
 
             if (!questionText.value.trim()) {
@@ -392,23 +458,18 @@
 
             answers.forEach((answer) => {
                 const answerText = answer.querySelector('.answer-text');
-                const isCorrect = answer.querySelector('.answer-correct').checked;
-
                 if (!answerText.value.trim()) {
                     answerText.classList.add('error-border');
                     valid = false;
-                    return;
                 }
-
-                filledAnswers.push(answerText.value.trim());
-                if (isCorrect) {
+                if (answer.querySelector('.answer-correct').checked) {
                     hasCorrect = true;
                 }
             });
 
-            if (filledAnswers.length < 2 || !hasCorrect) {
-                valid = false;
+            if (answers.length < 2 || !hasCorrect) {
                 question.classList.add('error-border');
+                valid = false;
             }
 
             if (answers.length > MAX_ANSWERS) {
@@ -417,35 +478,14 @@
             }
         });
 
-        const criteria = collectGradeCriteria();
-        if (!criteria.length) {
-            alert('Добавьте хотя бы один критерий оценивания');
-            return false;
-        }
-
-        criteria.forEach((criterion, index) => {
-            const block = document.querySelectorAll('.grade-criterion')[index];
+        collectGradeCriteria().forEach((criterion, index) => {
             if (!criterion.label) {
-                block.querySelector('.criterion-label').classList.add('error-border');
+                document.querySelectorAll('.criterion-label')[index].classList.add('error-border');
                 valid = false;
             }
         });
 
         return valid;
-    }
-
-    function collectQuestions() {
-        return Array.from(document.querySelectorAll('.question-item')).map((question, index) => ({
-            question_text: question.querySelector('.question-text').value.trim(),
-            type: question.querySelector('.question-type').value,
-            points: parseInt(question.querySelector('.question-points').value, 10) || 1,
-            order: index,
-            answers: Array.from(question.querySelectorAll('.answer-item')).map((answer, answerIndex) => ({
-                answer_text: answer.querySelector('.answer-text').value.trim(),
-                is_correct: answer.querySelector('.answer-correct').checked,
-                order: answerIndex
-            }))
-        }));
     }
 
     document.getElementById('testForm').addEventListener('submit', async (event) => {
@@ -468,24 +508,22 @@
         };
 
         try {
-            const response = await authApiFetch('/api/tests', {
-                method: 'POST',
+            const response = await apiFetch(`/api/tests/${testId}`, {
+                method: 'PUT',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json'
+                    'Content-Type': 'application/json'
                 },
                 body: JSON.stringify(payload)
             });
 
             if (!response.ok) {
                 const error = await response.json();
-                throw new Error(error.message || 'Не удалось создать тест');
+                throw new Error(error.message || 'Не удалось сохранить изменения');
             }
 
-            const data = await response.json();
-            window.location.href = `/tests/${data.data.id}`;
+            window.location.href = `/tests/${testId}`;
         } catch (error) {
-            alert(error.message || 'Ошибка соединения с сервером');
+            alert(error.message || 'Ошибка сохранения');
         }
     });
 
@@ -500,8 +538,10 @@
             return;
         }
 
-        addQuestion();
-        fillSuggestedCriteria();
+        loadTest().catch((error) => {
+            console.error(error);
+            alert(error.message || 'Ошибка загрузки');
+        });
     });
 </script>
 </body>

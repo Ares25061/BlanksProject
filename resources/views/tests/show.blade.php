@@ -1,704 +1,741 @@
-{{-- resources/views/tests/show.blade.php --}}
-    <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Просмотр теста | BlanksProject</title>
+    <title>Тест | BlanksProject</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <meta name="csrf-token" content="{{ csrf_token() }}">
-    <style>
-        .error-border {
-            border-color: #ef4444 !important;
-            background-color: #fef2f2 !important;
-        }
-        .error-message {
-            color: #ef4444;
-            font-size: 12px;
-            margin-top: 4px;
-        }
-        .validation-error {
-            background-color: #fee2e2;
-            border-left: 4px solid #ef4444;
-        }
-    </style>
 </head>
-<body class="bg-gray-100 min-h-screen">
+<body class="bg-slate-100 min-h-screen text-slate-900">
 
 @include('layouts.nav')
 
-<div class="container mx-auto px-4 py-8 max-w-4xl">
-    <!-- Индикатор загрузки -->
-    <div id="loading" class="text-center py-8">
-        <div class="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-        <p class="text-gray-600 mt-4">Загрузка теста...</p>
+<div class="container mx-auto px-4 py-8 max-w-7xl">
+    <div id="loading" class="text-center py-12">
+        <div class="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-sky-500"></div>
+        <p class="text-slate-600 mt-4">Загружаю тест...</p>
     </div>
 
-    <!-- Контент теста (режим просмотра) -->
-    <div id="testContent" class="hidden">
-        <!-- Шапка -->
-        <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
-            <div class="flex justify-between items-start">
+    <div id="pageContent" class="hidden space-y-6">
+        <section class="bg-white rounded-3xl shadow-sm border border-slate-200 p-6">
+            <div class="flex flex-wrap justify-between items-start gap-4">
                 <div>
-                    <h1 id="testTitle" class="text-3xl font-bold text-gray-800 mb-2"></h1>
-                    <p id="testDescription" class="text-gray-600 mb-4"></p>
-
-                    <div class="flex items-center gap-4 text-sm text-gray-500">
-                        <span id="timeLimit" class="flex items-center gap-1">
-                            <i class="far fa-clock"></i>
-                        </span>
-                        <span id="questionsCount" class="flex items-center gap-1">
-                            <i class="far fa-question-circle"></i>
-                        </span>
-                        <span id="totalPoints" class="flex items-center gap-1">
-                            <i class="fas fa-star"></i>
-                        </span>
-                    </div>
+                    <p class="text-sm uppercase tracking-[0.3em] text-sky-700 font-semibold">Карточка теста</p>
+                    <h1 id="testTitle" class="text-3xl font-bold mt-2"></h1>
+                    <div id="testSubject" class="text-slate-500 mt-2 font-medium"></div>
+                    <p id="testDescription" class="text-slate-600 mt-3 max-w-3xl"></p>
                 </div>
 
-                <div class="flex gap-2">
-                    <button onclick="editTest()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition flex items-center gap-2">
-                        <i class="fas fa-edit"></i>
+                <div class="flex flex-wrap gap-3">
+                    <button onclick="window.location.href=`/tests/${testId}/edit`" class="bg-sky-600 text-white px-4 py-3 rounded-2xl hover:bg-sky-500 transition flex items-center gap-2">
+                        <i class="fas fa-pen"></i>
                         Редактировать
                     </button>
-                    <button onclick="printTest()" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition flex items-center gap-2">
+                    <button onclick="window.location.href=`/tests/${testId}/print`" class="bg-white border border-slate-200 text-slate-700 px-4 py-3 rounded-2xl hover:border-sky-300 hover:text-sky-700 transition flex items-center gap-2">
                         <i class="fas fa-print"></i>
-                        Печать
+                        Демо-бланк
                     </button>
-                    <button onclick="window.location.href='/tests'" class="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition">
+                    <button onclick="window.location.href='/tests'" class="bg-slate-900 text-white px-4 py-3 rounded-2xl hover:bg-slate-800 transition">
                         Назад
                     </button>
                 </div>
             </div>
-        </div>
 
-        <!-- Вопросы -->
-        <div id="questionsList" class="space-y-4"></div>
-    </div>
+            <div class="grid md:grid-cols-4 gap-4 mt-6">
+                <div class="bg-slate-50 rounded-2xl p-4">
+                    <div class="text-xs uppercase tracking-[0.25em] text-slate-400">Вопросы</div>
+                    <div id="questionCount" class="text-2xl font-bold mt-2">0</div>
+                </div>
+                <div class="bg-slate-50 rounded-2xl p-4">
+                    <div class="text-xs uppercase tracking-[0.25em] text-slate-400">Макс. балл</div>
+                    <div id="maxPoints" class="text-2xl font-bold mt-2">0</div>
+                </div>
+                <div class="bg-slate-50 rounded-2xl p-4">
+                    <div class="text-xs uppercase tracking-[0.25em] text-slate-400">Время</div>
+                    <div id="timeLimit" class="text-2xl font-bold mt-2">Без лимита</div>
+                </div>
+                <div class="bg-slate-50 rounded-2xl p-4">
+                    <div class="text-xs uppercase tracking-[0.25em] text-slate-400">Статус</div>
+                    <div id="testStatus" class="text-2xl font-bold mt-2">Черновик</div>
+                </div>
+            </div>
+        </section>
 
-    <!-- Форма редактирования теста -->
-    <div id="editForm" class="hidden">
-        <form id="testEditForm" class="space-y-6">
-            <!-- Основная информация -->
-            <div class="bg-white rounded-lg shadow-lg p-6">
-                <div class="flex justify-between items-center mb-4">
-                    <h2 class="text-xl font-semibold text-gray-800">Редактирование теста</h2>
-                    <button type="button" onclick="cancelEdit()" class="text-gray-500 hover:text-gray-700">
-                        <i class="fas fa-times"></i>
-                    </button>
+        <section class="grid xl:grid-cols-[1.2fr_0.8fr] gap-6">
+            <div class="bg-white rounded-3xl shadow-sm border border-slate-200 p-6">
+                <div class="flex justify-between items-center gap-3 mb-4">
+                    <div>
+                        <h2 class="text-xl font-semibold">Вопросы</h2>
+                        <p class="text-slate-500 mt-1">Вопросы и правильные ответы теста.</p>
+                    </div>
                 </div>
 
-                <div class="space-y-4">
-                    <div>
-                        <label for="edit_title" class="block text-sm font-medium text-gray-700 mb-2">Название теста *</label>
-                        <input type="text" id="edit_title" name="title" required
-                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                    </div>
+                <div id="questionsList" class="space-y-4"></div>
+            </div>
 
-                    <div>
-                        <label for="edit_description" class="block text-sm font-medium text-gray-700 mb-2">Описание</label>
-                        <textarea id="edit_description" name="description" rows="3"
-                                  class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"></textarea>
-                    </div>
+            <div class="space-y-6">
+                <section class="bg-white rounded-3xl shadow-sm border border-slate-200 p-6">
+                    <h2 class="text-xl font-semibold">Шкала оценивания</h2>
+                    <p class="text-slate-500 mt-1">Эти пороги применяются при автоматической проверке сканов.</p>
+                    <div id="gradeCriteriaList" class="mt-4 space-y-3"></div>
+                </section>
 
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <section class="bg-white rounded-3xl shadow-sm border border-slate-200 p-6">
+                    <h2 class="text-xl font-semibold">Сканирование</h2>
+                    <div id="scanSupportNote" class="mt-3 text-sm rounded-2xl border border-amber-200 bg-amber-50 text-amber-800 p-4 hidden"></div>
+                    <div class="mt-4 text-sm text-slate-600">
+                        Поддерживаются изображения <span class="font-semibold">JPG / PNG / WEBP</span> первого листа бланка ответов.
+                    </div>
+                </section>
+            </div>
+        </section>
+
+        <section id="workflow" class="grid xl:grid-cols-[0.95fr_1.05fr] gap-6">
+            <div class="space-y-6">
+                <section class="bg-white rounded-3xl shadow-sm border border-slate-200 p-6">
+                    <div class="flex justify-between items-center gap-3">
                         <div>
-                            <label for="edit_time_limit" class="block text-sm font-medium text-gray-700 mb-2">Время выполнения (минут)</label>
-                            <input type="number" id="edit_time_limit" name="time_limit" min="1"
-                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            <h2 class="text-xl font-semibold">Выпуск бланков</h2>
+                            <p class="text-slate-500 mt-1">Сгенерируйте персональные бланки для всей группы или только для отмеченных студентов.</p>
+                        </div>
+                        <button onclick="window.location.href='/groups'" class="text-sky-600 hover:text-sky-800 text-sm font-medium">
+                            Открыть группы
+                        </button>
+                    </div>
+
+                    <div class="mt-5 space-y-4">
+                        <div>
+                            <label for="groupSelect" class="block text-sm font-medium text-slate-700 mb-2">Группа</label>
+                            <select id="groupSelect" onchange="handleGroupChange()" class="w-full px-4 py-3 rounded-2xl border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500"></select>
                         </div>
 
                         <div>
-                            <label for="edit_is_active" class="block text-sm font-medium text-gray-700 mb-2">Статус</label>
-                            <select id="edit_is_active" name="is_active"
-                                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                                <option value="1">Активен</option>
-                                <option value="0">Неактивен</option>
-                            </select>
+                            <div class="block text-sm font-medium text-slate-700 mb-2">Кому выпускать бланки</div>
+                            <div class="grid sm:grid-cols-2 gap-3">
+                                <button id="generateModeAllButton" type="button" onclick="setBlankGenerationMode('all')" class="rounded-2xl border border-slate-300 px-4 py-3 text-left transition hover:border-sky-300 hover:bg-white">
+                                    <div class="font-semibold">Вся группа</div>
+                                    <div class="text-sm mt-1 opacity-80">Бланки будут созданы для каждого студента выбранной группы.</div>
+                                </button>
+                                <button id="generateModeSelectedButton" type="button" onclick="setBlankGenerationMode('selected')" class="rounded-2xl border border-slate-300 px-4 py-3 text-left transition hover:border-sky-300 hover:bg-white">
+                                    <div class="font-semibold">Только выбранные</div>
+                                    <div class="text-sm mt-1 opacity-80">Ниже можно отметить только тех студентов, кому нужны бланки сейчас.</div>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="rounded-3xl border border-slate-200 bg-slate-50 p-4">
+                            <div class="flex flex-wrap justify-between items-start gap-3">
+                                <div>
+                                    <div class="text-sm uppercase tracking-[0.25em] text-slate-400">Состав группы</div>
+                                    <div id="studentSelectionSummary" class="text-sm text-slate-600 mt-2">Сначала выберите группу.</div>
+                                </div>
+                                <div class="flex flex-wrap gap-2">
+                                    <button id="selectAllStudentsButton" type="button" onclick="selectAllGroupStudents()" class="bg-white border border-slate-200 text-slate-700 px-3 py-2 rounded-xl hover:border-sky-300 hover:text-sky-700 transition text-sm">
+                                        Отметить всех
+                                    </button>
+                                    <button id="clearStudentsButton" type="button" onclick="clearSelectedGroupStudents()" class="bg-white border border-slate-200 text-slate-700 px-3 py-2 rounded-xl hover:border-sky-300 hover:text-sky-700 transition text-sm">
+                                        Снять выбор
+                                    </button>
+                                </div>
+                            </div>
+                            <div id="groupStudentsList" class="mt-4 grid sm:grid-cols-2 gap-3"></div>
+                        </div>
+
+                        <div class="flex flex-wrap gap-3">
+                            <button onclick="generateBlankForms()" class="bg-emerald-600 text-white px-5 py-3 rounded-2xl hover:bg-emerald-500 transition font-medium">
+                                Сгенерировать бланки
+                            </button>
+                            <button id="printGeneratedButton" onclick="printGeneratedPack()" class="hidden bg-slate-900 text-white px-5 py-3 rounded-2xl hover:bg-slate-800 transition font-medium">
+                                Печать последней пачки
+                            </button>
                         </div>
                     </div>
-                </div>
+                </section>
+
+                <section class="bg-white rounded-3xl shadow-sm border border-slate-200 p-6">
+                    <h2 class="text-xl font-semibold">Загрузка сканов</h2>
+                    <p class="text-slate-500 mt-1">Загрузите отсканированные листы бланков, и система автоматически поставит баллы и оценку.</p>
+
+                    <div class="mt-5 space-y-4">
+                        <input id="scanFiles" type="file" multiple accept=".jpg,.jpeg,.png,.webp"
+                               class="w-full px-4 py-3 rounded-2xl border border-dashed border-slate-300 bg-slate-50">
+                        <button id="scanButton" onclick="uploadScans()" class="bg-sky-600 text-white px-5 py-3 rounded-2xl hover:bg-sky-500 transition font-medium">
+                            Обработать сканы
+                        </button>
+                    </div>
+
+                    <div id="scanResults" class="mt-5 space-y-3"></div>
+                </section>
             </div>
 
-            <!-- Вопросы для редактирования -->
-            <div class="bg-white rounded-lg shadow-lg p-6">
-                <div class="flex justify-between items-center mb-4">
-                    <h2 class="text-xl font-semibold text-gray-800">Вопросы</h2>
-                    <button type="button" onclick="addEditQuestion()"
-                            class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition flex items-center gap-2">
-                        <i class="fas fa-plus"></i>
-                        Добавить вопрос
+            <section class="bg-white rounded-3xl shadow-sm border border-slate-200 p-6">
+                <div class="flex flex-wrap justify-between items-center gap-3 mb-4">
+                    <div>
+                        <h2 class="text-xl font-semibold">Персональные бланки</h2>
+                        <p class="text-slate-500 mt-1">Список уже выпущенных бланков и результатов проверки.</p>
+                    </div>
+                    <button onclick="loadBlankForms()" class="text-sky-600 hover:text-sky-800 text-sm font-medium">
+                        Обновить список
                     </button>
                 </div>
 
-                <div id="editQuestionsContainer" class="space-y-6"></div>
-
-                <div id="editNoQuestions" class="text-center py-8 text-gray-500 border-2 border-dashed border-gray-300 rounded-lg">
-                    <i class="fas fa-question-circle text-4xl mb-2"></i>
-                    <p>Добавьте вопросы к тесту</p>
-                </div>
-            </div>
-
-            <!-- Кнопки сохранения -->
-            <div class="flex justify-end space-x-4">
-                <button type="button" onclick="cancelEdit()"
-                        class="px-6 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition">
-                    Отмена
-                </button>
-                <button type="submit"
-                        class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center gap-2">
-                    <i class="fas fa-save"></i>
-                    Сохранить изменения
-                </button>
-            </div>
-        </form>
+                <div id="blankFormsList" class="space-y-3"></div>
+            </section>
+        </section>
     </div>
-
-    <!-- Ошибка -->
-    <div id="errorMessage" class="hidden bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded"></div>
 </div>
 
 <script>
-    if (!localStorage.getItem('auth_token')) {
-        window.location.href = '/user/login';
-    }
-
-    const token = localStorage.getItem('auth_token');
     const testId = {{ $id }};
     let currentTest = null;
+    let groups = [];
+    let blankForms = [];
+    let lastGeneratedBlankIds = [];
+    let blankGenerationMode = 'all';
+    let selectedGroupStudentIds = [];
 
-    // Загрузка теста
-    async function loadTest() {
+    async function apiFetch(url, options = {}) {
+        return authApiFetch(url, options);
+    }
+
+    async function loadPage() {
         try {
-            const response = await fetch(`/api/tests/${testId}`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Accept': 'application/json'
-                }
-            });
+            const [testResponse, groupsResponse] = await Promise.all([
+                apiFetch(`/api/tests/${testId}`),
+                apiFetch('/api/student-groups')
+            ]);
 
-            if (response.ok) {
-                const data = await response.json();
-                currentTest = data.data || data;
-                displayTest(currentTest);
-            } else if (response.status === 401) {
-                const refreshResult = await refreshToken();
-                if (refreshResult) {
-                    loadTest();
-                } else {
-                    window.location.href = '/user/login';
-                }
-            } else {
-                showError('Ошибка загрузки теста');
+            if (!testResponse.ok) {
+                throw new Error('Не удалось загрузить тест');
+            }
+
+            currentTest = (await testResponse.json()).data;
+            groups = groupsResponse.ok ? ((await groupsResponse.json()).data || []) : [];
+
+            renderTest();
+            renderGroups();
+            await loadBlankForms();
+
+            document.getElementById('loading').classList.add('hidden');
+            document.getElementById('pageContent').classList.remove('hidden');
+
+            if (window.location.hash === '#workflow') {
+                document.getElementById('workflow').scrollIntoView({ behavior: 'smooth', block: 'start' });
             }
         } catch (error) {
-            console.error('Error loading test:', error);
-            showError('Ошибка соединения с сервером');
+            console.error(error);
+            alert(error.message || 'Ошибка загрузки страницы');
         }
     }
 
-    // Отображение теста
-    function displayTest(test) {
-        document.getElementById('loading').classList.add('hidden');
-        document.getElementById('testContent').classList.remove('hidden');
-        document.getElementById('editForm').classList.add('hidden');
-
-        document.getElementById('testTitle').textContent = test.title || 'Без названия';
-        document.getElementById('testDescription').textContent = test.description || 'Нет описания';
-        document.getElementById('timeLimit').innerHTML = `<i class="far fa-clock"></i> ${test.time_limit ? test.time_limit + ' мин' : 'Без ограничений'}`;
-        document.getElementById('questionsCount').innerHTML = `<i class="far fa-question-circle"></i> ${test.questions?.length || 0} вопросов`;
-
-        const totalPoints = test.questions ? test.questions.reduce((sum, q) => sum + (q.points || 1), 0) : 0;
-        document.getElementById('totalPoints').innerHTML = `<i class="fas fa-star"></i> ${totalPoints} баллов`;
+    function renderTest() {
+        document.getElementById('testTitle').textContent = currentTest.title || 'Без названия';
+        document.getElementById('testSubject').textContent = currentTest.subject_name
+            ? `Предмет: ${currentTest.subject_name}`
+            : 'Предмет не указан';
+        document.getElementById('testDescription').textContent = currentTest.description || 'Описание не указано';
+        document.getElementById('questionCount').textContent = currentTest.questions?.length || 0;
+        document.getElementById('maxPoints').textContent = (currentTest.questions || []).reduce((sum, question) => sum + (question.points || 0), 0);
+        document.getElementById('timeLimit').textContent = currentTest.time_limit ? `${currentTest.time_limit} мин` : 'Без лимита';
+        document.getElementById('testStatus').textContent = currentTest.is_active ? 'Активен' : 'Черновик';
 
         const questionsList = document.getElementById('questionsList');
+        questionsList.innerHTML = (currentTest.questions || []).map((question, index) => `
+            <article class="border border-slate-200 rounded-2xl p-4 ${question.type === 'multiple' ? 'bg-violet-50' : 'bg-slate-50'}">
+                <div class="flex justify-between items-start gap-3">
+                    <div>
+                        <h3 class="font-semibold text-slate-900">${index + 1}. ${escapeHtml(question.question_text)}</h3>
+                        <div class="text-sm text-slate-500 mt-2">
+                            ${question.type === 'single' ? 'Один правильный ответ' : 'Несколько правильных ответов'}
+                        </div>
+                    </div>
+                    <span class="bg-white border border-slate-200 rounded-full px-3 py-1 text-sm font-semibold text-slate-700">
+                        ${question.points || 1} балл.
+                    </span>
+                </div>
 
-        if (!test.questions || test.questions.length === 0) {
-            questionsList.innerHTML = `
-                <div class="bg-white rounded-lg shadow-lg p-6 text-center text-gray-500">
-                    <i class="fas fa-question-circle text-4xl mb-2"></i>
-                    <p>В этом тесте пока нет вопросов</p>
+                <div class="mt-4 grid gap-2">
+                    ${(question.answers || []).map((answer, answerIndex) => `
+                        <div class="flex items-start gap-3 rounded-xl px-3 py-2 ${answer.is_correct ? 'bg-emerald-100 text-emerald-900' : 'bg-white'}">
+                            <span class="font-semibold">${String.fromCharCode(65 + answerIndex)}.</span>
+                            <span>${escapeHtml(answer.answer_text)}</span>
+                            ${answer.is_correct ? '<i class="fas fa-check mt-1 text-emerald-700"></i>' : ''}
+                        </div>
+                    `).join('')}
+                </div>
+            </article>
+        `).join('');
+
+        const criteria = [...(currentTest.grade_criteria || [])].sort((a, b) => b.min_points - a.min_points);
+        document.getElementById('gradeCriteriaList').innerHTML = criteria.map((criterion) => `
+            <div class="flex justify-between items-center bg-slate-50 rounded-2xl px-4 py-3">
+                <span class="font-medium text-slate-800">${escapeHtml(criterion.label)}</span>
+                <span class="text-slate-600">от <span class="font-semibold text-slate-900">${criterion.min_points}</span> балл.</span>
+            </div>
+        `).join('');
+
+        const questionCount = currentTest.questions?.length || 0;
+        const hasTooManyAnswers = (currentTest.questions || []).some((question) => (question.answers || []).length > 5);
+        const scanSupportNote = document.getElementById('scanSupportNote');
+        if (questionCount > 15 || hasTooManyAnswers) {
+            scanSupportNote.classList.remove('hidden');
+            scanSupportNote.textContent = hasTooManyAnswers
+                ? 'В одном или нескольких вопросах больше 5 вариантов ответа. Текущий формат автосканирования поддерживает максимум 5.'
+                : 'Для этого теста слишком много вопросов для текущего формата автосканирования. Поддерживается не более 15 вопросов.';
+            document.getElementById('scanButton').disabled = true;
+            document.getElementById('scanButton').classList.add('opacity-50', 'cursor-not-allowed');
+        } else {
+            scanSupportNote.classList.add('hidden');
+        }
+    }
+
+    function renderGroups() {
+        const select = document.getElementById('groupSelect');
+
+        if (!groups.length) {
+            select.innerHTML = '<option value="">Сначала создайте учебную группу</option>';
+            renderGroupStudents();
+            return;
+        }
+
+        select.innerHTML = `
+            <option value="">Выберите группу</option>
+            ${groups.map((group) => `<option value="${group.id}">${escapeHtml(group.name)} (${group.students?.length || 0})</option>`).join('')}
+        `;
+
+        renderGroupStudents();
+    }
+
+    function getSelectedGroup() {
+        const groupId = Number(document.getElementById('groupSelect').value);
+        if (!Number.isInteger(groupId) || groupId <= 0) {
+            return null;
+        }
+
+        return groups.find((group) => Number(group.id) === groupId) || null;
+    }
+
+    function getSelectedGroupStudents() {
+        return getSelectedGroup()?.students || [];
+    }
+
+    function handleGroupChange() {
+        selectedGroupStudentIds = [];
+        blankGenerationMode = 'all';
+        syncBlankGenerationModeButtons();
+        renderGroupStudents();
+    }
+
+    function setBlankGenerationMode(mode) {
+        blankGenerationMode = mode === 'selected' ? 'selected' : 'all';
+        syncBlankGenerationModeButtons();
+        renderGroupStudents();
+    }
+
+    function syncBlankGenerationModeButtons() {
+        const allButton = document.getElementById('generateModeAllButton');
+        const selectedButton = document.getElementById('generateModeSelectedButton');
+        const isAllMode = blankGenerationMode === 'all';
+
+        if (!allButton || !selectedButton) {
+            return;
+        }
+
+        allButton.className = isAllMode
+            ? 'rounded-2xl border border-slate-900 bg-slate-900 px-4 py-3 text-left transition text-white'
+            : 'rounded-2xl border border-slate-300 px-4 py-3 text-left transition hover:border-sky-300 hover:bg-white';
+        selectedButton.className = !isAllMode
+            ? 'rounded-2xl border border-slate-900 bg-slate-900 px-4 py-3 text-left transition text-white'
+            : 'rounded-2xl border border-slate-300 px-4 py-3 text-left transition hover:border-sky-300 hover:bg-white';
+    }
+
+    function renderGroupStudents() {
+        const list = document.getElementById('groupStudentsList');
+        const summary = document.getElementById('studentSelectionSummary');
+        const selectAllButton = document.getElementById('selectAllStudentsButton');
+        const clearButton = document.getElementById('clearStudentsButton');
+        const group = getSelectedGroup();
+        const students = group?.students || [];
+        const selectedIds = new Set(selectedGroupStudentIds.map((value) => Number(value)));
+
+        if (!list || !summary || !selectAllButton || !clearButton) {
+            return;
+        }
+
+        if (!group) {
+            summary.textContent = 'Сначала выберите группу.';
+            list.innerHTML = `
+                <div class="sm:col-span-2 rounded-2xl border border-dashed border-slate-300 bg-white px-4 py-6 text-center text-slate-500">
+                    После выбора группы здесь появится список ее студентов.
+                </div>
+            `;
+            setStudentSelectionButtonsState(true);
+            return;
+        }
+
+        if (!students.length) {
+            summary.textContent = 'В этой группе пока нет студентов.';
+            list.innerHTML = `
+                <div class="sm:col-span-2 rounded-2xl border border-dashed border-slate-300 bg-white px-4 py-6 text-center text-slate-500">
+                    Добавьте студентов в группу, и после этого можно будет выпускать для них бланки.
+                </div>
+            `;
+            setStudentSelectionButtonsState(true);
+            return;
+        }
+
+        setStudentSelectionButtonsState(false);
+
+        const selectedCount = students.filter((student) => selectedIds.has(Number(student.id))).length;
+        summary.textContent = blankGenerationMode === 'selected'
+            ? `Выбрано ${selectedCount} из ${students.length}. Будут выпущены бланки только для отмеченных студентов.`
+            : `Сейчас будет выпущена вся группа: ${students.length} студент(ов). При необходимости переключитесь на выборочный режим.`;
+
+        list.innerHTML = students.map((student) => {
+            const studentId = Number(student.id);
+            const isChecked = selectedIds.has(studentId);
+
+            return `
+                <label class="flex items-start gap-3 rounded-2xl border px-4 py-3 cursor-pointer transition ${isChecked ? 'border-sky-300 bg-white shadow-sm' : 'border-slate-200 bg-white hover:border-slate-300'}">
+                    <input type="checkbox"
+                           ${isChecked ? 'checked' : ''}
+                           onchange="toggleGroupStudent(${studentId}, this.checked)"
+                           class="mt-1 h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500">
+                    <div class="min-w-0">
+                        <div class="font-medium text-slate-900">${escapeHtml(student.full_name || 'Без имени')}</div>
+                    </div>
+                </label>
+            `;
+        }).join('');
+    }
+
+    function setStudentSelectionButtonsState(disabled) {
+        const buttons = [
+            document.getElementById('selectAllStudentsButton'),
+            document.getElementById('clearStudentsButton')
+        ].filter(Boolean);
+
+        buttons.forEach((button) => {
+            button.disabled = disabled;
+            button.classList.toggle('opacity-50', disabled);
+            button.classList.toggle('cursor-not-allowed', disabled);
+        });
+    }
+
+    function toggleGroupStudent(studentId, checked) {
+        const nextIds = new Set(selectedGroupStudentIds.map((value) => Number(value)));
+
+        if (checked) {
+            nextIds.add(Number(studentId));
+        } else {
+            nextIds.delete(Number(studentId));
+        }
+
+        blankGenerationMode = 'selected';
+        syncBlankGenerationModeButtons();
+        selectedGroupStudentIds = Array.from(nextIds);
+        renderGroupStudents();
+    }
+
+    function selectAllGroupStudents() {
+        const students = getSelectedGroupStudents();
+        blankGenerationMode = 'selected';
+        syncBlankGenerationModeButtons();
+        selectedGroupStudentIds = students.map((student) => Number(student.id));
+        renderGroupStudents();
+    }
+
+    function clearSelectedGroupStudents() {
+        blankGenerationMode = 'selected';
+        syncBlankGenerationModeButtons();
+        selectedGroupStudentIds = [];
+        renderGroupStudents();
+    }
+
+    async function loadBlankForms() {
+        const response = await apiFetch(`/api/blank-forms?test_id=${testId}&per_page=100`);
+        if (!response.ok) {
+            throw new Error('Не удалось загрузить бланки');
+        }
+
+        const data = await response.json();
+        blankForms = data.data?.data || data.data || [];
+        renderBlankForms();
+    }
+
+    function renderBlankForms() {
+        const list = document.getElementById('blankFormsList');
+
+        if (!blankForms.length) {
+            list.innerHTML = `
+                <div class="text-center py-10 rounded-2xl border border-dashed border-slate-300 text-slate-500">
+                    Для этого теста пока не выпущено ни одного персонального бланка.
                 </div>
             `;
             return;
         }
 
-        questionsList.innerHTML = test.questions.map((question, qIndex) => {
-            const answers = question.answers || [];
+        list.innerHTML = blankForms.map((blankForm) => {
+            const statusMap = {
+                generated: ['Сгенерирован', 'bg-slate-100 text-slate-700'],
+                submitted: ['Загружен', 'bg-amber-100 text-amber-800'],
+                checked: ['Проверен', 'bg-emerald-100 text-emerald-800']
+            };
+
+            const [statusLabel, statusClass] = statusMap[blankForm.status] || ['Неизвестно', 'bg-slate-100 text-slate-600'];
+            const studentName = [blankForm.last_name, blankForm.first_name, blankForm.patronymic].filter(Boolean).join(' ') || 'Без имени';
+            const assignedGrade = blankForm.assigned_grade_value
+                ? `${escapeHtml(blankForm.assigned_grade_value)} • ${formatDate(blankForm.assigned_grade_date)}`
+                : '';
+
             return `
-                <div class="bg-white rounded-lg shadow-lg p-6">
-                    <div class="flex justify-between items-start mb-4">
-                        <h3 class="text-lg font-semibold text-gray-800">
-                            ${qIndex + 1}. ${escapeHtml(question.question_text)}
-                        </h3>
-                        <span class="px-2 py-1 text-xs rounded-full ${question.type === 'single' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800'}">
-                            ${question.type === 'single' ? 'Один вариант' : 'Несколько вариантов'} | ${question.points || 1} балл(ов)
-                        </span>
+                <article class="border border-slate-200 rounded-2xl p-4">
+                    <div class="flex flex-wrap justify-between gap-3">
+                        <div>
+                            <div class="flex flex-wrap items-center gap-3">
+                                <h3 class="font-semibold text-slate-900">${escapeHtml(studentName)}</h3>
+                                <span class="px-3 py-1 rounded-full text-xs ${statusClass}">${statusLabel}</span>
+                            </div>
+                            <div class="text-sm text-slate-500 mt-2">${escapeHtml(blankForm.group_name || 'Группа не указана')}</div>
+                            <div class="text-xs text-slate-400 mt-2">${escapeHtml(blankForm.form_number || '')}</div>
+                        </div>
+
+                        <div class="text-right">
+                            <div class="text-sm text-slate-500">Результат</div>
+                            <div class="font-semibold text-slate-900">${blankForm.total_score ?? '—'} ${blankForm.grade_label ? `• ${escapeHtml(blankForm.grade_label)}` : ''}</div>
+                            ${assignedGrade ? `<div class="text-xs text-slate-500 mt-2">Поставленная оценка: ${assignedGrade}</div>` : ''}
+                        </div>
                     </div>
 
-                    <div class="space-y-2 ml-4">
-                        ${answers.map((answer, aIndex) => `
-                            <div class="flex items-center gap-2 ${answer.is_correct ? 'text-green-600 font-medium' : 'text-gray-700'}">
-                                ${question.type === 'single'
-                ? '<i class="far fa-circle text-xs"></i>'
-                : '<i class="far fa-square text-xs"></i>'}
-                                <span>${String.fromCharCode(65 + aIndex)}. ${escapeHtml(answer.answer_text)}</span>
-                                ${answer.is_correct ? '<i class="fas fa-check text-green-600 ml-2"></i>' : ''}
-                            </div>
-                        `).join('')}
+                    <div class="flex flex-wrap gap-2 mt-4">
+                        <button onclick="printBlankForm(${blankForm.id})" class="bg-white border border-slate-200 text-slate-700 px-4 py-2 rounded-xl hover:border-sky-300 hover:text-sky-700 transition text-sm">
+                            Печать
+                        </button>
+                        ${blankForm.status === 'checked' ? `
+                            <button onclick="openResultsPage([${blankForm.id}])" class="bg-sky-600 text-white px-4 py-2 rounded-xl hover:bg-sky-500 transition text-sm">
+                                Разбор
+                            </button>
+                        ` : ''}
+                        ${['generated', 'checked'].includes(blankForm.status) ? `
+                            <button onclick="deleteBlankForm(${blankForm.id}, '${blankForm.status}')" class="bg-rose-600 text-white px-4 py-2 rounded-xl hover:bg-rose-500 transition text-sm">
+                                Удалить
+                            </button>
+                        ` : ''}
                     </div>
-                </div>
+                </article>
             `;
         }).join('');
     }
 
-    // Функция экранирования HTML
+    async function generateBlankForms() {
+        const groupId = document.getElementById('groupSelect').value;
+        if (!groupId) {
+            alert('Выберите группу');
+            return;
+        }
+
+        const students = getSelectedGroupStudents();
+        if (!students.length) {
+            alert('В выбранной группе пока нет студентов');
+            return;
+        }
+
+        const selectedIds = [...new Set(selectedGroupStudentIds
+            .map((value) => Number(value))
+            .filter((value) => Number.isInteger(value) && value > 0))];
+
+        if (blankGenerationMode === 'selected' && !selectedIds.length) {
+            alert('Отметьте хотя бы одного студента для выборочной генерации');
+            return;
+        }
+
+        try {
+            const payload = {
+                student_group_id: parseInt(groupId, 10)
+            };
+
+            if (blankGenerationMode === 'selected') {
+                payload.group_student_ids = selectedIds;
+            }
+
+            const response = await apiFetch(`/api/tests/${testId}/generate-blank-forms`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.message || 'Не удалось сгенерировать бланки');
+            }
+
+            const data = await response.json();
+            lastGeneratedBlankIds = (data.data || []).map((item) => item.id);
+            document.getElementById('printGeneratedButton').classList.toggle('hidden', !lastGeneratedBlankIds.length);
+            await loadBlankForms();
+            alert(blankGenerationMode === 'selected'
+                ? `Сгенерировано бланков для выбранных студентов: ${lastGeneratedBlankIds.length}`
+                : `Сгенерировано бланков: ${lastGeneratedBlankIds.length}`);
+        } catch (error) {
+            alert(error.message || 'Ошибка генерации');
+        }
+    }
+
+    function printGeneratedPack() {
+        if (!lastGeneratedBlankIds.length) {
+            return;
+        }
+
+        window.location.href = `/tests/${testId}/print?blank_form_ids=${lastGeneratedBlankIds.join(',')}`;
+    }
+
+    function printBlankForm(blankFormId) {
+        window.location.href = `/tests/${testId}/print?blank_form_ids=${blankFormId}`;
+    }
+
+    async function deleteBlankForm(blankFormId, status) {
+        const actionLabel = status === 'checked' ? 'проверенную работу' : 'сгенерированный бланк';
+        if (!confirm(`Удалить ${actionLabel}? Это действие нельзя отменить.`)) {
+            return;
+        }
+
+        try {
+            const response = await apiFetch(`/api/blank-forms/${blankFormId}`, {
+                method: 'DELETE'
+            });
+
+            if (!response.ok) {
+                const error = await response.json().catch(() => ({}));
+                throw new Error(error.message || 'Не удалось удалить бланк');
+            }
+
+            lastGeneratedBlankIds = lastGeneratedBlankIds.filter((id) => id !== blankFormId);
+            document.getElementById('printGeneratedButton').classList.toggle('hidden', !lastGeneratedBlankIds.length);
+            await loadBlankForms();
+        } catch (error) {
+            alert(error.message || 'Ошибка удаления');
+        }
+    }
+
+    function openResultsPage(blankFormIds) {
+        const ids = [...new Set((blankFormIds || []).map((value) => Number(value)).filter((value) => Number.isInteger(value) && value > 0))];
+
+        if (!ids.length) {
+            return;
+        }
+
+        const params = new URLSearchParams({
+            ids: ids.join(','),
+            test_id: String(testId)
+        });
+
+        window.location.href = `/blank-forms/results?${params.toString()}`;
+    }
+
+    async function uploadScans() {
+        const input = document.getElementById('scanFiles');
+        const scanButton = document.getElementById('scanButton');
+        if (!input.files.length) {
+            alert('Выберите хотя бы один файл');
+            return;
+        }
+
+        const formData = new FormData();
+        Array.from(input.files).forEach((file) => formData.append('scans[]', file));
+
+        try {
+            scanButton.disabled = true;
+            scanButton.classList.add('opacity-70', 'cursor-wait');
+            scanButton.textContent = 'Обрабатываю...';
+
+            const response = await authApiFetch(`/api/tests/${testId}/scan-blank-forms`, {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json'
+                },
+                body: formData
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.message || 'Не удалось обработать сканы');
+            }
+
+            const data = await response.json();
+            const results = data.data || [];
+            const processedIds = [...new Set(results.map((result) => Number(result.blank_form_id)).filter((value) => Number.isInteger(value) && value > 0))];
+            input.value = '';
+
+            if (processedIds.length) {
+                openResultsPage(processedIds);
+                return;
+            }
+
+            renderScanResults(results);
+            await loadBlankForms();
+        } catch (error) {
+            alert(error.message || 'Ошибка загрузки сканов');
+        } finally {
+            scanButton.disabled = false;
+            scanButton.classList.remove('opacity-70', 'cursor-wait');
+            scanButton.textContent = 'Обработать сканы';
+        }
+    }
+
+    function renderScanResults(results) {
+        const container = document.getElementById('scanResults');
+
+        if (!results.length) {
+            container.innerHTML = '';
+            return;
+        }
+
+        container.innerHTML = results.map((result) => `
+            <article class="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
+                <div class="flex flex-wrap justify-between gap-3">
+                    <div>
+                        <div class="font-semibold text-emerald-900">${escapeHtml(result.student_name || 'Без имени')}</div>
+                        <div class="text-sm text-emerald-800 mt-1">${escapeHtml(result.file_name || '')}</div>
+                    </div>
+                    <div class="text-right">
+                        <div class="font-semibold text-emerald-900">${result.score} / ${result.max_score}</div>
+                        <div class="text-sm text-emerald-800">${escapeHtml(result.grade || '')}</div>
+                    </div>
+                </div>
+                ${result.warnings?.length ? `
+                    <div class="mt-3 text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-xl p-3">
+                        ${result.warnings.map((warning) => escapeHtml(warning)).join('<br>')}
+                    </div>
+                ` : ''}
+            </article>
+        `).join('');
+    }
+
     function escapeHtml(text) {
-        if (!text) return '';
         const div = document.createElement('div');
-        div.textContent = text;
+        div.textContent = text || '';
         return div.innerHTML;
     }
 
-    // Переход в режим редактирования
-    function editTest() {
-        document.getElementById('testContent').classList.add('hidden');
-        document.getElementById('editForm').classList.remove('hidden');
+    function formatDate(value) {
+        if (!value) {
+            return '';
+        }
 
-        // Заполняем основную информацию
-        document.getElementById('edit_title').value = currentTest.title || '';
-        document.getElementById('edit_description').value = currentTest.description || '';
-        document.getElementById('edit_time_limit').value = currentTest.time_limit || '';
-        document.getElementById('edit_is_active').value = currentTest.is_active ? '1' : '0';
-
-        // Отображаем вопросы для редактирования
-        displayEditQuestions(currentTest.questions || []);
+        return new Date(value).toLocaleDateString('ru-RU');
     }
 
-    // Отмена редактирования
-    function cancelEdit() {
-        displayTest(currentTest);
-    }
-
-    // Отображение вопросов в режиме редактирования
-    function displayEditQuestions(questions) {
-        const container = document.getElementById('editQuestionsContainer');
-        const noQuestions = document.getElementById('editNoQuestions');
-
-        container.innerHTML = '';
-
-        if (questions.length === 0) {
-            noQuestions.classList.remove('hidden');
+    document.addEventListener('DOMContentLoaded', async () => {
+        if (!await ensureAuthenticatedPage()) {
             return;
         }
 
-        noQuestions.classList.add('hidden');
-
-        questions.forEach((question, index) => {
-            addEditQuestionToContainer(question, index);
-        });
-    }
-
-    // Добавление нового вопроса в форму редактирования
-    function addEditQuestion() {
-        const container = document.getElementById('editQuestionsContainer');
-        const noQuestions = document.getElementById('editNoQuestions');
-
-        if (noQuestions) {
-            noQuestions.classList.add('hidden');
-        }
-
-        addEditQuestionToContainer(null, container.children.length);
-    }
-
-    // Добавление вопроса в контейнер
-    function addEditQuestionToContainer(question = null, index = null) {
-        const container = document.getElementById('editQuestionsContainer');
-        const questionId = question?.id || 'new_' + Date.now() + '_' + Math.random();
-        const currentCount = container.children.length;
-
-        const questionHtml = `
-            <div class="question-item border border-gray-200 rounded-lg p-4" data-id="${questionId}">
-                <div class="flex justify-between items-start mb-3">
-                    <h3 class="font-semibold text-gray-700">Вопрос ${currentCount + 1}</h3>
-                    <button type="button" onclick="removeEditQuestion(this)" class="text-red-600 hover:text-red-800">
-                        <i class="fas fa-trash"></i>
-                    </button>
-                </div>
-
-                <div class="space-y-3">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Текст вопроса *</label>
-                        <input type="text" class="question-text w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                               value="${escapeHtml(question?.question_text || '')}" placeholder="Введите текст вопроса">
-                        <div class="error-message hidden">Текст вопроса обязателен</div>
-                    </div>
-
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Тип вопроса</label>
-                            <select class="question-type w-full px-3 py-2 border border-gray-300 rounded-lg" onchange="toggleEditAnswersType(this, '${questionId}')">
-                                <option value="single" ${question?.type === 'single' ? 'selected' : ''}>Один вариант</option>
-                                <option value="multiple" ${question?.type === 'multiple' ? 'selected' : ''}>Несколько вариантов</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Баллы *</label>
-                            <input type="number" class="question-points w-full px-3 py-2 border border-gray-300 rounded-lg" value="${question?.points || 1}" min="1" step="1">
-                            <div class="error-message hidden">Баллы должны быть от 1 и выше</div>
-                        </div>
-                    </div>
-
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Варианты ответов *</label>
-                        <div class="answers-container space-y-2">
-                            ${generateEditAnswersHtml(question?.answers || [{}, {}], question?.type || 'single', questionId)}
-                        </div>
-                        <button type="button" onclick="addEditAnswer(this, '${questionId}')"
-                                class="mt-2 text-blue-600 hover:text-blue-800 text-sm flex items-center gap-1">
-                            <i class="fas fa-plus-circle"></i> Добавить вариант ответа
-                        </button>
-                        <div class="error-message answers-error hidden"></div>
-                    </div>
-                </div>
-            </div>
-        `;
-
-        container.insertAdjacentHTML('beforeend', questionHtml);
-    }
-
-    // Генерация HTML для ответов
-    function generateEditAnswersHtml(answers, type, questionId) {
-        return answers.map((answer, index) => {
-            const answerId = answer.id ? `data-id="${answer.id}"` : '';
-            return `
-                <div class="answer-item flex items-center gap-2" ${answerId}>
-                    <input type="${type === 'single' ? 'radio' : 'checkbox'}"
-                           class="answer-correct w-4 h-4"
-                           name="correct_${questionId}"
-                           ${answer.is_correct ? 'checked' : ''}>
-                    <input type="text" class="answer-text flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                           value="${escapeHtml(answer.answer_text || '')}" placeholder="Вариант ответа ${index + 1}">
-                    <button type="button" onclick="removeEditAnswer(this)" class="text-red-600 hover:text-red-800">
-                        <i class="fas fa-times"></i>
-                    </button>
-                </div>
-            `;
-        }).join('');
-    }
-
-    // Переключение типа ответов
-    function toggleEditAnswersType(select, questionId) {
-        const questionItem = select.closest('.question-item');
-        const answersContainer = questionItem.querySelector('.answers-container');
-        const answerItems = answersContainer.querySelectorAll('.answer-item');
-        const type = select.value;
-
-        answerItems.forEach((item, index) => {
-            const checkbox = item.querySelector('.answer-correct');
-            checkbox.type = type === 'single' ? 'radio' : 'checkbox';
-            checkbox.name = type === 'single' ? `correct_${questionId}` : '';
-            if (type === 'multiple') checkbox.checked = false;
-        });
-    }
-
-    // Добавление нового ответа
-    function addEditAnswer(button, questionId) {
-        const answersContainer = button.closest('.question-item').querySelector('.answers-container');
-        const type = button.closest('.question-item').querySelector('.question-type').value;
-        const answerCount = answersContainer.children.length + 1;
-
-        const html = `
-            <div class="answer-item flex items-center gap-2">
-                <input type="${type === 'single' ? 'radio' : 'checkbox'}"
-                       class="answer-correct w-4 h-4"
-                       name="${type === 'single' ? `correct_${questionId}` : ''}">
-                <input type="text" class="answer-text flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                       placeholder="Вариант ответа ${answerCount}">
-                <button type="button" onclick="removeEditAnswer(this)" class="text-red-600 hover:text-red-800">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-        `;
-        answersContainer.insertAdjacentHTML('beforeend', html);
-    }
-
-    // Удаление ответа
-    function removeEditAnswer(button) {
-        const answersContainer = button.closest('.answers-container');
-        if (answersContainer.children.length > 2) {
-            button.closest('.answer-item').remove();
-        } else {
-            alert('Должно быть минимум 2 варианта ответа');
-        }
-    }
-
-    // Удаление вопроса
-    function removeEditQuestion(button) {
-        if (confirm('Удалить этот вопрос?')) {
-            button.closest('.question-item').remove();
-
-            // Обновляем нумерацию
-            const questions = document.querySelectorAll('#editQuestionsContainer .question-item');
-            questions.forEach((q, index) => {
-                q.querySelector('h3').textContent = `Вопрос ${index + 1}`;
-            });
-
-            // Если вопросов не осталось, показываем заглушку
-            if (questions.length === 0) {
-                document.getElementById('editNoQuestions').classList.remove('hidden');
-            }
-        }
-    }
-
-    // Валидация вопросов
-    function validateEditQuestions() {
-        let isValid = true;
-        const questionItems = document.querySelectorAll('#editQuestionsContainer .question-item');
-
-        if (questionItems.length === 0) {
-            alert('Добавьте хотя бы один вопрос');
-            return false;
-        }
-
-        questionItems.forEach((item, index) => {
-            // Проверка текста вопроса
-            const questionText = item.querySelector('.question-text').value.trim();
-            const textError = item.querySelector('.question-text').closest('div').querySelector('.error-message');
-
-            if (!questionText) {
-                item.querySelector('.question-text').classList.add('error-border');
-                if (textError) textError.classList.remove('hidden');
-                isValid = false;
-            } else {
-                item.querySelector('.question-text').classList.remove('error-border');
-                if (textError) textError.classList.add('hidden');
-            }
-
-            // Проверка баллов
-            const points = parseInt(item.querySelector('.question-points').value);
-            const pointsError = item.querySelector('.question-points').closest('div').querySelector('.error-message');
-
-            if (!points || points < 1) {
-                item.querySelector('.question-points').classList.add('error-border');
-                if (pointsError) pointsError.classList.remove('hidden');
-                isValid = false;
-            } else {
-                item.querySelector('.question-points').classList.remove('error-border');
-                if (pointsError) pointsError.classList.add('hidden');
-            }
-
-            // Проверка ответов
-            const answerItems = item.querySelectorAll('.answer-item');
-            const answersError = item.querySelector('.answers-error');
-            let hasEmptyAnswer = false;
-            let hasCorrectAnswer = false;
-            let validAnswersCount = 0;
-
-            answerItems.forEach(answerItem => {
-                const answerText = answerItem.querySelector('.answer-text').value.trim();
-                const isCorrect = answerItem.querySelector('.answer-correct').checked;
-
-                if (answerText) {
-                    validAnswersCount++;
-                    if (isCorrect) hasCorrectAnswer = true;
-                } else {
-                    hasEmptyAnswer = true;
-                    answerItem.querySelector('.answer-text').classList.add('error-border');
-                }
-            });
-
-            // Проверка на пустые ответы
-            if (hasEmptyAnswer) {
-                if (answersError) {
-                    answersError.textContent = 'Заполните все варианты ответов или удалите пустые';
-                    answersError.classList.remove('hidden');
-                }
-                isValid = false;
-            }
-            // Проверка на количество ответов
-            else if (validAnswersCount < 2) {
-                if (answersError) {
-                    answersError.textContent = 'Должно быть минимум 2 варианта ответа';
-                    answersError.classList.remove('hidden');
-                }
-                isValid = false;
-            }
-            // Проверка на наличие правильного ответа
-            else if (!hasCorrectAnswer) {
-                if (answersError) {
-                    answersError.textContent = 'Выберите хотя бы один правильный вариант ответа';
-                    answersError.classList.remove('hidden');
-                }
-                isValid = false;
-            }
-            else {
-                if (answersError) answersError.classList.add('hidden');
-                // Убираем error-border со всех полей ответов
-                answerItems.forEach(answerItem => {
-                    answerItem.querySelector('.answer-text').classList.remove('error-border');
-                });
-            }
-        });
-
-        return isValid;
-    }
-
-    // Сохранение изменений
-    document.getElementById('testEditForm').addEventListener('submit', async (e) => {
-        e.preventDefault();
-
-        // Валидация
-        if (!validateEditQuestions()) {
-            // Прокручиваем к первому вопросу с ошибкой
-            const firstError = document.querySelector('.error-border');
-            if (firstError) {
-                firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }
-            return;
-        }
-
-        const questions = [];
-        const questionItems = document.querySelectorAll('#editQuestionsContainer .question-item');
-
-        questionItems.forEach((item, index) => {
-            const answers = [];
-            const answerItems = item.querySelectorAll('.answer-item');
-
-            answerItems.forEach((answerItem, aIndex) => {
-                const text = answerItem.querySelector('.answer-text').value.trim();
-                const isCorrect = answerItem.querySelector('.answer-correct').checked;
-                const answerId = answerItem.dataset.id;
-
-                if (text) {
-                    const answerData = {
-                        answer_text: text,
-                        is_correct: isCorrect,
-                        order: aIndex
-                    };
-
-                    if (answerId && !answerId.toString().startsWith('new_')) {
-                        answerData.id = parseInt(answerId);
-                    }
-
-                    answers.push(answerData);
-                }
-            });
-
-            const questionText = item.querySelector('.question-text').value.trim();
-            const questionId = item.dataset.id;
-
-            if (questionText && answers.length >= 2) {
-                const questionData = {
-                    question_text: questionText,
-                    type: item.querySelector('.question-type').value,
-                    points: parseInt(item.querySelector('.question-points').value) || 1,
-                    order: index,
-                    answers: answers
-                };
-
-                if (questionId && !questionId.toString().startsWith('new_')) {
-                    questionData.id = parseInt(questionId);
-                }
-
-                questions.push(questionData);
-            }
-        });
-
-        if (questions.length === 0) {
-            alert('Добавьте хотя бы один вопрос с вариантами ответов');
-            return;
-        }
-
-        const testData = {
-            title: document.getElementById('edit_title').value.trim(),
-            description: document.getElementById('edit_description').value.trim() || null,
-            time_limit: document.getElementById('edit_time_limit').value ? parseInt(document.getElementById('edit_time_limit').value) : null,
-            is_active: document.getElementById('edit_is_active').value === '1',
-            questions: questions
-        };
-
-        if (!testData.title) {
-            alert('Введите название теста');
-            document.getElementById('edit_title').focus();
-            return;
-        }
-
-        console.log('Sending test data:', JSON.stringify(testData, null, 2));
-
-        try {
-            const response = await fetch(`/api/tests/${testId}`, {
-                method: 'PUT',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json'
-                },
-                body: JSON.stringify(testData)
-            });
-
-            if (response.ok) {
-                const data = await response.json();
-                alert('Тест успешно обновлен!');
-                currentTest = data.data || data;
-                displayTest(currentTest);
-            } else {
-                const error = await response.json();
-                console.error('Update error:', error);
-                alert('Ошибка при обновлении теста: ' + (error.message || 'Неизвестная ошибка'));
-            }
-        } catch (error) {
-            console.error('Error updating test:', error);
-            alert('Ошибка соединения с сервером');
-        }
+        syncBlankGenerationModeButtons();
+        loadPage();
     });
-
-    // Обновление токена
-    async function refreshToken() {
-        try {
-            const response = await fetch('/api/refresh', {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Accept': 'application/json'
-                }
-            });
-
-            if (response.ok) {
-                const data = await response.json();
-                const newToken = data.authorization?.token || data.token;
-                if (newToken) {
-                    localStorage.setItem('auth_token', newToken);
-                }
-                return true;
-            }
-            return false;
-        } catch (error) {
-            console.error('Refresh error:', error);
-            return false;
-        }
-    }
-
-    // Печать теста
-    function printTest() {
-        window.location.href = `/tests/${testId}/print`;
-    }
-
-    // Показать ошибку
-    function showError(message) {
-        document.getElementById('loading').classList.add('hidden');
-        const errorMsg = document.getElementById('errorMessage');
-        errorMsg.textContent = message;
-        errorMsg.classList.remove('hidden');
-
-        setTimeout(() => {
-            errorMsg.classList.add('hidden');
-        }, 5000);
-    }
-
-    // Загружаем тест при загрузке страницы
-    document.addEventListener('DOMContentLoaded', loadTest);
 </script>
 </body>
 </html>

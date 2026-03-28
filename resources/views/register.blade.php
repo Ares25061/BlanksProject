@@ -68,6 +68,8 @@
 </div>
 
 <script>
+    const registerParams = new URLSearchParams(window.location.search);
+
     function showMessage(type, message) {
         const errorDiv = document.getElementById('errorMessage');
         const successDiv = document.getElementById('successMessage');
@@ -81,17 +83,6 @@
             successDiv.classList.remove('hidden');
             errorDiv.classList.add('hidden');
         }
-    }
-
-    // Проверяем, авторизован ли пользователь
-    function checkAuth() {
-        const token = localStorage.getItem('auth_token');
-        return token ? true : false;
-    }
-
-    // Если пользователь уже авторизован, перенаправляем в профиль
-    if (checkAuth()) {
-        window.location.href = '/user/profile';
     }
 
     document.getElementById('registerForm').addEventListener('submit', async function(e) {
@@ -127,23 +118,13 @@
             const data = await response.json();
 
             if (response.ok) {
-                // Сохраняем токен
-                if (data.authorization?.token) {
-                    localStorage.setItem('auth_token', data.authorization.token);
-                } else if (data.token) {
-                    localStorage.setItem('auth_token', data.token);
-                }
-
-                // Сохраняем данные пользователя
-                if (data.user) {
-                    localStorage.setItem('user', JSON.stringify(data.user));
-                }
+                setAuthState(data);
 
                 showMessage('success', data.message || 'Регистрация успешна!');
 
-                // Перенаправляем на профиль
                 setTimeout(() => {
-                    window.location.href = '/user/profile';
+                    const nextUrl = registerParams.get('next') || '/user/profile';
+                    window.location.href = nextUrl;
                 }, 1000);
             } else {
                 if (data.errors) {
@@ -157,6 +138,10 @@
             console.error('Error:', error);
             showMessage('error', 'Ошибка соединения с сервером');
         }
+    });
+
+    document.addEventListener('DOMContentLoaded', async () => {
+        await redirectAuthenticatedUser('/user/profile');
     });
 </script>
 </body>

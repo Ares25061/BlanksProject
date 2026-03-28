@@ -3,10 +3,13 @@ namespace App\Http\Controllers;
 
 use App\Models\Test;
 use App\Models\BlankForm;
+use App\Models\StudentGroup;
 use App\Services\BlankFormService;
+use App\Services\BlankScanService;
 use App\Services\GradingService;
 use Illuminate\Http\Request;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use Illuminate\Support\Facades\Storage;
 
 class BlankFormController extends Controller
 {
@@ -14,11 +17,17 @@ class BlankFormController extends Controller
 
     protected $blankFormService;
     protected $gradingService;
+    protected $blankScanService;
 
-    public function __construct(BlankFormService $blankFormService, GradingService $gradingService)
+    public function __construct(
+        BlankFormService $blankFormService,
+        GradingService $gradingService,
+        BlankScanService $blankScanService
+    )
     {
         $this->blankFormService = $blankFormService;
         $this->gradingService = $gradingService;
+        $this->blankScanService = $blankScanService;
     }
 
     public function generateForTest(Request $request, Test $test)
@@ -27,15 +36,29 @@ class BlankFormController extends Controller
 
         $validated = $request->validate([
             'count' => 'nullable|integer|min:1|max:100',
+            'student_group_id' => 'nullable|exists:student_groups,id',
+            'group_student_ids' => 'nullable|array',
+            'group_student_ids.*' => 'integer|exists:group_students,id',
             'students' => 'nullable|array',
+            'students.*.full_name' => 'nullable|string|max:255',
             'students.*.last_name' => 'nullable|string',
             'students.*.first_name' => 'nullable|string',
+            'students.*.patronymic' => 'nullable|string',
             'students.*.group_name' => 'nullable|string'
         ]);
 
         $count = $validated['count'] ?? 1;
 
-        if (isset($validated['students'])) {
+        if (!empty($validated['student_group_id'])) {
+            $group = StudentGroup::with('students')->findOrFail($validated['student_group_id']);
+            $this->authorize('view', $group);
+
+            $forms = $this->blankFormService->generateBlankFormsForGroup(
+                $test,
+                $group,
+                $validated['group_student_ids'] ?? []
+            );
+        } elseif (isset($validated['students'])) {
             $forms = [];
             foreach ($validated['students'] as $studentData) {
                 $forms[] = $this->blankFormService->generateBlankForm($test, $studentData);
@@ -55,11 +78,12 @@ class BlankFormController extends Controller
     {
         $this->authorize('view', $blankForm);
 
-        $blankForm->load(['test.questions.answers', 'studentAnswers']);
+        $blankForm->load(['test.questions.answers', 'studentAnswers.question.answers', 'studentGroup', 'groupStudent', 'gradeAssigner']);
 
         return response()->json([
             'status' => 'success',
-            'data' => $blankForm
+            'data' => $blankForm,
+            'grade' => $this->gradingService->getStudentGrade($blankForm->loadMissing('test.questions'))
         ]);
     }
 
@@ -70,6 +94,7 @@ class BlankFormController extends Controller
         $validated = $request->validate([
             'last_name' => 'nullable|string|max:255',
             'first_name' => 'nullable|string|max:255',
+            'patronymic' => 'nullable|string|max:255',
             'group_name' => 'nullable|string|max:255',
             'submission_date' => 'nullable|date',
             'questions' => 'required|array',
@@ -116,6 +141,24 @@ class BlankFormController extends Controller
         ]);
     }
 
+    public function scanForTest(Request $request, Test $test)
+    {
+        $this->authorize('update', $test);
+
+        $validated = $request->validate([
+            'scans' => 'required|array|min:1',
+            'scans.*' => 'required|file|mimes:jpg,jpeg,png,webp|max:15360',
+        ]);
+
+        $results = $this->blankScanService->scanUploadedForms($test->load('questions.answers'), $validated['scans']);
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Сканы обработаны',
+            'data' => $results,
+        ]);
+    }
+
     public function getGrade(BlankForm $blankForm)
     {
         $this->authorize('view', $blankForm);
@@ -128,13 +171,62 @@ class BlankFormController extends Controller
         ]);
     }
 
+    public function assignGrade(Request $request, BlankForm $blankForm)
+    {
+        $this->authorize('assignGrade', $blankForm);
+
+        $validated = $request->validate([
+            'grade_value' => 'required|string|max:50',
+            'grade_date' => 'required|date',
+        ]);
+
+        $blankForm = $this->gradingService->assignStudentGrade($blankForm, $validated);
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Оценка ученику сохранена',
+            'data' => $blankForm,
+        ]);
+    }
+
+    public function destroy(BlankForm $blankForm)
+    {
+        $this->authorize('delete', $blankForm);
+
+        $this->blankFormService->deleteBlankForm($blankForm);
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Бланк удален',
+        ]);
+    }
+
+    public function scanImage(BlankForm $blankForm)
+    {
+        $this->authorize('view', $blankForm);
+
+        if (!$blankForm->scan_path || !Storage::disk('local')->exists($blankForm->scan_path)) {
+            abort(404, 'Скан бланка не найден.');
+        }
+
+        return Storage::disk('local')->response(
+            $blankForm->scan_path,
+            basename($blankForm->scan_path),
+            [],
+            'inline'
+        );
+    }
+
     public function index(Request $request)
     {
         $this->authorize('viewAny', BlankForm::class);
 
-        $blankForms = BlankForm::with(['test', 'studentAnswers'])
+        $blankForms = BlankForm::with(['test', 'studentAnswers', 'studentGroup', 'groupStudent', 'gradeAssigner'])
             ->when($request->test_id, function ($query, $testId) {
                 $query->where('test_id', $testId);
+            })
+            ->when($request->student_group_id, function ($query, $groupId) {
+                $query->where('student_group_id', $groupId);
             })
             ->when($request->status, function ($query, $status) {
                 $query->where('status', $status);

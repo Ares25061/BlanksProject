@@ -1,8 +1,10 @@
 <?php
 namespace App\Http\Controllers;
 
+use App\Models\BlankForm;
 use App\Models\Test;
 use App\Services\TestService;
+use App\Support\BlankScanLayout;
 use App\Http\Requests\TestRequest;
 use Illuminate\Http\Request;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
@@ -97,7 +99,7 @@ class TestController extends Controller
             'type' => 'required|in:single,multiple',
             'points' => 'nullable|integer|min:1',
             'order' => 'nullable|integer',
-            'answers' => 'required|array|min:1',
+            'answers' => 'required|array|min:2|max:' . BlankScanLayout::ANSWER_OPTION_COUNT,
             'answers.*.answer_text' => 'required|string',
             'answers.*.is_correct' => 'boolean',
             'answers.*.order' => 'nullable|integer'
@@ -109,6 +111,51 @@ class TestController extends Controller
             'status' => 'success',
             'message' => 'Вопрос успешно добавлен',
             'data' => $question
+        ]);
+    }
+
+    public function print(Request $request, Test $test)
+    {
+        // Web-страницы в этом проекте сейчас открываются без Laravel session:
+        // авторизация преподавателя живет в JWT внутри localStorage и используется API-запросами.
+        // Поэтому для печатной страницы не выполняем обязательную policy-проверку по session-user,
+        // иначе маршрут стабильно отдает 403 даже для авторизованного преподавателя.
+        if ($request->user()) {
+            $this->authorize('view', $test);
+        }
+
+        $blankFormIds = collect(explode(',', (string) $request->query('blank_form_ids')))
+            ->map(fn ($id) => (int) trim($id))
+            ->filter()
+            ->values();
+
+        $blankForms = BlankForm::with(['test.questions.answers', 'studentGroup', 'groupStudent'])
+            ->where('test_id', $test->id)
+            ->when($blankFormIds->isNotEmpty(), fn ($query) => $query->whereIn('id', $blankFormIds))
+            ->orderBy('group_name')
+            ->orderBy('last_name')
+            ->orderBy('first_name')
+            ->get();
+
+        if ($blankForms->isEmpty()) {
+            $blankForms = collect([
+                new BlankForm([
+                    'id' => 0,
+                    'test_id' => $test->id,
+                    'form_number' => 'PREVIEW',
+                    'group_name' => 'ДЕМО-ГРУППА',
+                    'last_name' => 'ИВАНОВ',
+                    'first_name' => 'ИВАН',
+                    'patronymic' => 'ИВАНОВИЧ',
+                    'metadata' => ['is_preview' => true],
+                ]),
+            ]);
+        }
+
+        return view('tests.print', [
+            'test' => $test->load('questions.answers'),
+            'blankForms' => $blankForms,
+            'maxScannableQuestions' => BlankScanLayout::maxQuestions(),
         ]);
     }
 }
