@@ -45,6 +45,48 @@ class TeacherWorkflowTest extends TestCase
         $this->assertSame('Дудина Софья Романовна', $group->students[0]->full_name);
     }
 
+    public function test_api_tests_index_returns_only_current_teachers_tests(): void
+    {
+        $teacher = User::factory()->create();
+        $otherTeacher = User::factory()->create();
+
+        $ownTest = Test::create([
+            'title' => 'Мой тест',
+            'created_by' => $teacher->id,
+            'is_active' => true,
+        ]);
+
+        $foreignTest = Test::create([
+            'title' => 'Чужой тест',
+            'created_by' => $otherTeacher->id,
+            'is_active' => true,
+        ]);
+
+        $response = $this->actingAs($teacher, 'api')->getJson('/api/tests');
+
+        $response->assertOk();
+        $testIds = collect($response->json('data.data'))->pluck('id')->all();
+
+        $this->assertContains($ownTest->id, $testIds);
+        $this->assertNotContains($foreignTest->id, $testIds);
+    }
+
+    public function test_api_test_show_forbids_viewing_foreign_test(): void
+    {
+        $teacher = User::factory()->create();
+        $otherTeacher = User::factory()->create();
+
+        $foreignTest = Test::create([
+            'title' => 'Чужой тест',
+            'created_by' => $otherTeacher->id,
+            'is_active' => true,
+        ]);
+
+        $this->actingAs($teacher, 'api')
+            ->getJson('/api/tests/' . $foreignTest->id)
+            ->assertForbidden();
+    }
+
     public function test_grading_service_uses_custom_grade_criteria(): void
     {
         $teacher = User::factory()->create();

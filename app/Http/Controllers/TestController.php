@@ -26,6 +26,7 @@ class TestController extends Controller
         $this->authorize('viewAny', Test::class);
 
         $tests = Test::with(['creator', 'questions.answers'])
+            ->where('created_by', $request->user()->id)
             ->when($request->search, function ($query, $search) {
                 $query->where('title', 'like', "%{$search}%");
             })

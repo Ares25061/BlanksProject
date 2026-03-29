@@ -8,12 +8,12 @@ class TestPolicy
 {
     public function viewAny(User $user)
     {
-        return true; // Все могут видеть список тестов
+        return true; // Все авторизованные преподаватели могут открыть страницу своих тестов
     }
 
     public function view(User $user, Test $test)
     {
-        return true; // Все могут просматривать тест
+        return $user->id === $test->created_by;
     }
 
     public function create(User $user)
