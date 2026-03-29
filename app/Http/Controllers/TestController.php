@@ -8,6 +8,7 @@ use App\Support\BlankScanLayout;
 use App\Http\Requests\TestRequest;
 use Illuminate\Http\Request;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use Illuminate\Support\Str;
 
 class TestController extends Controller
 {
@@ -152,10 +153,46 @@ class TestController extends Controller
             ]);
         }
 
+        $documentTitle = $this->buildPrintDocumentTitle($test, $blankForms);
+
         return view('tests.print', [
             'test' => $test->load('questions.answers'),
             'blankForms' => $blankForms,
+            'documentTitle' => $documentTitle,
             'maxScannableQuestions' => BlankScanLayout::maxQuestions(),
         ]);
+    }
+
+    private function buildPrintDocumentTitle(Test $test, $blankForms): string
+    {
+        $firstBlankForm = $blankForms->first();
+        $studentLabel = trim(implode(' ', array_filter([
+            $firstBlankForm?->last_name,
+            $firstBlankForm?->first_name,
+        ])));
+
+        if ($blankForms->count() === 1 && $studentLabel !== '') {
+            return $this->sanitizeDocumentTitle("Бланк {$studentLabel} {$test->title}");
+        }
+
+        $groupLabel = trim((string) ($firstBlankForm?->group_name ?? ''));
+        $baseTitle = $blankForms->count() > 1
+            ? "Бланки {$test->title}"
+            : "Бланк {$test->title}";
+
+        if ($groupLabel !== '') {
+            $baseTitle .= " {$groupLabel}";
+        }
+
+        return $this->sanitizeDocumentTitle($baseTitle);
+    }
+
+    private function sanitizeDocumentTitle(string $value): string
+    {
+        return Str::of($value)
+            ->replaceMatches('/[\\\\\\/:*?"<>|]+/u', ' ')
+            ->squish()
+            ->limit(150, '')
+            ->value();
     }
 }
