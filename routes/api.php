@@ -16,7 +16,7 @@ Route::middleware('auth:api')->group(function () {
     Route::put('student-groups/{student_group}/gradebook-entry', [StudentGroupController::class, 'upsertGradebookEntry']);
 
     // Тесты
-    Route::apiResource('tests', TestController::class);
+    Route::apiResource('tests', TestController::class)->names('api.tests');
     Route::post('tests/{test}/questions', [TestController::class, 'addQuestion']);
 
     // Бланки
