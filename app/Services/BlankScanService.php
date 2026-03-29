@@ -80,7 +80,7 @@ class BlankScanService
                 'status' => $blankForm->status,
             ];
         } finally {
-            imagedestroy($image);
+            \imagedestroy($image);
         }
     }
 
@@ -89,10 +89,22 @@ class BlankScanService
         $mimeType = $file->getMimeType();
         $path = $file->getRealPath();
 
+        if (!function_exists('imagecreatefromjpeg') || !function_exists('imagecreatefrompng')) {
+            throw ValidationException::withMessages([
+                'scan' => 'На сервере не включено расширение GD для обработки изображений.',
+            ]);
+        }
+
+        if ($mimeType === 'image/webp' && !function_exists('imagecreatefromwebp')) {
+            throw ValidationException::withMessages([
+                'scan' => 'На сервере не включена поддержка WEBP в расширении GD.',
+            ]);
+        }
+
         $image = match ($mimeType) {
-            'image/png' => imagecreatefrompng($path),
-            'image/webp' => imagecreatefromwebp($path),
-            default => imagecreatefromjpeg($path),
+            'image/png' => \imagecreatefrompng($path),
+            'image/webp' => \imagecreatefromwebp($path),
+            default => \imagecreatefromjpeg($path),
         };
 
         if (!$image) {
@@ -101,9 +113,9 @@ class BlankScanService
             ]);
         }
 
-        if (imagesx($image) > imagesy($image)) {
-            $rotated = imagerotate($image, 90, 255);
-            imagedestroy($image);
+        if (\imagesx($image) > \imagesy($image)) {
+            $rotated = \imagerotate($image, 90, 255);
+            \imagedestroy($image);
             $image = $rotated;
         }
 
@@ -112,8 +124,8 @@ class BlankScanService
 
     protected function detectMarkers($image): array
     {
-        $width = imagesx($image);
-        $height = imagesy($image);
+        $width = \imagesx($image);
+        $height = \imagesy($image);
         $searchWidth = (int) floor($width * 0.22);
         $searchHeight = (int) floor($height * 0.18);
         $window = max(18, (int) floor(min($width, $height) * 0.035));
@@ -337,10 +349,10 @@ class BlankScanService
 
     protected function pixelDarkness($image, int $x, int $y): float
     {
-        $x = max(0, min(imagesx($image) - 1, $x));
-        $y = max(0, min(imagesy($image) - 1, $y));
+        $x = max(0, min(\imagesx($image) - 1, $x));
+        $y = max(0, min(\imagesy($image) - 1, $y));
 
-        $rgb = imagecolorat($image, $x, $y);
+        $rgb = \imagecolorat($image, $x, $y);
         $r = ($rgb >> 16) & 0xFF;
         $g = ($rgb >> 8) & 0xFF;
         $b = $rgb & 0xFF;
@@ -353,9 +365,9 @@ class BlankScanService
     {
         $radius = (int) ceil($window * 0.9);
         $minX = max(0, (int) floor($point['x'] - $radius));
-        $maxX = min(imagesx($image) - 1, (int) ceil($point['x'] + $radius));
+        $maxX = min(\imagesx($image) - 1, (int) ceil($point['x'] + $radius));
         $minY = max(0, (int) floor($point['y'] - $radius));
-        $maxY = min(imagesy($image) - 1, (int) ceil($point['y'] + $radius));
+        $maxY = min(\imagesy($image) - 1, (int) ceil($point['y'] + $radius));
 
         $darkMinX = null;
         $darkMaxX = null;

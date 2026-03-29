@@ -9,6 +9,7 @@
     ],
     "license": "MIT",
     "require": {
+        "ext-gd": "*",
         "php": "^8.2",
         "laravel/framework": "^12.0",
         "laravel/sanctum": "^4.0",
