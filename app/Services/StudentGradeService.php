@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\BlankForm;
+use App\Models\GroupSubject;
 use App\Models\StudentGrade;
 use App\Models\GroupStudent;
 use App\Models\StudentGroup;
@@ -15,10 +16,16 @@ class StudentGradeService
 {
     public function buildGradebook(StudentGroup $group, ?string $subjectName = null): array
     {
-        $group->loadMissing('students');
+        $group->loadMissing('students', 'subjects');
+
+        $requestedSubject = trim((string) $subjectName);
+        if ($requestedSubject !== '') {
+            $this->ensureSubjectExists($group, $requestedSubject);
+            $group->load('subjects');
+        }
 
         $availableSubjects = $this->availableSubjects($group);
-        $resolvedSubject = $this->resolveSubject($subjectName, $availableSubjects);
+        $resolvedSubject = $this->resolveSubject($requestedSubject, $availableSubjects);
         $entries = $group->studentGrades()
             ->when($resolvedSubject !== '', fn ($query) => $query->where('subject_name', $resolvedSubject))
             ->orderBy('grade_date')
@@ -84,6 +91,8 @@ class StudentGradeService
                 ]);
             }
 
+            $this->ensureSubjectExists($group, $subjectName);
+
             $entry = StudentGrade::firstOrNew([
                 'group_student_id' => $student->id,
                 'subject_name' => $subjectName,
@@ -137,6 +146,11 @@ class StudentGradeService
 
         return DB::transaction(function () use ($blankForm, $gradeValue) {
             $subjectName = $blankForm->test?->subject_display_name ?: $blankForm->test?->title ?: 'Без предмета';
+            $group = $blankForm->studentGroup;
+
+            if ($group) {
+                $this->ensureSubjectExists($group, $subjectName);
+            }
 
             $entry = StudentGrade::firstOrNew([
                 'group_student_id' => $blankForm->group_student_id,
@@ -162,6 +176,10 @@ class StudentGradeService
 
     private function availableSubjects(StudentGroup $group): Collection
     {
+        $fromSubjects = $group->subjects
+            ->pluck('subject_name')
+            ->filter();
+
         $fromTests = $group->blankForms()
             ->with('test')
             ->get()
@@ -172,7 +190,8 @@ class StudentGradeService
             ->pluck('subject_name')
             ->filter();
 
-        return $fromGrades
+        return $fromSubjects
+            ->merge($fromGrades)
             ->merge($fromTests)
             ->map(fn ($subject) => trim((string) $subject))
             ->filter()
@@ -225,5 +244,23 @@ class StudentGradeService
             'assigned_grade_date' => null,
             'assigned_grade_by' => null,
         ]);
+    }
+
+    private function ensureSubjectExists(StudentGroup $group, string $subjectName): void
+    {
+        $normalizedSubjectName = trim($subjectName);
+        if ($normalizedSubjectName === '') {
+            return;
+        }
+
+        GroupSubject::firstOrCreate(
+            [
+                'student_group_id' => $group->id,
+                'subject_name' => $normalizedSubjectName,
+            ],
+            [
+                'created_by' => Auth::id(),
+            ],
+        );
     }
 }

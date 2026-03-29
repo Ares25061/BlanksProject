@@ -49,7 +49,7 @@
         </section>
 
         <section class="bg-white border border-slate-200 rounded-3xl shadow-sm p-6">
-            <div class="grid xl:grid-cols-[380px_1fr] gap-6 items-start">
+            <div class="grid xl:grid-cols-[380px_minmax(0,1fr)] gap-6 items-start">
                 <div class="space-y-5">
                     <div>
                         <h2 class="text-xl font-semibold">Настройка журнала</h2>
@@ -99,25 +99,25 @@
                     </div>
                 </div>
 
-                <div>
-                    <div class="flex flex-wrap justify-between items-center gap-3 mb-4">
+                <div class="min-w-0">
+                    <div class="flex flex-col gap-3 mb-4 lg:flex-row lg:items-center lg:justify-between">
                         <div class="text-sm text-slate-500">
                             Показываю неделю:
                             <span id="currentWeekLabel" class="font-semibold text-slate-900"></span>
                         </div>
-                        <div class="flex flex-wrap gap-3">
-                            <button onclick="shiftWeek(-1)" class="bg-white border border-slate-200 text-slate-700 px-4 py-2 rounded-2xl hover:border-sky-300 hover:text-sky-700 transition">
+                        <div class="flex flex-wrap gap-3 w-full lg:w-auto">
+                            <button onclick="shiftWeek(-1)" class="bg-white border border-slate-200 text-slate-700 px-4 py-2 rounded-2xl hover:border-sky-300 hover:text-sky-700 transition w-full sm:w-auto">
                                 <i class="fas fa-arrow-left mr-2"></i>
                                 Прошлая неделя
                             </button>
-                            <button onclick="shiftWeek(1)" class="bg-white border border-slate-200 text-slate-700 px-4 py-2 rounded-2xl hover:border-sky-300 hover:text-sky-700 transition">
+                            <button onclick="shiftWeek(1)" class="bg-white border border-slate-200 text-slate-700 px-4 py-2 rounded-2xl hover:border-sky-300 hover:text-sky-700 transition w-full sm:w-auto">
                                 Следующая неделя
                                 <i class="fas fa-arrow-right ml-2"></i>
                             </button>
                         </div>
                     </div>
-                    <div class="rounded-3xl border border-slate-200 overflow-hidden bg-white">
-                        <div class="overflow-auto">
+                    <div class="rounded-3xl border border-slate-200 overflow-hidden bg-white min-w-0">
+                        <div class="overflow-auto max-w-full">
                             <div id="gradebookTable"></div>
                         </div>
                     </div>

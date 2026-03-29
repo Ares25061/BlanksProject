@@ -505,7 +505,6 @@
         $bitString = BlankScanLayout::bitStringFor((int) $blankForm->id);
         $studentName = trim(implode(' ', array_filter([$blankForm->last_name, $blankForm->first_name, $blankForm->patronymic])));
         $isPreview = (bool) data_get($blankForm, 'metadata.is_preview', false);
-        $variantNumber = ($blankForm->id % 9) + 1;
     @endphp
 
     <section class="sheet answer-sheet">
@@ -521,7 +520,7 @@
         <div class="hero-meta-strip">
             <span>&nbsp;</span>
             <span class="hero-meta-center"><strong>Предмет:</strong> {{ $test->subject_display_name }}</span>
-            <span><strong>Вариант:</strong> {{ $variantNumber }}</span>
+            <span>&nbsp;</span>
         </div>
 
         <div class="identity-row identity-row-primary">

@@ -320,6 +320,26 @@
         return getSelectedGroup()?.students || [];
     }
 
+    function getAllSelectedGroupStudentIds() {
+        return getSelectedGroupStudents()
+            .map((student) => Number(student.id))
+            .filter((value) => Number.isInteger(value) && value > 0);
+    }
+
+    function normalizeBufferedSelectedGroupStudentIds() {
+        const allowedIds = new Set(getAllSelectedGroupStudentIds());
+
+        return [...new Set(selectedGroupStudentIds
+            .map((value) => Number(value))
+            .filter((value) => allowedIds.has(value)))];
+    }
+
+    function getRenderableSelectedGroupStudentIds() {
+        return blankGenerationMode === 'all'
+            ? getAllSelectedGroupStudentIds()
+            : normalizeBufferedSelectedGroupStudentIds();
+    }
+
     function handleGroupChange() {
         selectedGroupStudentIds = [];
         blankGenerationMode = 'all';
@@ -329,6 +349,11 @@
 
     function setBlankGenerationMode(mode) {
         blankGenerationMode = mode === 'selected' ? 'selected' : 'all';
+        if (blankGenerationMode === 'all') {
+            selectedGroupStudentIds = [];
+        } else {
+            selectedGroupStudentIds = normalizeBufferedSelectedGroupStudentIds();
+        }
         syncBlankGenerationModeButtons();
         renderGroupStudents();
     }
@@ -357,7 +382,7 @@
         const clearButton = document.getElementById('clearStudentsButton');
         const group = getSelectedGroup();
         const students = group?.students || [];
-        const selectedIds = new Set(selectedGroupStudentIds.map((value) => Number(value)));
+        const selectedIds = new Set(getRenderableSelectedGroupStudentIds());
 
         if (!list || !summary || !selectAllButton || !clearButton) {
             return;
@@ -424,7 +449,8 @@
     }
 
     function toggleGroupStudent(studentId, checked) {
-        const nextIds = new Set(selectedGroupStudentIds.map((value) => Number(value)));
+        const allIds = getAllSelectedGroupStudentIds();
+        const nextIds = new Set(getRenderableSelectedGroupStudentIds());
 
         if (checked) {
             nextIds.add(Number(studentId));
@@ -432,17 +458,23 @@
             nextIds.delete(Number(studentId));
         }
 
-        blankGenerationMode = 'selected';
+        const nextSelectedIds = Array.from(nextIds).filter((value) => allIds.includes(value));
+        if (allIds.length && nextSelectedIds.length === allIds.length) {
+            blankGenerationMode = 'all';
+            selectedGroupStudentIds = [];
+        } else {
+            blankGenerationMode = 'selected';
+            selectedGroupStudentIds = nextSelectedIds;
+        }
+
         syncBlankGenerationModeButtons();
-        selectedGroupStudentIds = Array.from(nextIds);
         renderGroupStudents();
     }
 
     function selectAllGroupStudents() {
-        const students = getSelectedGroupStudents();
-        blankGenerationMode = 'selected';
+        blankGenerationMode = 'all';
         syncBlankGenerationModeButtons();
-        selectedGroupStudentIds = students.map((student) => Number(student.id));
+        selectedGroupStudentIds = [];
         renderGroupStudents();
     }
 
@@ -541,9 +573,7 @@
             return;
         }
 
-        const selectedIds = [...new Set(selectedGroupStudentIds
-            .map((value) => Number(value))
-            .filter((value) => Number.isInteger(value) && value > 0))];
+        const selectedIds = normalizeBufferedSelectedGroupStudentIds();
 
         if (blankGenerationMode === 'selected' && !selectedIds.length) {
             alert('Отметьте хотя бы одного студента для выборочной генерации');

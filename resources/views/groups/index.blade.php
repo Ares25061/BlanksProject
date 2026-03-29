@@ -38,11 +38,22 @@
                 </div>
 
                 <div>
-                    <label for="studentsInput" class="block text-sm font-medium text-slate-700 mb-2">Список студентов</label>
+                    <div class="flex flex-wrap items-center justify-between gap-3 mb-2">
+                        <label for="studentsInput" class="block text-sm font-medium text-slate-700">Список студентов</label>
+                        <div class="flex flex-wrap gap-2">
+                            <input id="studentsImportInput" type="file" accept=".txt,.csv,.tsv" class="hidden">
+                            <button type="button" onclick="triggerStudentsImport()" class="bg-white border border-slate-200 text-slate-700 px-3 py-2 rounded-xl hover:border-sky-300 hover:text-sky-700 transition text-sm">
+                                Импорт списка
+                            </button>
+                            <button type="button" onclick="exportCurrentStudents()" class="bg-white border border-slate-200 text-slate-700 px-3 py-2 rounded-xl hover:border-sky-300 hover:text-sky-700 transition text-sm">
+                                Экспорт из формы
+                            </button>
+                        </div>
+                    </div>
                     <textarea id="studentsInput" rows="12" required
                               class="w-full px-4 py-3 rounded-2xl border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
                               placeholder="Дудина Софья Романовна&#10;Петров Иван Сергеевич&#10;..."></textarea>
-                    <p class="text-xs text-slate-500 mt-2">Пустые строки будут проигнорированы.</p>
+                    <p class="text-xs text-slate-500 mt-2">Поддерживаются списки в `.txt`, `.csv` и `.tsv`. Пустые строки будут проигнорированы.</p>
                 </div>
 
                 <div class="flex flex-wrap gap-3 pt-2">
@@ -142,6 +153,9 @@
                         <button onclick="openGradebook(${group.id})" class="text-emerald-600 hover:text-emerald-800" title="Журнал группы">
                             <i class="fas fa-table"></i>
                         </button>
+                        <button onclick="exportGroupStudents(${group.id})" class="text-violet-600 hover:text-violet-800" title="Экспортировать список студентов">
+                            <i class="fas fa-download"></i>
+                        </button>
                         <button onclick="editGroup(${group.id})" class="text-sky-600 hover:text-sky-800" title="Редактировать">
                             <i class="fas fa-pen"></i>
                         </button>
@@ -210,6 +224,104 @@
             .split('\n')
             .map((line) => line.trim())
             .filter(Boolean);
+    }
+
+    function triggerStudentsImport() {
+        document.getElementById('studentsImportInput').click();
+    }
+
+    function exportCurrentStudents() {
+        const students = parseStudents();
+        if (!students.length) {
+            alert('В форме пока нет списка студентов для экспорта');
+            return;
+        }
+
+        const fileNameBase = document.getElementById('groupName').value.trim() || 'student-list';
+        downloadStudentsFile(fileNameBase, students);
+    }
+
+    function exportGroupStudents(groupId) {
+        const group = groups.find((item) => item.id === groupId);
+        if (!group) {
+            return;
+        }
+
+        const students = (group.students || []).map((student) => student.full_name).filter(Boolean);
+        if (!students.length) {
+            alert('В этой группе пока нет студентов для экспорта');
+            return;
+        }
+
+        downloadStudentsFile(group.name || 'student-list', students);
+    }
+
+    function downloadStudentsFile(fileNameBase, students) {
+        const safeFileName = String(fileNameBase || 'student-list')
+            .trim()
+            .replace(/[\\/:*?"<>|]+/g, '-');
+        const content = `${students.join('\n')}\n`;
+        const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `${safeFileName}.txt`;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(url);
+    }
+
+    async function handleStudentsImport(event) {
+        const file = event.target.files?.[0];
+        if (!file) {
+            return;
+        }
+
+        try {
+            const text = await file.text();
+            const students = parseImportedStudents(text);
+
+            if (!students.length) {
+                throw new Error('В файле не найдено ни одной строки с ФИО');
+            }
+
+            document.getElementById('studentsInput').value = students.join('\n');
+        } catch (error) {
+            alert(error.message || 'Не удалось импортировать список студентов');
+        } finally {
+            event.target.value = '';
+        }
+    }
+
+    function parseImportedStudents(text) {
+        return text
+            .split(/\r?\n/)
+            .map((line) => normalizeImportedStudentLine(line))
+            .filter(Boolean);
+    }
+
+    function normalizeImportedStudentLine(line) {
+        const normalized = String(line || '').replace(/^\uFEFF/, '').trim();
+        if (!normalized) {
+            return '';
+        }
+
+        if (/^(фио|full_name|student|student name)$/i.test(normalized)) {
+            return '';
+        }
+
+        const columns = normalized
+            .split(/[;\t,]/)
+            .map((value) => value.trim())
+            .filter(Boolean);
+
+        if (columns.length <= 1) {
+            return normalized;
+        }
+
+        const candidate = columns.find((value) => /[A-Za-zА-Яа-яЁё]/.test(value) && !/^(фио|full_name|student|student name)$/i.test(value));
+        return candidate || columns[0];
     }
 
     document.getElementById('groupForm').addEventListener('submit', async (event) => {
@@ -303,6 +415,7 @@
             return;
         }
 
+        document.getElementById('studentsImportInput').addEventListener('change', handleStudentsImport);
         loadGroups();
     });
 </script>

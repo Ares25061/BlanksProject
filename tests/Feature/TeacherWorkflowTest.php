@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Answer;
 use App\Models\BlankForm;
+use App\Models\GroupSubject;
 use App\Models\Question;
 use App\Models\StudentGrade;
 use App\Models\Test;
@@ -340,6 +341,30 @@ class TeacherWorkflowTest extends TestCase
         $this->assertContains('Математика', $gradebook['available_subjects']);
         $this->assertSame('5', $gradebook['students'][0]['grades']['2026-03-28']['grade_value']);
         $this->assertArrayNotHasKey('2026-03-28', $gradebook['students'][1]['grades']);
+    }
+
+    public function test_student_grade_service_persists_empty_subject_gradebook(): void
+    {
+        $teacher = User::factory()->create();
+        $this->actingAs($teacher);
+        Auth::login($teacher);
+
+        $group = app(StudentGroupService::class)->createGroup([
+            'name' => '22ИС4-1',
+            'students' => [
+                'Дудина Софья Романовна',
+            ],
+        ]);
+
+        $gradebook = app(StudentGradeService::class)->buildGradebook($group->fresh(), 'Информатика');
+
+        $this->assertSame('Информатика', $gradebook['subject_name']);
+        $this->assertContains('Информатика', $gradebook['available_subjects']);
+        $this->assertDatabaseHas('group_subjects', [
+            'student_group_id' => $group->id,
+            'subject_name' => 'Информатика',
+        ]);
+        $this->assertSame('Информатика', GroupSubject::query()->where('student_group_id', $group->id)->value('subject_name'));
     }
 
     public function test_test_service_stores_subject_name(): void

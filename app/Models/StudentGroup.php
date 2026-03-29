@@ -34,4 +34,9 @@ class StudentGroup extends Model
     {
         return $this->hasMany(StudentGrade::class);
     }
+
+    public function subjects()
+    {
+        return $this->hasMany(GroupSubject::class)->orderBy('subject_name');
+    }
 }
