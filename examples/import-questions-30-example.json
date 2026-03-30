@@ -1,0 +1,338 @@
+{
+  "title": "Контрольная работа на 30 вопросов",
+  "subject_name": "Программирование",
+  "description": "Тестовый JSON для проверки многостраничного бланка ответов и сканирования.",
+  "time_limit": 45,
+  "grade_criteria": [
+    { "label": "5 (Отлично)", "min_points": 27 },
+    { "label": "4 (Хорошо)", "min_points": 22 },
+    { "label": "3 (Удовлетворительно)", "min_points": 16 },
+    { "label": "2 (Нужно доработать)", "min_points": 0 }
+  ],
+  "questions": [
+    {
+      "question_text": "Какой цикл гарантированно выполнится хотя бы один раз?",
+      "type": "single",
+      "points": 1,
+      "answers": [
+        { "answer_text": "for", "is_correct": false },
+        { "answer_text": "while", "is_correct": false },
+        { "answer_text": "do while", "is_correct": true }
+      ]
+    },
+    {
+      "question_text": "Какие из перечисленных языков являются компилируемыми?",
+      "type": "multiple",
+      "points": 1,
+      "answers": [
+        { "answer_text": "C++", "is_correct": true },
+        { "answer_text": "Java", "is_correct": true },
+        { "answer_text": "HTML", "is_correct": false },
+        { "answer_text": "CSS", "is_correct": false }
+      ]
+    },
+    {
+      "question_text": "Сколько будет 2 + 2?",
+      "type": "single",
+      "points": 1,
+      "answers": [
+        { "answer_text": "3", "is_correct": false },
+        { "answer_text": "4", "is_correct": true },
+        { "answer_text": "5", "is_correct": false }
+      ]
+    },
+    {
+      "question_text": "Какой оператор используется для присваивания в большинстве языков программирования?",
+      "type": "single",
+      "points": 1,
+      "answers": [
+        { "answer_text": "=", "is_correct": true },
+        { "answer_text": "==", "is_correct": false },
+        { "answer_text": "!=", "is_correct": false }
+      ]
+    },
+    {
+      "question_text": "Какие структуры данных обычно относятся к линейным?",
+      "type": "multiple",
+      "points": 1,
+      "answers": [
+        { "answer_text": "Массив", "is_correct": true },
+        { "answer_text": "Список", "is_correct": true },
+        { "answer_text": "Граф", "is_correct": false },
+        { "answer_text": "Дерево", "is_correct": false }
+      ]
+    },
+    {
+      "question_text": "Что выведет выражение 10 / 2?",
+      "type": "single",
+      "points": 1,
+      "answers": [
+        { "answer_text": "2", "is_correct": false },
+        { "answer_text": "5", "is_correct": true },
+        { "answer_text": "10", "is_correct": false }
+      ]
+    },
+    {
+      "question_text": "Как называется именованная область памяти в программе?",
+      "type": "single",
+      "points": 1,
+      "answers": [
+        { "answer_text": "Класс", "is_correct": false },
+        { "answer_text": "Переменная", "is_correct": true },
+        { "answer_text": "Цикл", "is_correct": false }
+      ]
+    },
+    {
+      "question_text": "Какие типы данных обычно относятся к целочисленным?",
+      "type": "multiple",
+      "points": 1,
+      "answers": [
+        { "answer_text": "int", "is_correct": true },
+        { "answer_text": "long", "is_correct": true },
+        { "answer_text": "float", "is_correct": false },
+        { "answer_text": "double", "is_correct": false }
+      ]
+    },
+    {
+      "question_text": "Какой результат даст логическое выражение true AND false?",
+      "type": "single",
+      "points": 1,
+      "answers": [
+        { "answer_text": "true", "is_correct": false },
+        { "answer_text": "false", "is_correct": true },
+        { "answer_text": "1", "is_correct": false }
+      ]
+    },
+    {
+      "question_text": "Что такое функция?",
+      "type": "single",
+      "points": 1,
+      "answers": [
+        { "answer_text": "Именованный блок кода, который можно вызывать", "is_correct": true },
+        { "answer_text": "Только таблица в базе данных", "is_correct": false },
+        { "answer_text": "Графический элемент интерфейса", "is_correct": false }
+      ]
+    },
+    {
+      "question_text": "Какие символы часто используются для комментариев в языках семейства C?",
+      "type": "multiple",
+      "points": 1,
+      "answers": [
+        { "answer_text": "//", "is_correct": true },
+        { "answer_text": "/* */", "is_correct": true },
+        { "answer_text": "<!-- -->", "is_correct": false },
+        { "answer_text": "::", "is_correct": false }
+      ]
+    },
+    {
+      "question_text": "Что означает условный оператор if?",
+      "type": "single",
+      "points": 1,
+      "answers": [
+        { "answer_text": "Повторяет код заданное число раз", "is_correct": false },
+        { "answer_text": "Выполняет код при истинности условия", "is_correct": true },
+        { "answer_text": "Создает массив", "is_correct": false }
+      ]
+    },
+    {
+      "question_text": "Какие из перечисленных значений являются булевыми?",
+      "type": "multiple",
+      "points": 1,
+      "answers": [
+        { "answer_text": "true", "is_correct": true },
+        { "answer_text": "false", "is_correct": true },
+        { "answer_text": "0", "is_correct": false },
+        { "answer_text": "1", "is_correct": false }
+      ]
+    },
+    {
+      "question_text": "Какой индекс имеет первый элемент массива в большинстве языков программирования?",
+      "type": "single",
+      "points": 1,
+      "answers": [
+        { "answer_text": "0", "is_correct": true },
+        { "answer_text": "1", "is_correct": false },
+        { "answer_text": "-1", "is_correct": false }
+      ]
+    },
+    {
+      "question_text": "Какие операции относятся к арифметическим?",
+      "type": "multiple",
+      "points": 1,
+      "answers": [
+        { "answer_text": "+", "is_correct": true },
+        { "answer_text": "-", "is_correct": true },
+        { "answer_text": "*", "is_correct": true },
+        { "answer_text": "&&", "is_correct": false }
+      ]
+    },
+    {
+      "question_text": "Как называется ошибка, возникающая во время выполнения программы?",
+      "type": "single",
+      "points": 1,
+      "answers": [
+        { "answer_text": "Синтаксическая", "is_correct": false },
+        { "answer_text": "Runtime error", "is_correct": true },
+        { "answer_text": "Орфографическая", "is_correct": false }
+      ]
+    },
+    {
+      "question_text": "Какие из перечисленных вариантов являются циклами?",
+      "type": "multiple",
+      "points": 1,
+      "answers": [
+        { "answer_text": "for", "is_correct": true },
+        { "answer_text": "while", "is_correct": true },
+        { "answer_text": "switch", "is_correct": false },
+        { "answer_text": "do while", "is_correct": true }
+      ]
+    },
+    {
+      "question_text": "Какой оператор часто используют для сравнения на равенство?",
+      "type": "single",
+      "points": 1,
+      "answers": [
+        { "answer_text": "=", "is_correct": false },
+        { "answer_text": "==", "is_correct": true },
+        { "answer_text": "+=", "is_correct": false }
+      ]
+    },
+    {
+      "question_text": "Какие структуры данных обычно имеют ключ и значение?",
+      "type": "multiple",
+      "points": 1,
+      "answers": [
+        { "answer_text": "Словарь", "is_correct": true },
+        { "answer_text": "Map", "is_correct": true },
+        { "answer_text": "Очередь", "is_correct": false },
+        { "answer_text": "Стек", "is_correct": false }
+      ]
+    },
+    {
+      "question_text": "Что делает оператор return?",
+      "type": "single",
+      "points": 1,
+      "answers": [
+        { "answer_text": "Возвращает значение из функции", "is_correct": true },
+        { "answer_text": "Создает объект", "is_correct": false },
+        { "answer_text": "Открывает цикл", "is_correct": false }
+      ]
+    },
+    {
+      "question_text": "Какие типы данных обычно подходят для дробных чисел?",
+      "type": "multiple",
+      "points": 1,
+      "answers": [
+        { "answer_text": "float", "is_correct": true },
+        { "answer_text": "double", "is_correct": true },
+        { "answer_text": "int", "is_correct": false },
+        { "answer_text": "bool", "is_correct": false }
+      ]
+    },
+    {
+      "question_text": "Какой из вариантов обозначает логическое отрицание в C-подобных языках?",
+      "type": "single",
+      "points": 1,
+      "answers": [
+        { "answer_text": "!", "is_correct": true },
+        { "answer_text": "%", "is_correct": false },
+        { "answer_text": "&", "is_correct": false }
+      ]
+    },
+    {
+      "question_text": "Какие принципы относятся к базовым принципам ООП?",
+      "type": "multiple",
+      "points": 1,
+      "answers": [
+        { "answer_text": "Инкапсуляция", "is_correct": true },
+        { "answer_text": "Наследование", "is_correct": true },
+        { "answer_text": "Полиморфизм", "is_correct": true },
+        { "answer_text": "Компиляция", "is_correct": false }
+      ]
+    },
+    {
+      "question_text": "Как называется повторное использование кода через вызов уже написанной функции?",
+      "type": "single",
+      "points": 1,
+      "answers": [
+        { "answer_text": "Рекурсия", "is_correct": false },
+        { "answer_text": "Переиспользование", "is_correct": true },
+        { "answer_text": "Сортировка", "is_correct": false }
+      ]
+    },
+    {
+      "question_text": "Какие из перечисленных значений могут быть строками?",
+      "type": "multiple",
+      "points": 1,
+      "answers": [
+        { "answer_text": "\"Привет\"", "is_correct": true },
+        { "answer_text": "'A'", "is_correct": true },
+        { "answer_text": "123", "is_correct": false },
+        { "answer_text": "true", "is_correct": false }
+      ]
+    },
+    {
+      "question_text": "Как называется способ хранения однотипных элементов под одним именем?",
+      "type": "single",
+      "points": 1,
+      "answers": [
+        { "answer_text": "Массив", "is_correct": true },
+        { "answer_text": "Функция", "is_correct": false },
+        { "answer_text": "Условие", "is_correct": false }
+      ]
+    },
+    {
+      "question_text": "Какие действия обычно выполняет отладчик?",
+      "type": "multiple",
+      "points": 1,
+      "answers": [
+        { "answer_text": "Пошаговое выполнение", "is_correct": true },
+        { "answer_text": "Просмотр значений переменных", "is_correct": true },
+        { "answer_text": "Печать бумажного бланка", "is_correct": false },
+        { "answer_text": "Автоматическая проверка орфографии в сочинении", "is_correct": false }
+      ]
+    },
+    {
+      "question_text": "Как называется цикл, который проверяет условие перед выполнением тела?",
+      "type": "single",
+      "points": 1,
+      "answers": [
+        { "answer_text": "while", "is_correct": true },
+        { "answer_text": "do while", "is_correct": false },
+        { "answer_text": "return", "is_correct": false }
+      ]
+    },
+    {
+      "question_text": "Какие из перечисленных вариантов относятся к операциям сравнения?",
+      "type": "multiple",
+      "points": 1,
+      "answers": [
+        { "answer_text": ">", "is_correct": true },
+        { "answer_text": "<", "is_correct": true },
+        { "answer_text": "==", "is_correct": true },
+        { "answer_text": "+", "is_correct": false }
+      ]
+    },
+    {
+      "question_text": "Что чаще всего обозначает ключевое слово break?",
+      "type": "single",
+      "points": 1,
+      "answers": [
+        { "answer_text": "Выход из цикла или switch", "is_correct": true },
+        { "answer_text": "Создание новой переменной", "is_correct": false },
+        { "answer_text": "Подключение библиотеки", "is_correct": false }
+      ]
+    },
+    {
+      "question_text": "Какие инструменты обычно используют для контроля версий?",
+      "type": "multiple",
+      "points": 1,
+      "answers": [
+        { "answer_text": "Git", "is_correct": true },
+        { "answer_text": "GitHub", "is_correct": true },
+        { "answer_text": "PowerPoint", "is_correct": false },
+        { "answer_text": "Paint", "is_correct": false }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,87 @@
+{
+  "title": "Контрольная работа №1",
+  "subject_name": "Программирование",
+  "description": "Пример файла для импорта вопросов в BlanksProject",
+  "time_limit": 45,
+  "grade_criteria": [
+    {
+      "label": "5 (Отлично)",
+      "min_points": 4
+    },
+    {
+      "label": "4 (Хорошо)",
+      "min_points": 3
+    },
+    {
+      "label": "3 (Удовлетворительно)",
+      "min_points": 2
+    },
+    {
+      "label": "2 (Нужно доработать)",
+      "min_points": 0
+    }
+  ],
+  "questions": [
+    {
+      "question_text": "Какой цикл выполнится минимум один раз?",
+      "type": "single",
+      "points": 1,
+      "answers": [
+        {
+          "answer_text": "for",
+          "is_correct": false
+        },
+        {
+          "answer_text": "while",
+          "is_correct": false
+        },
+        {
+          "answer_text": "do while",
+          "is_correct": true
+        }
+      ]
+    },
+    {
+      "question_text": "Выберите языки программирования",
+      "type": "multiple",
+      "points": 2,
+      "answers": [
+        {
+          "answer_text": "PHP",
+          "is_correct": true
+        },
+        {
+          "answer_text": "HTML",
+          "is_correct": false
+        },
+        {
+          "answer_text": "Python",
+          "is_correct": true
+        },
+        {
+          "answer_text": "CSS",
+          "is_correct": false
+        }
+      ]
+    },
+    {
+      "question_text": "Сколько будет 2 + 2?",
+      "type": "single",
+      "points": 1,
+      "answers": [
+        {
+          "answer_text": "3",
+          "is_correct": false
+        },
+        {
+          "answer_text": "4",
+          "is_correct": true
+        },
+        {
+          "answer_text": "5",
+          "is_correct": false
+        }
+      ]
+    }
+  ]
+}

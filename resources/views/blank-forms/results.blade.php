@@ -80,7 +80,7 @@
 
             const payloads = await Promise.all(responses.map((response) => response.json()));
             const orderedPayloads = blankFormIds.map((id) => payloads.find((payload) => payload.data?.id === id)).filter(Boolean);
-            const scanPreviewUrls = await Promise.all(orderedPayloads.map(({ data: blankForm }) => fetchScanPreviewUrl(blankForm)));
+            const scanPreviewUrls = await Promise.all(orderedPayloads.map(({ data: blankForm }) => fetchScanPreviewUrls(blankForm)));
 
             const subtitle = orderedPayloads.length > 1
                 ? `Показываю выбранные и правильные варианты ответов, а также итоговую оценку для ${orderedPayloads.length} проверенных бланков.`
@@ -89,7 +89,7 @@
 
             renderResults(orderedPayloads.map((payload, index) => ({
                 ...payload,
-                scanPreviewUrl: scanPreviewUrls[index]
+                scanPreviewUrls: scanPreviewUrls[index]
             })));
 
             document.getElementById('loading').classList.add('hidden');
@@ -108,24 +108,60 @@
         }
     }
 
-    async function fetchScanPreviewUrl(blankForm) {
-        if (!blankForm?.scan_path) {
-            return null;
+    async function fetchScanPreviewUrls(blankForm) {
+        const entries = getScanPageEntries(blankForm);
+        if (!entries.length) {
+            return [];
         }
 
-        const response = await authorizedFetch(`/api/blank-forms/${blankForm.id}/scan-image`, {
-            accept: 'image/*'
-        });
-        if (!response.ok) {
-            return null;
+        const previews = await Promise.all(entries.map(async (entry) => {
+            const pageQuery = entry.pageNumber ? `?page=${entry.pageNumber}` : '';
+            const response = await authorizedFetch(`/api/blank-forms/${blankForm.id}/scan-image${pageQuery}`, {
+                accept: 'image/*'
+            });
+
+            if (!response.ok) {
+                return null;
+            }
+
+            const blob = await response.blob();
+
+            return {
+                ...entry,
+                url: URL.createObjectURL(blob),
+            };
+        }));
+
+        return previews.filter(Boolean);
+    }
+
+    function getScanPageEntries(blankForm) {
+        const pages = (blankForm?.metadata?.scan?.pages || [])
+            .filter((page) => page?.scan_path)
+            .map((page, index) => ({
+                pageNumber: Number(page.page_number) || (index + 1),
+                label: page.question_range?.start && page.question_range?.end
+                    ? `Лист ${Number(page.page_number) || (index + 1)} • вопросы ${page.question_range.start}-${page.question_range.end}`
+                    : `Лист ${Number(page.page_number) || (index + 1)}`,
+            }))
+            .sort((left, right) => left.pageNumber - right.pageNumber);
+
+        if (pages.length) {
+            return pages;
         }
 
-        const blob = await response.blob();
-        return URL.createObjectURL(blob);
+        if (blankForm?.scan_path) {
+            return [{
+                pageNumber: 1,
+                label: 'Лист 1',
+            }];
+        }
+
+        return [];
     }
 
     function renderResults(payloads) {
-        document.getElementById('resultsList').innerHTML = payloads.map(({ data: blankForm, grade, scanPreviewUrl }) => {
+        document.getElementById('resultsList').innerHTML = payloads.map(({ data: blankForm, grade, scanPreviewUrls }) => {
             const studentName = [blankForm.last_name, blankForm.first_name, blankForm.patronymic].filter(Boolean).join(' ') || 'Без имени';
             const questions = (blankForm.test?.questions || []).slice().sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
             const answerMap = new Map((blankForm.student_answers || []).map((answer) => [answer.question_id, answer]));
@@ -166,14 +202,19 @@
                         ${renderAssignedGradePanel(blankForm, grade)}
                     </div>
 
-                    ${(scanPreviewUrl || recognizedSummary) ? `
+                    ${(scanPreviewUrls.length || recognizedSummary) ? `
                         <div class="p-6 border-b border-slate-200 bg-white">
                             <div class="grid xl:grid-cols-[0.95fr_1.05fr] gap-6 items-start">
                                 <div>
                                     <div class="text-sm uppercase tracking-[0.25em] text-slate-400 mb-3">Скан бланка</div>
-                                    ${scanPreviewUrl ? `
-                                        <div class="rounded-3xl overflow-hidden border border-slate-200 bg-slate-100">
-                                            <img src="${scanPreviewUrl}" alt="Скан бланка ${escapeHtml(studentName)}" class="w-full h-auto block">
+                                    ${scanPreviewUrls.length ? `
+                                        <div class="space-y-4">
+                                            ${scanPreviewUrls.map((page) => `
+                                                <div class="rounded-3xl overflow-hidden border border-slate-200 bg-slate-100">
+                                                    <div class="px-4 py-3 border-b border-slate-200 bg-white text-sm font-medium text-slate-700">${escapeHtml(page.label)}</div>
+                                                    <img src="${page.url}" alt="Скан бланка ${escapeHtml(studentName)} стр. ${page.pageNumber}" class="w-full h-auto block">
+                                                </div>
+                                            `).join('')}
                                         </div>
                                     ` : `
                                         <div class="rounded-3xl border border-dashed border-slate-300 text-slate-500 p-8 text-center">

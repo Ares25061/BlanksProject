@@ -14,10 +14,12 @@ Route::middleware('auth:api')->group(function () {
     Route::apiResource('student-groups', StudentGroupController::class);
     Route::get('student-groups/{student_group}/gradebook', [StudentGroupController::class, 'gradebook']);
     Route::put('student-groups/{student_group}/gradebook-entry', [StudentGroupController::class, 'upsertGradebookEntry']);
+    Route::get('student-groups/{student_group}/gradebook-export', [StudentGroupController::class, 'exportGradebookMonth']);
 
     // Тесты
     Route::apiResource('tests', TestController::class)->names('api.tests');
     Route::post('tests/{test}/questions', [TestController::class, 'addQuestion']);
+    Route::post('tests/import-questions', [TestController::class, 'importQuestions']);
 
     // Бланки
     Route::get('blank-forms', [BlankFormController::class, 'index']);

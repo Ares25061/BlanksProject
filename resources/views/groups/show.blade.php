@@ -92,6 +92,17 @@
                         </div>
                     </div>
 
+                    <div>
+                        <label for="exportMonthInput" class="block text-sm font-medium text-slate-700 mb-2">Экспорт журнала за месяц</label>
+                        <div class="flex flex-wrap gap-3">
+                            <input id="exportMonthInput" type="month"
+                                   class="flex-1 min-w-[220px] px-4 py-3 rounded-2xl border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500">
+                            <button onclick="exportGradebookMonth()" class="bg-emerald-600 text-white px-4 py-3 rounded-2xl hover:bg-emerald-500 transition">
+                                Экспорт XLSX
+                            </button>
+                        </div>
+                    </div>
+
                     <div id="subjectChips" class="flex flex-wrap gap-2"></div>
 
                     <div id="saveHint" class="rounded-3xl border border-slate-200 bg-slate-50 p-5 text-sm text-slate-600">
@@ -179,6 +190,7 @@
         document.getElementById('currentSubjectLabel').textContent = selectedSubject || 'Не выбран';
         document.getElementById('currentWeekLabel').textContent = formatWeekRange();
         document.getElementById('newDateInput').value = document.getElementById('newDateInput').value || todayDate();
+        document.getElementById('exportMonthInput').value = document.getElementById('exportMonthInput').value || formatMonthValue(currentWeekStart);
 
         renderSubjectControls();
         renderGradebookTable();
@@ -393,7 +405,46 @@
 
     function shiftWeek(direction) {
         currentWeekStart = addDays(currentWeekStart, direction * 7);
+        document.getElementById('exportMonthInput').value = formatMonthValue(currentWeekStart);
         renderPage();
+    }
+
+    async function exportGradebookMonth() {
+        const monthValue = (document.getElementById('exportMonthInput').value || '').trim();
+        if (!monthValue) {
+            alert('Выберите месяц для экспорта');
+            return;
+        }
+
+        const params = new URLSearchParams({
+            month: monthValue
+        });
+
+        if (selectedSubject) {
+            params.set('subject_name', selectedSubject);
+        }
+
+        try {
+            const response = await apiFetch(`/api/student-groups/${groupId}/gradebook-export?${params.toString()}`);
+            if (!response.ok) {
+                const error = await response.json().catch(() => ({}));
+                throw new Error(error.message || 'Не удалось выгрузить журнал');
+            }
+
+            const blob = await response.blob();
+            const fileName = extractFileName(response.headers.get('Content-Disposition')) || `gradebook-${monthValue}.xlsx`;
+            const blobUrl = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = blobUrl;
+            link.download = fileName;
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.URL.revokeObjectURL(blobUrl);
+        } catch (error) {
+            console.error(error);
+            alert(error.message || 'Ошибка экспорта журнала');
+        }
     }
 
     async function saveGradeCell(input) {
@@ -607,6 +658,24 @@
         });
     }
 
+    function formatMonthValue(date) {
+        return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+    }
+
+    function extractFileName(contentDisposition) {
+        if (!contentDisposition) {
+            return '';
+        }
+
+        const utfMatch = contentDisposition.match(/filename\*=UTF-8''([^;]+)/i);
+        if (utfMatch?.[1]) {
+            return decodeURIComponent(utfMatch[1]);
+        }
+
+        const plainMatch = contentDisposition.match(/filename="?([^"]+)"?/i);
+        return plainMatch?.[1] || '';
+    }
+
     function escapeHtml(text) {
         const div = document.createElement('div');
         div.textContent = text || '';
@@ -627,6 +696,7 @@
         }
 
         document.getElementById('newDateInput').value = todayDate();
+        document.getElementById('exportMonthInput').value = formatMonthValue(currentWeekStart);
         loadGradebook(selectedSubject);
     });
 </script>

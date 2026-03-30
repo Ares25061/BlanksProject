@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\StudentGroup;
+use App\Services\GradebookExportService;
 use App\Services\StudentGradeService;
 use App\Services\StudentGroupService;
 use Illuminate\Http\Request;
@@ -15,6 +16,7 @@ class StudentGroupController extends Controller
     public function __construct(
         private StudentGroupService $studentGroupService,
         private StudentGradeService $studentGradeService,
+        private GradebookExportService $gradebookExportService,
     )
     {
     }
@@ -135,5 +137,23 @@ class StudentGroupController extends Controller
             'message' => $entry ? 'Оценка сохранена' : 'Оценка удалена',
             'data' => $entry,
         ]);
+    }
+
+    public function exportGradebookMonth(Request $request, StudentGroup $studentGroup)
+    {
+        $this->authorize('view', $studentGroup);
+
+        $validated = $request->validate([
+            'subject_name' => 'nullable|string|max:255',
+            'month' => 'required|string|size:7',
+        ]);
+
+        $export = $this->gradebookExportService->exportMonth(
+            $studentGroup,
+            $validated['subject_name'] ?? null,
+            $validated['month'],
+        );
+
+        return response()->download($export['path'], $export['filename'])->deleteFileAfterSend(true);
     }
 }

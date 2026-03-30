@@ -15,7 +15,7 @@ class TestService
     public function createTest(array $data)
     {
         return DB::transaction(function () use ($data) {
-            $this->ensureQuestionStructureWithinScanLimits($data['questions'] ?? []);
+            $this->ensureQuestionStructureWithinScanFormat($data['questions'] ?? []);
             $subjectName = $this->normalizeSubjectName($data['subject_name'] ?? null, $data['title']);
 
             $test = Test::create([
@@ -44,7 +44,7 @@ class TestService
     {
         return DB::transaction(function () use ($test, $data) {
             if (isset($data['questions'])) {
-                $this->ensureQuestionStructureWithinScanLimits($data['questions']);
+                $this->ensureQuestionStructureWithinScanFormat($data['questions']);
             }
 
             $nextTitle = $data['title'] ?? $test->title;
@@ -158,13 +158,6 @@ class TestService
 
     public function addQuestionToTest(Test $test, array $questionData)
     {
-        $existingQuestionCount = (int) $test->questions()->count();
-        if ($existingQuestionCount >= BlankScanLayout::maxQuestions()) {
-            throw ValidationException::withMessages([
-                'questions' => 'Для этого формата бланка доступно не более ' . BlankScanLayout::maxQuestions() . ' вопросов.',
-            ]);
-        }
-
         $this->ensureAnswerCountWithinScanLimit($questionData['answers'] ?? []);
 
         $question = $test->questions()->create([
@@ -220,14 +213,8 @@ class TestService
         }
     }
 
-    protected function ensureQuestionStructureWithinScanLimits(array $questions): void
+    protected function ensureQuestionStructureWithinScanFormat(array $questions): void
     {
-        if (count($questions) > BlankScanLayout::maxQuestions()) {
-            throw ValidationException::withMessages([
-                'questions' => 'Для этого формата бланка доступно не более ' . BlankScanLayout::maxQuestions() . ' вопросов.',
-            ]);
-        }
-
         foreach ($questions as $index => $question) {
             $this->ensureAnswerCountWithinScanLimit($question['answers'] ?? [], $index);
         }

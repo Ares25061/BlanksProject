@@ -8,23 +8,23 @@ class BlankScanLayout
     public const PAGE_HEIGHT_MM = 297.0;
     public const MARKER_SIZE_MM = 8.0;
     public const MARKER_OFFSET_MM = 9.0;
-    public const CODE_TOP_MM = 273.8;
-    public const CODE_LEFT_MM = 79.7;
-    public const CODE_GRID_COLUMNS = 16;
-    public const CODE_GRID_ROWS = 2;
+
+    public const CODE_TOP_MM = 267.6;
+    public const CODE_GRID_COLUMNS = 14;
+    public const CODE_GRID_ROWS = 4;
     public const CODE_CELL_WIDTH_MM = 2.6;
     public const CODE_CELL_HEIGHT_MM = 2.6;
     public const CODE_CELL_GAP_MM = 0.6;
-    public const CODE_BITS = 32;
-    public const TABLE_TOP_MM = 108.0;
-    public const TABLE_HEADER_HEIGHT_MM = 7.5;
-    public const GRID_TOP_MM = 115.5;
-    public const GRID_BOTTOM_MM = 251.5;
+    public const CODE_BITS = 56;
+
+    public const TABLE_TOP_MM = 66.5;
+    public const TABLE_HEADER_HEIGHT_MM = 6.5;
+    public const GRID_TOP_MM = 73.0;
+    public const GRID_BOTTOM_MM = 262.5;
     public const GRID_LEFT_MM = 14.0;
     public const GRID_RIGHT_MM = 196.0;
-    public const GRID_ROWS_PER_COLUMN = 15;
-    public const GRID_MAX_COLUMNS = 1;
-    public const GRID_COLUMN_GAP_MM = 4.0;
+    public const GRID_ROWS_PER_PAGE = 24;
+
     public const QUESTION_NUMBER_WIDTH_MM = 8.0;
     public const QUESTION_TYPE_WIDTH_MM = 8.0;
     public const ANSWER_FIELD_RIGHT_PADDING_MM = 1.4;
@@ -35,39 +35,54 @@ class BlankScanLayout
 
     public static function maxQuestions(): int
     {
-        return self::GRID_ROWS_PER_COLUMN * self::GRID_MAX_COLUMNS;
+        return PHP_INT_MAX;
     }
 
-    public static function questionColumnCount(int $questionCount): int
+    public static function questionsPerPage(): int
     {
-        return max(1, min(self::GRID_MAX_COLUMNS, (int) ceil($questionCount / self::GRID_ROWS_PER_COLUMN)));
+        return self::GRID_ROWS_PER_PAGE;
+    }
+
+    public static function questionPageCount(int $questionCount): int
+    {
+        return max(1, (int) ceil(max(1, $questionCount) / self::GRID_ROWS_PER_PAGE));
+    }
+
+    public static function questionStartIndexForPage(int $pageNumber): int
+    {
+        return max(0, ($pageNumber - 1) * self::GRID_ROWS_PER_PAGE);
+    }
+
+    public static function questionCountForPage(int $questionCount, int $pageNumber): int
+    {
+        $start = self::questionStartIndexForPage($pageNumber);
+
+        return max(0, min(self::GRID_ROWS_PER_PAGE, $questionCount - $start));
     }
 
     public static function questionRowHeightMm(): float
     {
-        return (self::GRID_BOTTOM_MM - self::GRID_TOP_MM) / self::GRID_ROWS_PER_COLUMN;
+        return (self::GRID_BOTTOM_MM - self::GRID_TOP_MM) / self::GRID_ROWS_PER_PAGE;
     }
 
-    public static function questionColumnWidthMm(int $questionCount): float
+    public static function questionColumnCount(int $questionCount): int
     {
-        $columnCount = self::questionColumnCount($questionCount);
-        $totalGap = ($columnCount - 1) * self::GRID_COLUMN_GAP_MM;
-
-        return (self::GRID_RIGHT_MM - self::GRID_LEFT_MM - $totalGap) / $columnCount;
+        return 1;
     }
 
-    public static function questionRowTopMm(int $index): float
+    public static function questionColumnWidthMm(int $questionCount = 0): float
     {
-        $row = $index % self::GRID_ROWS_PER_COLUMN;
-
-        return self::GRID_TOP_MM + ($row * self::questionRowHeightMm());
+        return self::GRID_RIGHT_MM - self::GRID_LEFT_MM;
     }
 
-    public static function questionColumnLeftMm(int $questionCount, int $index): float
+    public static function questionRowTopMm(int $rowIndex): float
     {
-        $column = intdiv($index, self::GRID_ROWS_PER_COLUMN);
+        return self::GRID_TOP_MM + ($rowIndex * self::questionRowHeightMm());
+    }
 
-        return self::GRID_LEFT_MM + ($column * (self::questionColumnWidthMm($questionCount) + self::GRID_COLUMN_GAP_MM));
+    public static function questionColumnLeftMm(int $questionCount = 0, int $index = 0): float
+    {
+        return self::GRID_LEFT_MM;
     }
 
     public static function answerFieldWidthMm(): float
@@ -76,14 +91,14 @@ class BlankScanLayout
             + (self::ANSWER_OPTION_GAP_MM * (self::ANSWER_OPTION_COUNT - 1));
     }
 
-    public static function answerFieldLeftOffsetMm(int $questionCount): float
+    public static function answerFieldLeftOffsetMm(int $questionCount = 0): float
     {
         return self::questionColumnWidthMm($questionCount)
             - self::answerFieldWidthMm()
             - self::ANSWER_FIELD_RIGHT_PADDING_MM;
     }
 
-    public static function questionTextWidthMm(int $questionCount): float
+    public static function questionTextWidthMm(int $questionCount = 0): float
     {
         return max(
             10.0,
@@ -95,11 +110,12 @@ class BlankScanLayout
 
     public static function answerCellMm(int $questionCount, int $questionIndex, int $optionIndex): array
     {
+        $rowIndex = $questionIndex % self::GRID_ROWS_PER_PAGE;
         $left = self::questionColumnLeftMm($questionCount, $questionIndex)
             + self::answerFieldLeftOffsetMm($questionCount)
             + ($optionIndex * (self::ANSWER_OPTION_SIZE_MM + self::ANSWER_OPTION_GAP_MM));
 
-        $top = self::questionRowTopMm($questionIndex)
+        $top = self::questionRowTopMm($rowIndex)
             + ((self::questionRowHeightMm() - self::ANSWER_OPTION_SIZE_MM) / 2);
 
         return [
@@ -123,26 +139,50 @@ class BlankScanLayout
 
     public static function bitStringFor(int $blankFormId): string
     {
-        $checksum = ($blankFormId ^ self::CODE_MASK) & 0xFF;
+        return self::bitStringForPage($blankFormId, 1, 1);
+    }
+
+    public static function bitStringForPage(int $blankFormId, int $pageNumber, int $pageCount): string
+    {
+        $normalizedPageNumber = max(1, min(4095, $pageNumber));
+        $normalizedPageCount = max($normalizedPageNumber, min(4095, $pageCount));
+        $checksum = (($blankFormId ^ $normalizedPageNumber ^ $normalizedPageCount ^ self::CODE_MASK) & 0xFF);
 
         return str_pad(decbin($blankFormId), 24, '0', STR_PAD_LEFT)
+            . str_pad(decbin($normalizedPageNumber), 12, '0', STR_PAD_LEFT)
+            . str_pad(decbin($normalizedPageCount), 12, '0', STR_PAD_LEFT)
             . str_pad(decbin($checksum), 8, '0', STR_PAD_LEFT);
     }
 
     public static function decodeBitString(string $bitString): ?int
+    {
+        return self::decodePageBitString($bitString)['blank_form_id'] ?? null;
+    }
+
+    public static function decodePageBitString(string $bitString): ?array
     {
         if (strlen($bitString) !== self::CODE_BITS) {
             return null;
         }
 
         $blankFormId = bindec(substr($bitString, 0, 24));
-        $checksum = bindec(substr($bitString, 24, 8));
+        $pageNumber = bindec(substr($bitString, 24, 12));
+        $pageCount = bindec(substr($bitString, 36, 12));
+        $checksum = bindec(substr($bitString, 48, 8));
 
-        if ((($blankFormId ^ self::CODE_MASK) & 0xFF) !== $checksum) {
+        if ((($blankFormId ^ $pageNumber ^ $pageCount ^ self::CODE_MASK) & 0xFF) !== $checksum) {
             return null;
         }
 
-        return $blankFormId;
+        if ($pageNumber < 1 || $pageCount < 1 || $pageNumber > $pageCount) {
+            return null;
+        }
+
+        return [
+            'blank_form_id' => $blankFormId,
+            'page_number' => $pageNumber,
+            'page_count' => $pageCount,
+        ];
     }
 
     public static function answerLetters(): array
@@ -162,13 +202,18 @@ class BlankScanLayout
             + ((self::CODE_GRID_ROWS - 1) * self::CODE_CELL_GAP_MM);
     }
 
+    public static function codeLeftMm(): float
+    {
+        return (self::PAGE_WIDTH_MM - self::codeGridWidthMm()) / 2;
+    }
+
     public static function codeCellMm(int $index): array
     {
         $row = intdiv($index, self::CODE_GRID_COLUMNS);
         $column = $index % self::CODE_GRID_COLUMNS;
 
         return [
-            'left' => self::CODE_LEFT_MM + ($column * (self::CODE_CELL_WIDTH_MM + self::CODE_CELL_GAP_MM)),
+            'left' => self::codeLeftMm() + ($column * (self::CODE_CELL_WIDTH_MM + self::CODE_CELL_GAP_MM)),
             'top' => self::CODE_TOP_MM + ($row * (self::CODE_CELL_HEIGHT_MM + self::CODE_CELL_GAP_MM)),
             'width' => self::CODE_CELL_WIDTH_MM,
             'height' => self::CODE_CELL_HEIGHT_MM,

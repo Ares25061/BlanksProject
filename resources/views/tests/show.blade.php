@@ -32,9 +32,17 @@
                         <i class="fas fa-pen"></i>
                         Редактировать
                     </button>
-                    <button onclick="window.location.href=`/tests/${testId}/print`" class="bg-white border border-slate-200 text-slate-700 px-4 py-3 rounded-2xl hover:border-sky-300 hover:text-sky-700 transition flex items-center gap-2">
+                    <button onclick="openPrintMode('all')" class="bg-white border border-slate-200 text-slate-700 px-4 py-3 rounded-2xl hover:border-sky-300 hover:text-sky-700 transition flex items-center gap-2">
                         <i class="fas fa-print"></i>
-                        Демо-бланк
+                        Демо-комплект
+                    </button>
+                    <button onclick="openPrintMode('blank')" class="bg-white border border-slate-200 text-slate-700 px-4 py-3 rounded-2xl hover:border-sky-300 hover:text-sky-700 transition flex items-center gap-2">
+                        <i class="fas fa-table"></i>
+                        Только бланк
+                    </button>
+                    <button onclick="openPrintMode('questions')" class="bg-white border border-slate-200 text-slate-700 px-4 py-3 rounded-2xl hover:border-sky-300 hover:text-sky-700 transition flex items-center gap-2">
+                        <i class="fas fa-list"></i>
+                        Только задания
                     </button>
                     <button onclick="window.location.href='/tests'" class="bg-slate-900 text-white px-4 py-3 rounded-2xl hover:bg-slate-800 transition">
                         Назад
@@ -85,7 +93,7 @@
                     <h2 class="text-xl font-semibold">Сканирование</h2>
                     <div id="scanSupportNote" class="mt-3 text-sm rounded-2xl border border-amber-200 bg-amber-50 text-amber-800 p-4 hidden"></div>
                     <div class="mt-4 text-sm text-slate-600">
-                        Поддерживаются изображения <span class="font-semibold">JPG / PNG / WEBP</span> первого листа бланка ответов.
+                        Поддерживаются <span class="font-semibold">JPG / PNG / WEBP / PDF</span>. Если загружен PDF, браузер автоматически преобразует все его листы в изображения перед отправкой.
                     </div>
                 </section>
             </div>
@@ -146,9 +154,17 @@
                             <button onclick="generateBlankForms()" class="bg-emerald-600 text-white px-5 py-3 rounded-2xl hover:bg-emerald-500 transition font-medium">
                                 Сгенерировать бланки
                             </button>
-                            <button id="printGeneratedButton" onclick="printGeneratedPack()" class="hidden bg-slate-900 text-white px-5 py-3 rounded-2xl hover:bg-slate-800 transition font-medium">
-                                Печать последней пачки
-                            </button>
+                            <div id="printGeneratedActions" class="hidden flex flex-wrap gap-3">
+                                <button onclick="printGeneratedPack('all')" class="bg-slate-900 text-white px-5 py-3 rounded-2xl hover:bg-slate-800 transition font-medium">
+                                    Пачка: комплект
+                                </button>
+                                <button onclick="printGeneratedPack('blank')" class="bg-white border border-slate-200 text-slate-700 px-5 py-3 rounded-2xl hover:border-sky-300 hover:text-sky-700 transition font-medium">
+                                    Пачка: только бланки
+                                </button>
+                                <button onclick="printGeneratedPack('questions')" class="bg-white border border-slate-200 text-slate-700 px-5 py-3 rounded-2xl hover:border-sky-300 hover:text-sky-700 transition font-medium">
+                                    Пачка: только задания
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </section>
@@ -158,7 +174,7 @@
                     <p class="text-slate-500 mt-1">Загрузите отсканированные листы бланков, и система автоматически поставит баллы и оценку.</p>
 
                     <div class="mt-5 space-y-4">
-                        <input id="scanFiles" type="file" multiple accept=".jpg,.jpeg,.png,.webp"
+                        <input id="scanFiles" type="file" multiple accept=".jpg,.jpeg,.png,.webp,.pdf"
                                class="w-full px-4 py-3 rounded-2xl border border-dashed border-slate-300 bg-slate-50">
                         <button id="scanButton" onclick="uploadScans()" class="bg-sky-600 text-white px-5 py-3 rounded-2xl hover:bg-sky-500 transition font-medium">
                             Обработать сканы
@@ -188,12 +204,14 @@
 
 <script>
     const testId = {{ $id }};
+    const SCAN_ROWS_PER_PAGE = 24;
     let currentTest = null;
     let groups = [];
     let blankForms = [];
     let lastGeneratedBlankIds = [];
     let blankGenerationMode = 'all';
     let selectedGroupStudentIds = [];
+    let pdfJsLoadingPromise = null;
 
     async function apiFetch(url, options = {}) {
         return authApiFetch(url, options);
@@ -278,13 +296,20 @@
         const questionCount = currentTest.questions?.length || 0;
         const hasTooManyAnswers = (currentTest.questions || []).some((question) => (question.answers || []).length > 5);
         const scanSupportNote = document.getElementById('scanSupportNote');
-        if (questionCount > 15 || hasTooManyAnswers) {
+        const answerSheetPageCount = Math.max(1, Math.ceil(questionCount / SCAN_ROWS_PER_PAGE));
+        const scanButton = document.getElementById('scanButton');
+
+        scanButton.disabled = false;
+        scanButton.classList.remove('opacity-50', 'cursor-not-allowed');
+
+        if (hasTooManyAnswers) {
             scanSupportNote.classList.remove('hidden');
-            scanSupportNote.textContent = hasTooManyAnswers
-                ? 'В одном или нескольких вопросах больше 5 вариантов ответа. Текущий формат автосканирования поддерживает максимум 5.'
-                : 'Для этого теста слишком много вопросов для текущего формата автосканирования. Поддерживается не более 15 вопросов.';
-            document.getElementById('scanButton').disabled = true;
-            document.getElementById('scanButton').classList.add('opacity-50', 'cursor-not-allowed');
+            scanSupportNote.textContent = 'В одном или нескольких вопросах больше 5 вариантов ответа. Текущий формат автосканирования поддерживает максимум 5.';
+            scanButton.disabled = true;
+            scanButton.classList.add('opacity-50', 'cursor-not-allowed');
+        } else if (answerSheetPageCount > 1) {
+            scanSupportNote.classList.remove('hidden');
+            scanSupportNote.textContent = `Для этого теста понадобится ${answerSheetPageCount} листа(ов) ответов на каждого ученика. При проверке загружайте все листы ученика одной пачкой.`;
         } else {
             scanSupportNote.classList.add('hidden');
         }
@@ -541,8 +566,14 @@
                     </div>
 
                     <div class="flex flex-wrap gap-2 mt-4">
-                        <button onclick="printBlankForm(${blankForm.id})" class="bg-white border border-slate-200 text-slate-700 px-4 py-2 rounded-xl hover:border-sky-300 hover:text-sky-700 transition text-sm">
-                            Печать
+                        <button onclick="printBlankForm(${blankForm.id}, 'all')" class="bg-white border border-slate-200 text-slate-700 px-4 py-2 rounded-xl hover:border-sky-300 hover:text-sky-700 transition text-sm">
+                            Комплект
+                        </button>
+                        <button onclick="printBlankForm(${blankForm.id}, 'blank')" class="bg-white border border-slate-200 text-slate-700 px-4 py-2 rounded-xl hover:border-sky-300 hover:text-sky-700 transition text-sm">
+                            Бланк
+                        </button>
+                        <button onclick="printBlankForm(${blankForm.id}, 'questions')" class="bg-white border border-slate-200 text-slate-700 px-4 py-2 rounded-xl hover:border-sky-300 hover:text-sky-700 transition text-sm">
+                            Задания
                         </button>
                         ${blankForm.status === 'checked' ? `
                             <button onclick="openResultsPage([${blankForm.id}])" class="bg-sky-600 text-white px-4 py-2 rounded-xl hover:bg-sky-500 transition text-sm">
@@ -604,7 +635,7 @@
 
             const data = await response.json();
             lastGeneratedBlankIds = (data.data || []).map((item) => item.id);
-            document.getElementById('printGeneratedButton').classList.toggle('hidden', !lastGeneratedBlankIds.length);
+            document.getElementById('printGeneratedActions').classList.toggle('hidden', !lastGeneratedBlankIds.length);
             await loadBlankForms();
             alert(blankGenerationMode === 'selected'
                 ? `Сгенерировано бланков для выбранных студентов: ${lastGeneratedBlankIds.length}`
@@ -614,16 +645,33 @@
         }
     }
 
-    function printGeneratedPack() {
+    function openPrintMode(mode = 'all') {
+        window.location.href = buildPrintUrl([], mode);
+    }
+
+    function printGeneratedPack(mode = 'all') {
         if (!lastGeneratedBlankIds.length) {
             return;
         }
 
-        window.location.href = `/tests/${testId}/print?blank_form_ids=${lastGeneratedBlankIds.join(',')}`;
+        window.location.href = buildPrintUrl(lastGeneratedBlankIds, mode);
     }
 
-    function printBlankForm(blankFormId) {
-        window.location.href = `/tests/${testId}/print?blank_form_ids=${blankFormId}`;
+    function printBlankForm(blankFormId, mode = 'all') {
+        window.location.href = buildPrintUrl([blankFormId], mode);
+    }
+
+    function buildPrintUrl(blankFormIds = [], mode = 'all') {
+        const params = new URLSearchParams();
+        if (blankFormIds.length) {
+            params.set('blank_form_ids', blankFormIds.join(','));
+        }
+        if (mode && mode !== 'all') {
+            params.set('print_mode', mode);
+        }
+
+        const query = params.toString();
+        return query ? `/tests/${testId}/print?${query}` : `/tests/${testId}/print`;
     }
 
     async function deleteBlankForm(blankFormId, status) {
@@ -643,7 +691,7 @@
             }
 
             lastGeneratedBlankIds = lastGeneratedBlankIds.filter((id) => id !== blankFormId);
-            document.getElementById('printGeneratedButton').classList.toggle('hidden', !lastGeneratedBlankIds.length);
+            document.getElementById('printGeneratedActions').classList.toggle('hidden', !lastGeneratedBlankIds.length);
             await loadBlankForms();
         } catch (error) {
             alert(error.message || 'Ошибка удаления');
@@ -673,13 +721,15 @@
             return;
         }
 
+        const originalFiles = Array.from(input.files);
         const formData = new FormData();
-        Array.from(input.files).forEach((file) => formData.append('scans[]', file));
 
         try {
             scanButton.disabled = true;
             scanButton.classList.add('opacity-70', 'cursor-wait');
             scanButton.textContent = 'Обрабатываю...';
+            const preparedFiles = await prepareScanFilesForUpload(originalFiles, scanButton);
+            preparedFiles.forEach((file) => formData.append('scans[]', file));
 
             const response = await authApiFetch(`/api/tests/${testId}/scan-blank-forms`, {
                 method: 'POST',
@@ -696,10 +746,13 @@
 
             const data = await response.json();
             const results = data.data || [];
-            const processedIds = [...new Set(results.map((result) => Number(result.blank_form_id)).filter((value) => Number.isInteger(value) && value > 0))];
+            const processedIds = [...new Set(results
+                .filter((result) => Number.isInteger(Number(result.blank_form_id)) && result.status === 'checked')
+                .map((result) => Number(result.blank_form_id))
+                .filter((value) => value > 0))];
             input.value = '';
 
-            if (processedIds.length) {
+            if (processedIds.length && processedIds.length === results.length) {
                 openResultsPage(processedIds);
                 return;
             }
@@ -715,6 +768,103 @@
         }
     }
 
+    async function prepareScanFilesForUpload(files, scanButton) {
+        const preparedFiles = [];
+
+        for (let index = 0; index < files.length; index += 1) {
+            const file = files[index];
+            if (isPdfFile(file)) {
+                scanButton.textContent = `Готовлю PDF ${index + 1}/${files.length}...`;
+                preparedFiles.push(...await convertPdfToImageFiles(file));
+                continue;
+            }
+
+            preparedFiles.push(file);
+        }
+
+        return preparedFiles;
+    }
+
+    function isPdfFile(file) {
+        return file.type === 'application/pdf' || /\.pdf$/i.test(file.name || '');
+    }
+
+    async function convertPdfToImageFiles(file) {
+        const pdfjsLib = await ensurePdfJsLoaded();
+        const buffer = await file.arrayBuffer();
+        const loadingTask = pdfjsLib.getDocument({ data: buffer });
+        const pdf = await loadingTask.promise;
+        const files = [];
+
+        try {
+            for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber += 1) {
+                const page = await pdf.getPage(pageNumber);
+                const viewport = page.getViewport({ scale: 2.2 });
+                const canvas = document.createElement('canvas');
+                const context = canvas.getContext('2d', { alpha: false });
+
+                if (!context) {
+                    throw new Error('Не удалось подготовить холст для конвертации PDF.');
+                }
+
+                canvas.width = Math.ceil(viewport.width);
+                canvas.height = Math.ceil(viewport.height);
+                context.fillStyle = '#ffffff';
+                context.fillRect(0, 0, canvas.width, canvas.height);
+
+                await page.render({
+                    canvasContext: context,
+                    viewport,
+                    background: 'rgb(255,255,255)',
+                }).promise;
+
+                const blob = await new Promise((resolve, reject) => {
+                    canvas.toBlob((result) => {
+                        if (result) {
+                            resolve(result);
+                            return;
+                        }
+
+                        reject(new Error(`Не удалось сохранить изображение листа ${pageNumber} из PDF.`));
+                    }, 'image/jpeg', 0.92);
+                });
+
+                const targetName = (file.name || 'scan.pdf').replace(/\.pdf$/i, '') + `-page${pageNumber}.jpg`;
+                files.push(new File([blob], targetName, {
+                    type: 'image/jpeg',
+                    lastModified: Date.now(),
+                }));
+            }
+
+            return files;
+        } finally {
+            await pdf.destroy();
+        }
+    }
+
+    async function ensurePdfJsLoaded() {
+        if (window.__pdfjsLib) {
+            return window.__pdfjsLib;
+        }
+
+        if (!pdfJsLoadingPromise) {
+            pdfJsLoadingPromise = import('https://cdn.jsdelivr.net/npm/pdfjs-dist@5.4.624/build/pdf.min.mjs')
+                .then((module) => {
+                    const pdfjsLib = module.default || module;
+                    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@5.4.624/build/pdf.worker.min.mjs';
+                    window.__pdfjsLib = pdfjsLib;
+
+                    return pdfjsLib;
+                })
+                .catch((error) => {
+                    pdfJsLoadingPromise = null;
+                    throw new Error('Не удалось загрузить PDF-конвертер в браузере. Проверьте подключение к интернету и попробуйте снова.');
+                });
+        }
+
+        return pdfJsLoadingPromise;
+    }
+
     function renderScanResults(results) {
         const container = document.getElementById('scanResults');
 
@@ -724,15 +874,16 @@
         }
 
         container.innerHTML = results.map((result) => `
-            <article class="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
+            <article class="rounded-2xl border ${result.status === 'incomplete_scan' ? 'border-amber-200 bg-amber-50' : 'border-emerald-200 bg-emerald-50'} p-4">
                 <div class="flex flex-wrap justify-between gap-3">
                     <div>
-                        <div class="font-semibold text-emerald-900">${escapeHtml(result.student_name || 'Без имени')}</div>
-                        <div class="text-sm text-emerald-800 mt-1">${escapeHtml(result.file_name || '')}</div>
+                        <div class="font-semibold ${result.status === 'incomplete_scan' ? 'text-amber-900' : 'text-emerald-900'}">${escapeHtml(result.student_name || 'Без имени')}</div>
+                        <div class="text-sm ${result.status === 'incomplete_scan' ? 'text-amber-800' : 'text-emerald-800'} mt-1">${escapeHtml(result.file_name || '')}</div>
+                        ${result.expected_pages ? `<div class="text-xs mt-2 ${result.status === 'incomplete_scan' ? 'text-amber-700' : 'text-emerald-700'}">Листы: ${(result.pages_processed || []).join(', ') || '—'} из ${result.expected_pages}</div>` : ''}
                     </div>
                     <div class="text-right">
-                        <div class="font-semibold text-emerald-900">${result.score} / ${result.max_score}</div>
-                        <div class="text-sm text-emerald-800">${escapeHtml(result.grade || '')}</div>
+                        <div class="font-semibold ${result.status === 'incomplete_scan' ? 'text-amber-900' : 'text-emerald-900'}">${result.score ?? '—'} / ${result.max_score ?? '—'}</div>
+                        <div class="text-sm ${result.status === 'incomplete_scan' ? 'text-amber-800' : 'text-emerald-800'}">${escapeHtml(result.grade || (result.status === 'incomplete_scan' ? 'Нужно загрузить все листы' : ''))}</div>
                     </div>
                 </div>
                 ${result.warnings?.length ? `

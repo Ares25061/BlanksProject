@@ -114,6 +114,7 @@ class BlankFormService
     public function replaceStudentAnswersFromScan(BlankForm $blankForm, array $answers, array $scanMetadata = []): BlankForm
     {
         return DB::transaction(function () use ($blankForm, $answers, $scanMetadata) {
+            $existingScanPaths = $this->extractScanPaths($blankForm);
             $blankForm->studentAnswers()->delete();
 
             $metadata = $blankForm->metadata ?? [];
@@ -130,6 +131,16 @@ class BlankFormService
             ]);
 
             $this->storeStudentAnswers($blankForm, $answers);
+
+            $newScanPaths = array_values(array_filter([
+                $scanMetadata['scan_path'] ?? null,
+                ...collect($scanMetadata['pages'] ?? [])->pluck('scan_path')->filter()->all(),
+            ]));
+            $pathsToDelete = array_diff($existingScanPaths, $newScanPaths);
+
+            if ($pathsToDelete !== []) {
+                Storage::disk('local')->delete($pathsToDelete);
+            }
 
             return $blankForm->fresh(['studentAnswers', 'test.questions.answers', 'studentGroup', 'groupStudent']);
         });
@@ -199,15 +210,28 @@ class BlankFormService
     public function deleteBlankForm(BlankForm $blankForm): void
     {
         DB::transaction(function () use ($blankForm) {
-            $scanPath = $blankForm->scan_path;
+            $scanPaths = $this->extractScanPaths($blankForm);
 
             StudentGrade::where('blank_form_id', $blankForm->id)->delete();
             $blankForm->studentAnswers()->delete();
             $blankForm->delete();
 
-            if ($scanPath) {
-                Storage::disk('local')->delete($scanPath);
+            if ($scanPaths !== []) {
+                Storage::disk('local')->delete($scanPaths);
             }
         });
+    }
+
+    protected function extractScanPaths(BlankForm $blankForm): array
+    {
+        $paths = array_filter([
+            $blankForm->scan_path,
+            ...collect(data_get($blankForm->metadata, 'scan.pages', []))
+                ->pluck('scan_path')
+                ->filter()
+                ->all(),
+        ]);
+
+        return array_values(array_unique($paths));
     }
 }

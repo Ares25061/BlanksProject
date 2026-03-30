@@ -147,7 +147,7 @@ class BlankFormController extends Controller
 
         $validated = $request->validate([
             'scans' => 'required|array|min:1',
-            'scans.*' => 'required|file|mimes:jpg,jpeg,png,webp|max:15360',
+            'scans.*' => 'required|file|mimes:jpg,jpeg,png,webp,pdf|max:15360',
         ]);
 
         $results = $this->blankScanService->scanUploadedForms($test->load('questions.answers'), $validated['scans']);
@@ -201,20 +201,39 @@ class BlankFormController extends Controller
         ]);
     }
 
-    public function scanImage(BlankForm $blankForm)
+    public function scanImage(Request $request, BlankForm $blankForm)
     {
         $this->authorize('view', $blankForm);
 
-        if (!$blankForm->scan_path || !Storage::disk('local')->exists($blankForm->scan_path)) {
+        $requestedPage = (int) $request->query('page', 1);
+        $pagePath = $this->resolveScanPathForPage($blankForm, $requestedPage);
+
+        if (!$pagePath || !Storage::disk('local')->exists($pagePath)) {
             abort(404, 'Скан бланка не найден.');
         }
 
         return Storage::disk('local')->response(
-            $blankForm->scan_path,
-            basename($blankForm->scan_path),
+            $pagePath,
+            basename($pagePath),
             [],
             'inline'
         );
+    }
+
+    protected function resolveScanPathForPage(BlankForm $blankForm, int $pageNumber): ?string
+    {
+        $normalizedPage = max(1, $pageNumber);
+        $pages = collect(data_get($blankForm->metadata, 'scan.pages', []))
+            ->filter(fn ($page) => !empty($page['scan_path']))
+            ->values();
+
+        if ($pages->isNotEmpty()) {
+            $matchedPage = $pages->first(fn ($page) => (int) ($page['page_number'] ?? 0) === $normalizedPage);
+
+            return $matchedPage['scan_path'] ?? ($pages->first()['scan_path'] ?? null);
+        }
+
+        return $blankForm->scan_path;
     }
 
     public function index(Request $request)

@@ -5,6 +5,7 @@ namespace App\Support;
 class AnswerScanResolver
 {
     private const MIN_MARK_SCORE = 0.12;
+    private const MIN_MULTIPLE_MARK_SCORE = 0.21;
     private const DYNAMIC_MARGIN = 0.06;
     private const MAX_DYNAMIC_THRESHOLD = 0.22;
     private const DOMINANT_GAP = 0.07;
@@ -43,6 +44,10 @@ class AnswerScanResolver
             self::MIN_MARK_SCORE,
             min(self::MAX_DYNAMIC_THRESHOLD, $minScore + self::DYNAMIC_MARGIN),
         );
+
+        if ($questionType === 'multiple') {
+            $dynamicThreshold = max($dynamicThreshold, self::MIN_MULTIPLE_MARK_SCORE);
+        }
 
         $selected = array_values(array_filter(
             $measurements,

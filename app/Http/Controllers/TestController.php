@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 use App\Models\BlankForm;
 use App\Models\Test;
 use App\Services\TestService;
+use App\Services\TestImportService;
+use App\Services\TestPrintLayoutService;
 use App\Support\BlankScanLayout;
 use App\Http\Requests\TestRequest;
 use Illuminate\Http\Request;
@@ -15,10 +17,18 @@ class TestController extends Controller
     use AuthorizesRequests;
 
     protected $testService;
+    protected $testImportService;
+    protected $testPrintLayoutService;
 
-    public function __construct(TestService $testService)
+    public function __construct(
+        TestService $testService,
+        TestImportService $testImportService,
+        TestPrintLayoutService $testPrintLayoutService,
+    )
     {
         $this->testService = $testService;
+        $this->testImportService = $testImportService;
+        $this->testPrintLayoutService = $testPrintLayoutService;
     }
 
     public function index(Request $request)
@@ -116,6 +126,23 @@ class TestController extends Controller
         ]);
     }
 
+    public function importQuestions(Request $request)
+    {
+        $this->authorize('create', Test::class);
+
+        $validated = $request->validate([
+            'file' => 'required|file|mimes:json,xlsx|max:5120',
+        ]);
+
+        $imported = $this->testImportService->importFromUploadedFile($validated['file']);
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Вопросы успешно импортированы',
+            'data' => $imported,
+        ]);
+    }
+
     public function print(Request $request, Test $test)
     {
         // Web-страницы в этом проекте сейчас открываются без Laravel session:
@@ -154,38 +181,54 @@ class TestController extends Controller
             ]);
         }
 
-        $documentTitle = $this->buildPrintDocumentTitle($test, $blankForms);
+        $printMode = $this->normalizePrintMode((string) $request->query('print_mode', 'all'));
+        $documentTitle = $this->buildPrintDocumentTitle($test, $blankForms, $printMode);
+
+        $loadedTest = $test->load('questions.answers');
 
         return view('tests.print', [
-            'test' => $test->load('questions.answers'),
+            'test' => $loadedTest,
             'blankForms' => $blankForms,
             'documentTitle' => $documentTitle,
-            'maxScannableQuestions' => BlankScanLayout::maxQuestions(),
+            'printMode' => $printMode,
+            'answerSheetPages' => $this->testPrintLayoutService->paginateAnswerSheetQuestions($loadedTest),
+            'questionPages' => $this->testPrintLayoutService->paginateQuestions($loadedTest),
         ]);
     }
 
-    private function buildPrintDocumentTitle(Test $test, $blankForms): string
+    private function buildPrintDocumentTitle(Test $test, $blankForms, string $printMode): string
     {
         $firstBlankForm = $blankForms->first();
         $studentLabel = trim(implode(' ', array_filter([
             $firstBlankForm?->last_name,
             $firstBlankForm?->first_name,
         ])));
+        $modeLabel = match ($printMode) {
+            'blank' => 'Бланк',
+            'questions' => 'Задания',
+            default => 'Комплект',
+        };
 
         if ($blankForms->count() === 1 && $studentLabel !== '') {
-            return $this->sanitizeDocumentTitle("Бланк {$studentLabel} {$test->title}");
+            return $this->sanitizeDocumentTitle("{$modeLabel} {$studentLabel} {$test->title}");
         }
 
         $groupLabel = trim((string) ($firstBlankForm?->group_name ?? ''));
-        $baseTitle = $blankForms->count() > 1
-            ? "Бланки {$test->title}"
-            : "Бланк {$test->title}";
+        $baseTitle = "{$modeLabel} {$test->title}";
 
         if ($groupLabel !== '') {
             $baseTitle .= " {$groupLabel}";
         }
 
         return $this->sanitizeDocumentTitle($baseTitle);
+    }
+
+    private function normalizePrintMode(string $value): string
+    {
+        return match (Str::lower(trim($value))) {
+            'blank', 'questions' => Str::lower(trim($value)),
+            default => 'all',
+        };
     }
 
     private function sanitizeDocumentTitle(string $value): string

@@ -27,7 +27,7 @@ class TestRequest extends FormRequest
 
         // Для создания или обновления теста с вопросами
         if ($this->isMethod('post') || $this->isMethod('put')) {
-            $rules['questions'] = 'sometimes|array|max:' . BlankScanLayout::maxQuestions();
+            $rules['questions'] = 'sometimes|array';
             $rules['questions.*.id'] = 'sometimes|integer|exists:questions,id';
             $rules['questions.*.question_text'] = 'required_with:questions|string';
             $rules['questions.*.type'] = 'required_with:questions|in:single,multiple';
@@ -48,7 +48,6 @@ class TestRequest extends FormRequest
             'subject_name.required' => 'Укажите предмет теста',
             'questions.*.question_text.required' => 'Текст вопроса обязателен',
             'questions.*.answers.*.answer_text.required' => 'Текст ответа обязателен',
-            'questions.max' => 'Для автосканирования поддерживается не более ' . BlankScanLayout::maxQuestions() . ' вопросов в тесте',
             'questions.*.answers.min' => 'У вопроса должно быть минимум 2 варианта ответа',
             'questions.*.answers.max' => 'Для одного вопроса поддерживается не более ' . BlankScanLayout::ANSWER_OPTION_COUNT . ' вариантов ответа',
             'grade_criteria.required' => 'Укажите критерии оценивания по баллам',

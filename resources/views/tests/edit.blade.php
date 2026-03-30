@@ -35,7 +35,7 @@
                 <div class="flex flex-wrap justify-between gap-4 items-center">
                     <h2 class="text-xl font-semibold">Основная информация</h2>
                     <div class="text-sm text-slate-500">
-                        Формат бланка: до <span class="font-semibold text-slate-700">15 вопросов</span> и до <span class="font-semibold text-slate-700">5 вариантов ответа</span> на вопрос
+                        Формат бланка: неограниченное число вопросов и до <span class="font-semibold text-slate-700">5 вариантов ответа</span> на вопрос
                     </div>
                     <button type="button" onclick="window.location.href=`/tests/${testId}`" class="text-slate-600 hover:text-slate-900">
                         Вернуться к тесту
@@ -77,6 +77,35 @@
                 </div>
             </section>
 
+            <section class="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 space-y-4">
+                <div class="flex flex-wrap justify-between items-start gap-4">
+                    <div>
+                        <h2 class="text-xl font-semibold">Импорт вопросов</h2>
+                        <p class="text-slate-500 mt-1">Можно быстро заменить текущий набор вопросов или добавить новые из `JSON` или `XLSX`.</p>
+                    </div>
+                    <div class="flex flex-wrap gap-3">
+                        <input id="questionsImportInput" type="file" accept=".json,.xlsx" class="hidden">
+                        <button type="button" onclick="document.getElementById('questionsImportInput').click()" class="bg-slate-900 text-white px-4 py-2 rounded-xl hover:bg-slate-800 transition flex items-center gap-2">
+                            <i class="fas fa-file-import"></i>
+                            Импортировать файл
+                        </button>
+                    </div>
+                </div>
+
+                <div class="grid lg:grid-cols-[1.15fr_0.85fr] gap-4">
+                    <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
+                        <div class="font-semibold text-slate-900 mb-2">JSON</div>
+                        <div>Поддерживаются как массив вопросов, так и объект с полем <code>questions</code>. Можно передать и дополнительные поля теста: <code>title</code>, <code>subject_name</code>, <code>grade_criteria</code>.</div>
+                    </div>
+                    <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
+                        <div class="font-semibold text-slate-900 mb-2">XLSX</div>
+                        <div>Первая строка должна содержать заголовки <code>question_text</code>, <code>type</code>, <code>points</code>, <code>answer_a</code> ... <code>answer_e</code>, <code>correct</code>.</div>
+                    </div>
+                </div>
+
+                <div id="importStatus" class="hidden rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900"></div>
+            </section>
+
             <section class="bg-white rounded-3xl shadow-sm border border-slate-200 p-6">
                 <div class="flex flex-wrap justify-between items-center gap-3 mb-4">
                     <div>
@@ -105,7 +134,7 @@
                 <div class="flex flex-wrap justify-between items-center gap-3 mb-4">
                     <div>
                         <h2 class="text-xl font-semibold">Вопросы</h2>
-                        <p class="text-slate-500 mt-1">Изменения сразу повлияют на новые проверки. Для печатного бланка доступно максимум 15 вопросов и 5 вариантов ответа.</p>
+                        <p class="text-slate-500 mt-1">Изменения сразу повлияют на новые проверки. Если вопросов будет много, бланк ответов сам продолжится на следующих листах.</p>
                     </div>
                     <button type="button" onclick="addQuestion()" class="bg-emerald-600 text-white px-4 py-2 rounded-xl hover:bg-emerald-500 transition flex items-center gap-2">
                         <i class="fas fa-plus"></i>
@@ -201,7 +230,6 @@
 
 <script>
     const testId = {{ $id }};
-    const MAX_QUESTIONS = 15;
     const MAX_ANSWERS = 5;
     let currentTest = null;
 
@@ -248,11 +276,6 @@
     function addQuestion(question = null) {
         const container = document.getElementById('questionsContainer');
         const noQuestions = document.getElementById('noQuestions');
-
-        if (!question && container.children.length >= MAX_QUESTIONS) {
-            alert(`Для этого формата бланка доступно не более ${MAX_QUESTIONS} вопросов`);
-            return;
-        }
 
         noQuestions.classList.add('hidden');
 
@@ -377,6 +400,79 @@
         defaults.forEach(addGradeCriterion);
     }
 
+    async function importQuestionsFromFile(file) {
+        if (!file) {
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const response = await authApiFetch('/api/tests/import-questions', {
+            method: 'POST',
+            headers: {
+                'Accept': 'application/json'
+            },
+            body: formData
+        });
+
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) {
+            throw new Error(payload.message || payload.errors?.file?.[0] || 'Не удалось импортировать файл');
+        }
+
+        applyImportedTestData(payload.data || {});
+    }
+
+    function applyImportedTestData(imported) {
+        const importedQuestions = imported.questions || [];
+        if (!importedQuestions.length) {
+            throw new Error('В файле не найдено ни одного вопроса');
+        }
+
+        const shouldReplace = confirm('Заменить текущие вопросы импортируемыми? Нажмите "Отмена", чтобы добавить новые вопросы в конец.');
+
+        if (shouldReplace) {
+            document.getElementById('questionsContainer').innerHTML = '';
+            document.getElementById('noQuestions').classList.add('hidden');
+        }
+
+        importedQuestions.forEach((question) => addQuestion(question));
+        maybeApplyImportedMetadata(imported);
+        renderImportStatus(importedQuestions.length, shouldReplace);
+    }
+
+    function maybeApplyImportedMetadata(imported) {
+        if (imported.subject_name && confirm('В файле найден предмет. Подставить его в форму?')) {
+            document.getElementById('subject_name').value = imported.subject_name;
+        }
+
+        if (imported.title && confirm('В файле найдено название теста. Подставить его в форму?')) {
+            document.getElementById('title').value = imported.title;
+        }
+
+        if (imported.description && confirm('В файле найдено описание. Подставить его в форму?')) {
+            document.getElementById('description').value = imported.description;
+        }
+
+        if (imported.time_limit && confirm('В файле найден лимит времени. Подставить его в форму?')) {
+            document.getElementById('time_limit').value = imported.time_limit;
+        }
+
+        if ((imported.grade_criteria || []).length && confirm('В файле найдены критерии оценивания. Заменить текущую шкалу?')) {
+            document.getElementById('gradeCriteriaContainer').innerHTML = '';
+            imported.grade_criteria.forEach(addGradeCriterion);
+        }
+    }
+
+    function renderImportStatus(questionCount, replaced) {
+        const status = document.getElementById('importStatus');
+        status.classList.remove('hidden');
+        status.textContent = replaced
+            ? `Импортировано вопросов: ${questionCount}. Текущий список полностью заменен содержимым файла.`
+            : `Импортировано вопросов: ${questionCount}. Они добавлены в конец текущего списка.`;
+    }
+
     function collectGradeCriteria() {
         return Array.from(document.querySelectorAll('.grade-criterion')).map((criterion) => ({
             label: criterion.querySelector('.criterion-label').value.trim(),
@@ -432,11 +528,6 @@
         const questions = document.querySelectorAll('.question-item');
         if (!questions.length) {
             alert('Добавьте хотя бы один вопрос');
-            return false;
-        }
-
-        if (questions.length > MAX_QUESTIONS) {
-            alert(`Для этого формата бланка доступно не более ${MAX_QUESTIONS} вопросов`);
             return false;
         }
 
@@ -530,6 +621,17 @@
     document.addEventListener('input', (event) => {
         if (event.target.classList.contains('question-points')) {
             updateTotalPoints();
+        }
+    });
+
+    document.getElementById('questionsImportInput').addEventListener('change', async (event) => {
+        const [file] = event.target.files || [];
+        event.target.value = '';
+
+        try {
+            await importQuestionsFromFile(file);
+        } catch (error) {
+            alert(error.message || 'Ошибка импорта');
         }
     });
 

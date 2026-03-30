@@ -14,8 +14,11 @@ use App\Services\BlankFormService;
 use App\Services\GradingService;
 use App\Services\StudentGradeService;
 use App\Services\StudentGroupService;
+use App\Services\TestPrintLayoutService;
 use App\Support\BlankScanLayout;
+use App\Support\SimpleXlsx;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
@@ -437,13 +440,13 @@ class TeacherWorkflowTest extends TestCase
         $this->assertSame('Программирование', $test->subject_name);
     }
 
-    public function test_test_service_rejects_more_than_fifteen_questions(): void
+    public function test_test_service_allows_large_test_with_thirty_questions(): void
     {
         $teacher = User::factory()->create();
         $this->actingAs($teacher);
         Auth::login($teacher);
 
-        $questions = collect(range(1, BlankScanLayout::maxQuestions() + 1))
+        $questions = collect(range(1, 30))
             ->map(fn (int $index) => [
                 'question_text' => 'Вопрос ' . $index,
                 'type' => 'single',
@@ -455,15 +458,90 @@ class TeacherWorkflowTest extends TestCase
             ])
             ->all();
 
-        $this->expectException(ValidationException::class);
-
-        app(TestService::class)->createTest([
-            'title' => 'Слишком много вопросов',
+        $test = app(TestService::class)->createTest([
+            'title' => 'Большой тест',
+            'subject_name' => 'Программирование',
             'grade_criteria' => [
                 ['label' => '5', 'min_points' => 0],
             ],
             'questions' => $questions,
         ]);
+
+        $this->assertCount(30, $test->questions);
+        $this->assertSame(2, BlankScanLayout::questionPageCount($test->questions->count()));
+    }
+
+    public function test_print_blank_mode_renders_multiple_answer_sheets_for_large_test(): void
+    {
+        $teacher = User::factory()->create();
+        $this->actingAs($teacher);
+        Auth::login($teacher);
+
+        $questions = collect(range(1, 30))
+            ->map(fn (int $index) => [
+                'question_text' => 'Вопрос ' . $index,
+                'type' => $index % 5 === 0 ? 'multiple' : 'single',
+                'points' => 1,
+                'answers' => [
+                    ['answer_text' => 'A', 'is_correct' => true],
+                    ['answer_text' => 'B', 'is_correct' => $index % 5 === 0],
+                    ['answer_text' => 'C', 'is_correct' => false],
+                ],
+            ])
+            ->all();
+
+        $test = app(TestService::class)->createTest([
+            'title' => 'Печать большого теста',
+            'subject_name' => 'Программирование',
+            'grade_criteria' => [
+                ['label' => '5', 'min_points' => 0],
+            ],
+            'questions' => $questions,
+        ]);
+
+        $response = $this->get('/tests/' . $test->id . '/print?print_mode=blank');
+
+        $response->assertOk();
+        $response->assertSee('Лист ответов: 1 / 2', false);
+        $response->assertSee('Лист ответов: 2 / 2', false);
+        $response->assertSee('Вопросы:</strong> 25-30', false);
+    }
+
+    public function test_question_print_layout_splits_short_questions_before_browser_print_overflow(): void
+    {
+        $teacher = User::factory()->create();
+        $this->actingAs($teacher);
+        Auth::login($teacher);
+
+        $questions = collect(range(1, 7))
+            ->map(fn (int $index) => [
+                'question_text' => 'Короткий вопрос ' . $index,
+                'type' => 'single',
+                'points' => 1,
+                'answers' => [
+                    ['answer_text' => 'Вариант A', 'is_correct' => true],
+                    ['answer_text' => 'Вариант B', 'is_correct' => false],
+                    ['answer_text' => 'Вариант C', 'is_correct' => false],
+                ],
+            ])
+            ->all();
+
+        $test = app(TestService::class)->createTest([
+            'title' => 'Проверка печатной пагинации',
+            'subject_name' => 'Программирование',
+            'grade_criteria' => [
+                ['label' => '5', 'min_points' => 0],
+            ],
+            'questions' => $questions,
+        ]);
+
+        $pages = app(TestPrintLayoutService::class)->paginateQuestions($test->fresh('questions.answers'));
+
+        $this->assertCount(2, $pages);
+        $this->assertCount(5, $pages[0]);
+        $this->assertCount(2, $pages[1]);
+        $this->assertSame(1, $pages[0][0]['number']);
+        $this->assertSame(6, $pages[1][0]['number']);
     }
 
     public function test_test_service_rejects_more_than_five_answers_in_question(): void
@@ -493,5 +571,142 @@ class TeacherWorkflowTest extends TestCase
                 ['answer_text' => 'F', 'is_correct' => false],
             ],
         ]);
+    }
+
+    public function test_api_can_import_questions_from_json_file(): void
+    {
+        $teacher = User::factory()->create();
+        $payload = [
+            'title' => 'Импортированный тест',
+            'subject_name' => 'Информатика',
+            'grade_criteria' => [
+                ['label' => '5', 'min_points' => 3],
+            ],
+            'questions' => [
+                [
+                    'question_text' => 'Столица Франции',
+                    'points' => 1,
+                    'answers' => [
+                        ['answer_text' => 'Париж', 'is_correct' => true],
+                        ['answer_text' => 'Лион', 'is_correct' => false],
+                    ],
+                ],
+                [
+                    'question_text' => 'Выберите языки программирования',
+                    'correct' => ['A', 'C'],
+                    'answers' => [
+                        ['answer_text' => 'PHP'],
+                        ['answer_text' => 'HTML'],
+                        ['answer_text' => 'Python'],
+                    ],
+                ],
+            ],
+        ];
+
+        $jsonPath = storage_path('framework/testing/questions-import.json');
+        file_put_contents($jsonPath, json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR));
+        $file = new UploadedFile($jsonPath, 'questions.json', 'application/json', null, true);
+
+        $response = $this->actingAs($teacher, 'api')->post('/api/tests/import-questions', [
+            'file' => $file,
+        ], [
+            'Accept' => 'application/json',
+        ]);
+
+        $response->assertOk();
+        $response->assertJsonPath('data.title', 'Импортированный тест');
+        $response->assertJsonPath('data.subject_name', 'Информатика');
+        $response->assertJsonPath('data.questions.0.question_text', 'Столица Франции');
+        $response->assertJsonPath('data.questions.1.type', 'multiple');
+        $response->assertJsonPath('data.questions.1.answers.0.is_correct', true);
+        $response->assertJsonPath('data.questions.1.answers.1.is_correct', false);
+        $response->assertJsonPath('data.questions.1.answers.2.is_correct', true);
+
+        @unlink($jsonPath);
+    }
+
+    public function test_api_can_import_questions_from_xlsx_file(): void
+    {
+        $teacher = User::factory()->create();
+        $xlsxPath = SimpleXlsx::writeWorkbook('Вопросы', [
+            ['question_text', 'type', 'points', 'answer_a', 'answer_b', 'answer_c', 'correct'],
+            ['Сколько будет 2+2?', 'single', '1', '3', '4', '', 'B'],
+            ['Выберите числа больше 5', '', '2', '4', '6', '8', '2,3'],
+        ]);
+
+        $file = new UploadedFile(
+            $xlsxPath,
+            'questions.xlsx',
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            null,
+            true
+        );
+
+        $response = $this->actingAs($teacher, 'api')->post('/api/tests/import-questions', [
+            'file' => $file,
+        ], [
+            'Accept' => 'application/json',
+        ]);
+
+        $response->assertOk();
+        $response->assertJsonPath('data.questions.0.question_text', 'Сколько будет 2+2?');
+        $response->assertJsonPath('data.questions.0.answers.1.is_correct', true);
+        $response->assertJsonPath('data.questions.1.type', 'multiple');
+        $response->assertJsonPath('data.questions.1.answers.1.is_correct', true);
+        $response->assertJsonPath('data.questions.1.answers.2.is_correct', true);
+
+        @unlink($xlsxPath);
+    }
+
+    public function test_gradebook_month_export_returns_xlsx_file(): void
+    {
+        $teacher = User::factory()->create();
+        $this->actingAs($teacher, 'api');
+        Auth::login($teacher);
+
+        $group = app(StudentGroupService::class)->createGroup([
+            'name' => '22ИС4-1',
+            'students' => [
+                'Дудина Софья Романовна',
+                'Семенов Евгений Дмитриевич',
+            ],
+        ]);
+
+        StudentGrade::create([
+            'student_group_id' => $group->id,
+            'group_student_id' => $group->students[0]->id,
+            'subject_name' => 'Программирование',
+            'grade_value' => '5',
+            'grade_date' => '2026-03-03',
+            'created_by' => $teacher->id,
+            'updated_by' => $teacher->id,
+        ]);
+
+        StudentGrade::create([
+            'student_group_id' => $group->id,
+            'group_student_id' => $group->students[1]->id,
+            'subject_name' => 'Программирование',
+            'grade_value' => '4',
+            'grade_date' => '2026-03-15',
+            'created_by' => $teacher->id,
+            'updated_by' => $teacher->id,
+        ]);
+
+        $response = $this->get('/api/student-groups/' . $group->id . '/gradebook-export?subject_name=' . urlencode('Программирование') . '&month=2026-03');
+
+        $response->assertOk();
+        $response->assertHeader('content-disposition');
+
+        $rows = SimpleXlsx::readRows($response->baseResponse->getFile()->getPathname());
+        $headerRowIndex = collect($rows)->search(fn (array $row) => ($row[0] ?? null) === 'Студент');
+        $firstStudentRowIndex = collect($rows)->search(fn (array $row) => ($row[0] ?? null) === 'Дудина Софья Романовна');
+
+        $this->assertSame('Журнал группы', $rows[0][0] ?? null);
+        $this->assertSame('22ИС4-1', $rows[0][1] ?? null);
+        $this->assertNotFalse($headerRowIndex);
+        $this->assertNotFalse($firstStudentRowIndex);
+        $this->assertContains('03.03', $rows[$headerRowIndex]);
+        $this->assertSame('Дудина Софья Романовна', $rows[$firstStudentRowIndex][0] ?? null);
+        $this->assertContains('5', $rows[$firstStudentRowIndex]);
     }
 }
