@@ -1072,6 +1072,7 @@
             scanButton.textContent = 'Обрабатываю...';
             const preparedFiles = await prepareScanFilesForUpload(originalFiles, scanButton);
             preparedFiles.forEach((file) => formData.append('scans[]', file));
+            formData.append('preview_variant_number', String(clampVariantNumber(sharedVariantNumber)));
 
             const response = await authApiFetch(`/api/tests/${testId}/scan-blank-forms`, {
                 method: 'POST',

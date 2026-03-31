@@ -31,6 +31,11 @@ class BlankScanLayout
     public const ANSWER_OPTION_SIZE_MM = 3.2;
     public const ANSWER_OPTION_GAP_MM = 1.1;
     public const ANSWER_OPTION_COUNT = 5;
+    public const ANSWER_CELL_GUIDE_RATIO = 0.82;
+    public const ANSWER_SCAN_WINDOW_RATIO = 0.50;
+    public const ANSWER_CORE_WINDOW_RATIO = 0.30;
+    public const ANSWER_WINDOW_OFFSET_X_MM = 0.0;
+    public const ANSWER_WINDOW_OFFSET_Y_MM = 0.0;
     public const CODE_MASK = 0xA5;
 
     public static function maxQuestions(): int
@@ -122,6 +127,32 @@ class BlankScanLayout
             'left' => $left,
             'top' => $top,
             'size' => self::ANSWER_OPTION_SIZE_MM,
+        ];
+    }
+
+    public static function answerScanWindowMm(int $questionCount, int $questionIndex, int $optionIndex): array
+    {
+        $cell = self::answerCellMm($questionCount, $questionIndex, $optionIndex);
+        $windowSize = self::ANSWER_OPTION_SIZE_MM * self::ANSWER_SCAN_WINDOW_RATIO;
+        $centeredInset = (self::ANSWER_OPTION_SIZE_MM - $windowSize) / 2;
+
+        return [
+            'left' => $cell['left'] + $centeredInset + self::ANSWER_WINDOW_OFFSET_X_MM,
+            'top' => $cell['top'] + $centeredInset + self::ANSWER_WINDOW_OFFSET_Y_MM,
+            'size' => $windowSize,
+        ];
+    }
+
+    public static function answerCellGuideMm(int $questionCount, int $questionIndex, int $optionIndex): array
+    {
+        $cell = self::answerCellMm($questionCount, $questionIndex, $optionIndex);
+        $guideSize = self::ANSWER_OPTION_SIZE_MM * self::ANSWER_CELL_GUIDE_RATIO;
+        $centeredInset = (self::ANSWER_OPTION_SIZE_MM - $guideSize) / 2;
+
+        return [
+            'left' => $cell['left'] + $centeredInset + self::ANSWER_WINDOW_OFFSET_X_MM,
+            'top' => $cell['top'] + $centeredInset + self::ANSWER_WINDOW_OFFSET_Y_MM,
+            'size' => $guideSize,
         ];
     }
 

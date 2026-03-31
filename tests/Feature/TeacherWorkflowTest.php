@@ -659,6 +659,147 @@ class TeacherWorkflowTest extends TestCase
         $this->assertNull($preview['data']['group_student_id']);
     }
 
+    public function test_blank_scan_service_builds_foreign_preview_when_remote_blank_id_is_missing_locally(): void
+    {
+        Storage::fake('local');
+
+        $teacher = User::factory()->create();
+        $this->actingAs($teacher);
+        Auth::login($teacher);
+
+        $test = Test::create([
+            'title' => 'Локальный OCR-тест',
+            'subject_name' => 'Программирование',
+            'created_by' => $teacher->id,
+            'is_active' => true,
+            'variant_count' => 2,
+            'grade_criteria' => [
+                ['label' => '5', 'min_points' => 1],
+                ['label' => '2', 'min_points' => 0],
+            ],
+        ]);
+
+        $question = Question::create([
+            'test_id' => $test->id,
+            'question_text' => 'Вариант 2. Вопрос 1',
+            'type' => 'single',
+            'points' => 1,
+            'order' => 0,
+            'variant_number' => 2,
+        ]);
+
+        Answer::create([
+            'question_id' => $question->id,
+            'answer_text' => 'A2',
+            'is_correct' => false,
+            'order' => 0,
+        ]);
+
+        $correctAnswer = Answer::create([
+            'question_id' => $question->id,
+            'answer_text' => 'B2',
+            'is_correct' => true,
+            'order' => 1,
+        ]);
+
+        $service = new class(
+            app(BlankFormService::class),
+            app(GradingService::class),
+            app(\App\Services\ScanPreviewService::class),
+            app(TestVariantService::class),
+            $question->id,
+            $correctAnswer->id,
+        ) extends \App\Services\BlankScanService {
+            public function __construct(
+                BlankFormService $blankFormService,
+                GradingService $gradingService,
+                \App\Services\ScanPreviewService $scanPreviewService,
+                TestVariantService $testVariantService,
+                private int $questionId,
+                private int $correctAnswerId,
+            ) {
+                parent::__construct($blankFormService, $gradingService, $scanPreviewService, $testVariantService);
+            }
+
+            protected function loadImage(UploadedFile $file)
+            {
+                return imagecreatetruecolor(120, 180);
+            }
+
+            protected function detectMarkers($image): array
+            {
+                return [
+                    'tl' => ['x' => 10, 'y' => 10],
+                    'tr' => ['x' => 110, 'y' => 10],
+                    'bl' => ['x' => 10, 'y' => 170],
+                    'br' => ['x' => 110, 'y' => 170],
+                ];
+            }
+
+            protected function decodeBitString($image, array $markers): string
+            {
+                return BlankScanLayout::bitStringForPage(46, 1, 1);
+            }
+
+            protected function extractAnswers($image, array $markers, BlankForm $blankForm, int $pageNumber, ?array $projectionCalibration = null): array
+            {
+                return [
+                    'question_answers' => [
+                        $this->questionId => [$this->correctAnswerId],
+                    ],
+                    'display_answers' => [
+                        [
+                            'question_number' => 1,
+                            'selected' => ['B'],
+                            'type' => 'single',
+                            'page_number' => $pageNumber,
+                        ],
+                    ],
+                    'warnings' => [],
+                    'question_range' => [
+                        'start' => 1,
+                        'end' => 1,
+                    ],
+                ];
+            }
+
+            protected function storeNormalizedScanImage($image): string
+            {
+                return 'scans/foreign-preview.jpg';
+            }
+        };
+
+        $temporaryScanPath = storage_path('framework/testing/foreign-preview-' . uniqid('', true) . '.jpg');
+        file_put_contents($temporaryScanPath, 'foreign preview');
+
+        $results = $service->scanUploadedForms(
+            $test->load('questions.answers'),
+            [new UploadedFile($temporaryScanPath, 'foreign-preview.jpg', 'image/jpeg', null, true)],
+            2
+        );
+
+        $this->assertCount(1, $results);
+        $result = $results[0];
+        $this->assertSame('foreign_preview', $result['status']);
+        $this->assertNull($result['blank_form_id']);
+        $this->assertSame('REMOTE-46', $result['form_number']);
+        $this->assertSame('Чужой бланк', $result['student_name']);
+        $this->assertSame(2, $result['variant_number']);
+        $this->assertSame(1, $result['score']);
+        $this->assertSame('5', $result['grade']);
+        $this->assertSame([1], $result['pages_processed']);
+        $this->assertSame(1, $result['expected_pages']);
+        $this->assertNotEmpty($result['preview_token']);
+        $this->assertTrue(collect($result['warnings'])->contains(fn (string $warning) => str_contains($warning, 'не найден в локальной базе')));
+
+        $preview = app(\App\Services\ScanPreviewService::class)->getPreview($result['preview_token'], $teacher->id);
+        $this->assertSame(46, data_get($preview, 'data.metadata.remote_blank_form_id'));
+        $this->assertSame(2, data_get($preview, 'data.variant_number'));
+        $this->assertFalse((bool) data_get($preview, 'data.can_assign_grade'));
+
+        @unlink($temporaryScanPath);
+    }
+
     public function test_test_service_rejects_more_than_five_answers_in_question(): void
     {
         $teacher = User::factory()->create();
@@ -919,7 +1060,7 @@ class TeacherWorkflowTest extends TestCase
             'subject_name' => 'Программирование',
             'variant_count' => 2,
             'grade_criteria' => [
-                ['label' => '5', 'min_points' => 2],
+                ['label' => '5', 'min_points' => 1],
                 ['label' => '2', 'min_points' => 0],
             ],
             'questions' => [
@@ -953,13 +1094,15 @@ class TeacherWorkflowTest extends TestCase
         $response->assertHeader('content-disposition');
 
         $payload = json_decode((string) $response->getContent(), true, 512, JSON_THROW_ON_ERROR);
+        $variants = collect($payload['questions'] ?? [])->pluck('variant')->all();
+        $variantTwoQuestion = collect($payload['questions'] ?? [])->firstWhere('variant', 2);
 
         $this->assertSame('Экспорт JSON', $payload['title'] ?? null);
         $this->assertSame('Программирование', $payload['subject_name'] ?? null);
         $this->assertSame(2, $payload['variant_count'] ?? null);
-        $this->assertSame(1, $payload['questions'][0]['variant'] ?? null);
-        $this->assertSame(2, $payload['questions'][1]['variant'] ?? null);
-        $this->assertTrue($payload['questions'][1]['answers'][2]['is_correct'] ?? false);
+        $this->assertSame([1, 2], collect($variants)->sort()->values()->all());
+        $this->assertSame('Вариант 2. Вопрос 1', $variantTwoQuestion['question_text'] ?? null);
+        $this->assertTrue($variantTwoQuestion['answers'][2]['is_correct'] ?? false);
     }
 
     public function test_api_can_export_test_as_xlsx_file(): void
@@ -975,7 +1118,7 @@ class TeacherWorkflowTest extends TestCase
             'time_limit' => 40,
             'variant_count' => 2,
             'grade_criteria' => [
-                ['label' => '5', 'min_points' => 2],
+                ['label' => '5', 'min_points' => 1],
                 ['label' => '2', 'min_points' => 0],
             ],
             'questions' => [

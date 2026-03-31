@@ -170,9 +170,15 @@ class BlankFormController extends Controller
         $validated = $request->validate([
             'scans' => 'required|array|min:1',
             'scans.*' => 'required|file|mimes:jpg,jpeg,png,webp,pdf|max:15360',
+            'preview_variant_number' => 'nullable|integer|min:1|max:10',
         ]);
 
-        $results = $this->blankScanService->scanUploadedForms($test->load('questions.answers'), $validated['scans']);
+        $loadedTest = $test->load('questions.answers');
+        $previewVariantNumber = $this->testVariantService->normalizeVariantNumber(
+            $loadedTest,
+            $validated['preview_variant_number'] ?? 1
+        );
+        $results = $this->blankScanService->scanUploadedForms($loadedTest, $validated['scans'], $previewVariantNumber);
 
         return response()->json([
             'status' => 'success',
