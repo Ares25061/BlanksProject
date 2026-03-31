@@ -233,6 +233,7 @@
     let sharedVariantNumber = 1;
     let customStudentVariants = {};
     let pdfJsLoadingPromise = null;
+    const PDF_JS_VERSION = '5.6.205';
 
     async function apiFetch(url, options = {}) {
         return authApiFetch(url, options);
@@ -1172,12 +1173,12 @@
                         }
 
                         reject(new Error(`Не удалось сохранить изображение листа ${pageNumber} из PDF.`));
-                    }, 'image/jpeg', 0.92);
+                    }, 'image/png');
                 });
 
-                const targetName = (file.name || 'scan.pdf').replace(/\.pdf$/i, '') + `-page${pageNumber}.jpg`;
+                const targetName = (file.name || 'scan.pdf').replace(/\.pdf$/i, '') + `-page${pageNumber}.png`;
                 files.push(new File([blob], targetName, {
-                    type: 'image/jpeg',
+                    type: 'image/png',
                     lastModified: Date.now(),
                 }));
             }
@@ -1194,10 +1195,10 @@
         }
 
         if (!pdfJsLoadingPromise) {
-            pdfJsLoadingPromise = import('https://cdn.jsdelivr.net/npm/pdfjs-dist@5.4.624/build/pdf.min.mjs')
+            pdfJsLoadingPromise = import(`https://cdn.jsdelivr.net/npm/pdfjs-dist@${PDF_JS_VERSION}/legacy/build/pdf.min.mjs`)
                 .then((module) => {
                     const pdfjsLib = module.default || module;
-                    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@5.4.624/build/pdf.worker.min.mjs';
+                    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${PDF_JS_VERSION}/legacy/build/pdf.worker.min.mjs`;
                     window.__pdfjsLib = pdfjsLib;
 
                     return pdfjsLib;

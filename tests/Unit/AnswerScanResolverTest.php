@@ -170,6 +170,45 @@ class AnswerScanResolverTest extends TestCase
         $this->assertFalse($result['ambiguous']);
     }
 
+    public function test_single_choice_png_tail_noise_stays_unanswered(): void
+    {
+        $result = AnswerScanResolver::resolve('single', [
+            ['option_index' => 0, 'dark_ratio' => 0.0, 'darkness' => 0.0, 'core_dark_ratio' => 0.0, 'core_strong_ratio' => 0.0, 'ink_ratio' => 0.0, 'core_ink_ratio' => 0.0],
+            ['option_index' => 1, 'dark_ratio' => 0.20, 'darkness' => 0.1514, 'core_dark_ratio' => 0.0, 'core_strong_ratio' => 0.0, 'ink_ratio' => 0.00181, 'core_ink_ratio' => 0.00013],
+            ['option_index' => 2, 'dark_ratio' => 0.25, 'darkness' => 0.1617, 'core_dark_ratio' => 0.1111, 'core_strong_ratio' => 0.0, 'ink_ratio' => 0.0, 'core_ink_ratio' => 0.0],
+            ['option_index' => 3, 'dark_ratio' => 0.20, 'darkness' => 0.1634, 'core_dark_ratio' => 0.0, 'core_strong_ratio' => 0.0, 'ink_ratio' => 0.00226, 'core_ink_ratio' => 0.0],
+        ]);
+
+        $this->assertSame([], $result['selected_indexes']);
+        $this->assertFalse($result['ambiguous']);
+    }
+
+    public function test_multiple_choice_png_tail_noise_stays_unanswered(): void
+    {
+        $result = AnswerScanResolver::resolve('multiple', [
+            ['option_index' => 0, 'dark_ratio' => 0.03, 'darkness' => 0.0330, 'core_dark_ratio' => 0.0, 'core_strong_ratio' => 0.0, 'ink_ratio' => 0.00002, 'core_ink_ratio' => 0.0],
+            ['option_index' => 1, 'dark_ratio' => 0.29, 'darkness' => 0.1750, 'core_dark_ratio' => 0.0833, 'core_strong_ratio' => 0.0, 'ink_ratio' => 0.00135, 'core_ink_ratio' => 0.0],
+            ['option_index' => 2, 'dark_ratio' => 0.20, 'darkness' => 0.1491, 'core_dark_ratio' => 0.0, 'core_strong_ratio' => 0.0, 'ink_ratio' => 0.00163, 'core_ink_ratio' => 0.00001],
+            ['option_index' => 3, 'dark_ratio' => 0.14, 'darkness' => 0.1087, 'core_dark_ratio' => 0.0, 'core_strong_ratio' => 0.0, 'ink_ratio' => 0.0, 'core_ink_ratio' => 0.0],
+        ]);
+
+        $this->assertSame([], $result['selected_indexes']);
+        $this->assertFalse($result['ambiguous']);
+    }
+
+    public function test_real_low_score_colored_mark_is_kept(): void
+    {
+        $result = AnswerScanResolver::resolve('single', [
+            ['option_index' => 0, 'dark_ratio' => 0.1770, 'darkness' => 0.1770, 'core_dark_ratio' => 0.0, 'core_strong_ratio' => 0.0, 'ink_ratio' => 0.0180, 'core_ink_ratio' => 0.0040],
+            ['option_index' => 1, 'dark_ratio' => 0.06, 'darkness' => 0.07, 'core_dark_ratio' => 0.0, 'core_strong_ratio' => 0.0, 'ink_ratio' => 0.0, 'core_ink_ratio' => 0.0],
+            ['option_index' => 2, 'dark_ratio' => 0.05, 'darkness' => 0.06, 'core_dark_ratio' => 0.0, 'core_strong_ratio' => 0.0, 'ink_ratio' => 0.0, 'core_ink_ratio' => 0.0],
+            ['option_index' => 3, 'dark_ratio' => 0.05, 'darkness' => 0.06, 'core_dark_ratio' => 0.0, 'core_strong_ratio' => 0.0, 'ink_ratio' => 0.0, 'core_ink_ratio' => 0.0],
+        ]);
+
+        $this->assertSame([0], $result['selected_indexes']);
+        $this->assertFalse($result['ambiguous']);
+    }
+
     public function test_multiple_choice_strong_black_marks_do_not_pull_empty_bridge_cells(): void
     {
         $result = AnswerScanResolver::resolve('multiple', [

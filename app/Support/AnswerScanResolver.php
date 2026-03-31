@@ -24,6 +24,10 @@ class AnswerScanResolver
     private const LOW_CONFIDENCE_SINGLE_SCORE = 0.26;
     private const LOW_CONFIDENCE_SINGLE_DARKNESS = 0.20;
     private const LOW_CONFIDENCE_SINGLE_INK = 0.006;
+    private const LOW_SIGNAL_ROW_MAX_SCORE = 0.20;
+    private const LOW_SIGNAL_ROW_MAX_INK = 0.004;
+    private const LOW_SIGNAL_ROW_MAX_CORE_STRONG = 0.18;
+    private const LOW_SIGNAL_ROW_MAX_CORE_DARK = 0.18;
     private const COLOR_MODE_MIN_MARK_SCORE = 0.11;
     private const COLOR_MODE_MIN_MULTIPLE_MARK_SCORE = 0.11;
     private const COLOR_MODE_MAX_DYNAMIC_THRESHOLD = 0.19;
@@ -74,6 +78,12 @@ class AnswerScanResolver
 
         $maxInkSignal = count($measurements) > 0
             ? max(array_column($measurements, 'ink_signal'))
+            : 0.0;
+        $maxCoreStrongRatio = count($measurements) > 0
+            ? max(array_map(fn (array $measurement) => (float) ($measurement['core_strong_ratio'] ?? 0.0), $measurements))
+            : 0.0;
+        $maxCoreDarkRatio = count($measurements) > 0
+            ? max(array_map(fn (array $measurement) => (float) ($measurement['core_dark_ratio'] ?? 0.0), $measurements))
             : 0.0;
 
         if ($maxInkSignal >= self::COLOR_INK_MODE_THRESHOLD) {
@@ -139,6 +149,16 @@ class AnswerScanResolver
             !empty($selected)
             && $topScore < self::LOW_CONFIDENCE_ROW_SCORE
             && ($topScore - $averageScore) < self::LOW_CONFIDENCE_ROW_GAP
+        ) {
+            $selected = [];
+        }
+
+        if (
+            !empty($selected)
+            && $topScore < self::LOW_SIGNAL_ROW_MAX_SCORE
+            && $maxInkSignal < self::LOW_SIGNAL_ROW_MAX_INK
+            && $maxCoreStrongRatio <= self::LOW_SIGNAL_ROW_MAX_CORE_STRONG
+            && $maxCoreDarkRatio <= self::LOW_SIGNAL_ROW_MAX_CORE_DARK
         ) {
             $selected = [];
         }
