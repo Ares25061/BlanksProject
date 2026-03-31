@@ -55,12 +55,20 @@
                           placeholder="Кратко опишите тему, формат или особенности проведения"></textarea>
             </div>
 
-            <div class="grid md:grid-cols-2 gap-4">
+            <div class="grid md:grid-cols-3 gap-4">
                 <div>
                     <label for="time_limit" class="block text-sm font-medium text-slate-700 mb-2">Время выполнения</label>
                     <input id="time_limit" type="number" min="1"
                            class="w-full px-4 py-3 rounded-2xl border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
                            placeholder="Минуты">
+                </div>
+
+                <div>
+                    <label for="variant_count" class="block text-sm font-medium text-slate-700 mb-2">Количество вариантов</label>
+                    <input id="variant_count" type="number" min="1" max="10" value="1"
+                           class="w-full px-4 py-3 rounded-2xl border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
+                           placeholder="От 1 до 10">
+                    <p class="text-xs text-slate-500 mt-2">До 10 вариантов. На печати можно будет выдать всем один вариант, распределить поровну или назначить вручную.</p>
                 </div>
 
                 <div>
@@ -91,11 +99,11 @@
             <div class="grid lg:grid-cols-[1.15fr_0.85fr] gap-4">
                 <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
                     <div class="font-semibold text-slate-900 mb-2">Поддерживаемый JSON</div>
-                    <div>Можно загрузить либо массив вопросов, либо объект с полем <code>questions</code>. Для каждого вопроса поддерживаются поля <code>question_text</code>, <code>type</code>, <code>points</code>, <code>answers</code> и <code>correct</code>.</div>
+                    <div>Можно загрузить либо старый формат без вариантов, либо новый формат с полем <code>variant</code> у каждого вопроса. Если поле <code>variant</code> не указано, вопрос попадет в вариант <code>1</code>.</div>
                 </div>
                 <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
                     <div class="font-semibold text-slate-900 mb-2">Поддерживаемый XLSX</div>
-                    <div>Первая строка должна быть заголовком. Колонки: <code>question_text</code>, <code>type</code>, <code>points</code>, <code>answer_a</code> ... <code>answer_e</code>, <code>correct</code>.</div>
+                    <div>Первая строка должна быть заголовком. Колонки: <code>question_text</code>, <code>variant</code>, <code>type</code>, <code>points</code>, <code>answer_a</code> ... <code>answer_e</code>, <code>correct</code>.</div>
                     <div class="mt-2">В колонке <code>correct</code> можно писать, например, <code>A</code>, <code>B,D</code> или <code>1 3</code>.</div>
                 </div>
             </div>
@@ -121,11 +129,11 @@
                 Добавить уровень оценки
             </button>
 
-            <div class="mt-4 bg-sky-50 border border-sky-100 rounded-2xl p-4 text-sm text-sky-900">
-                Текущий максимальный балл по вопросам:
-                <span id="totalPointsSummary" class="font-semibold">0</span>
-            </div>
-        </section>
+                <div class="mt-4 bg-sky-50 border border-sky-100 rounded-2xl p-4 text-sm text-sky-900">
+                    <span id="totalPointsLabel">Текущий максимальный балл по вопросам:</span>
+                    <span id="totalPointsSummary" class="font-semibold">0</span>
+                </div>
+            </section>
 
         <section class="bg-white rounded-3xl shadow-sm border border-slate-200 p-6">
             <div class="flex flex-wrap justify-between items-center gap-3 mb-4">
@@ -174,7 +182,7 @@
                        placeholder="Введите текст вопроса">
             </div>
 
-            <div class="grid md:grid-cols-2 gap-4">
+            <div class="grid md:grid-cols-3 gap-4">
                 <div>
                     <label class="block text-sm font-medium text-slate-700 mb-2">Тип вопроса</label>
                     <select class="question-type w-full px-4 py-3 rounded-2xl border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500">
@@ -186,6 +194,12 @@
                 <div>
                     <label class="block text-sm font-medium text-slate-700 mb-2">Баллы</label>
                     <input type="number" class="question-points w-full px-4 py-3 rounded-2xl border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500" min="1" value="1">
+                </div>
+
+                <div class="question-variant-wrapper hidden">
+                    <label class="block text-sm font-medium text-slate-700 mb-2">Вариант</label>
+                    <select class="question-variant w-full px-4 py-3 rounded-2xl border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500"></select>
+                    <p class="question-variant-hint text-xs text-slate-500 mt-2">Этот вопрос попадет в выбранный вариант теста.</p>
                 </div>
             </div>
 
@@ -231,9 +245,49 @@
 
 <script>
     const MAX_ANSWERS = 5;
+    const DEFAULT_VARIANT_COUNT = 1;
 
     function createUid() {
         return `q_${Date.now()}_${Math.random().toString(16).slice(2)}`;
+    }
+
+    function normalizeVariantCountValue(value = null) {
+        const source = value ?? document.getElementById('variant_count').value;
+        const parsed = parseInt(source, 10) || DEFAULT_VARIANT_COUNT;
+
+        return Math.max(1, Math.min(10, parsed));
+    }
+
+    function getAvailableVariantNumbers() {
+        return Array.from({ length: normalizeVariantCountValue() }, (_, index) => index + 1);
+    }
+
+    function renderQuestionVariantOptions(questionItem, selectedVariant = 1) {
+        const wrapper = questionItem.querySelector('.question-variant-wrapper');
+        const select = questionItem.querySelector('.question-variant');
+        const variantCount = normalizeVariantCountValue();
+        const normalizedSelectedVariant = Math.max(1, Math.min(variantCount, parseInt(selectedVariant, 10) || 1));
+
+        select.innerHTML = getAvailableVariantNumbers().map((variantNumber) => `
+            <option value="${variantNumber}" ${variantNumber === normalizedSelectedVariant ? 'selected' : ''}>
+                Вариант ${variantNumber}
+            </option>
+        `).join('');
+
+        wrapper.classList.toggle('hidden', variantCount <= 1);
+    }
+
+    function refreshQuestionVariantOptions() {
+        document.getElementById('variant_count').value = String(normalizeVariantCountValue());
+
+        document.querySelectorAll('.question-item').forEach((questionItem) => {
+            renderQuestionVariantOptions(
+                questionItem,
+                questionItem.querySelector('.question-variant')?.value || 1
+            );
+        });
+
+        updateTotalPoints();
     }
 
     function addQuestion(question = null) {
@@ -258,6 +312,7 @@
         container.appendChild(fragment);
 
         const insertedQuestion = container.lastElementChild;
+        renderQuestionVariantOptions(insertedQuestion, question?.variant_number ?? question?.variant ?? 1);
         const answers = question?.answers || [{}, {}];
         answers.forEach((answer) => addAnswer(insertedQuestion.querySelector('.add-answer-button'), questionId, answer));
 
@@ -345,12 +400,47 @@
             .reduce((sum, value) => sum + value, 0);
     }
 
+    function getVariantScoreTotals() {
+        const variantCount = normalizeVariantCountValue();
+        const totals = Array.from({ length: variantCount }, () => 0);
+
+        document.querySelectorAll('.question-item').forEach((questionItem) => {
+            const questionVariant = Math.max(1, Math.min(
+                variantCount,
+                parseInt(questionItem.querySelector('.question-variant')?.value, 10) || 1
+            ));
+            const points = parseInt(questionItem.querySelector('.question-points')?.value, 10) || 0;
+            totals[questionVariant - 1] += points;
+        });
+
+        return totals;
+    }
+
+    function getReferenceTotalPoints() {
+        const totals = getVariantScoreTotals().filter((value) => value > 0);
+
+        return totals.length ? Math.min(...totals) : 0;
+    }
+
     function updateTotalPoints() {
-        document.getElementById('totalPointsSummary').textContent = getTotalPoints();
+        const variantCount = normalizeVariantCountValue();
+        const label = document.getElementById('totalPointsLabel');
+        const summary = document.getElementById('totalPointsSummary');
+
+        if (variantCount <= 1) {
+            label.textContent = 'Текущий максимальный балл по вопросам:';
+            summary.textContent = String(getTotalPoints());
+            return;
+        }
+
+        label.textContent = 'Баллы по вариантам:';
+        summary.textContent = getVariantScoreTotals()
+            .map((value, index) => `В${index + 1}: ${value}`)
+            .join(' • ');
     }
 
     function fillSuggestedCriteria() {
-        const total = getTotalPoints();
+        const total = getReferenceTotalPoints();
         const defaults = [
             { label: '5 (Отлично)', min_points: total ? Math.ceil(total * 0.9) : 0 },
             { label: '4 (Хорошо)', min_points: total ? Math.ceil(total * 0.75) : 0 },
@@ -424,6 +514,11 @@
             document.getElementById('time_limit').value = imported.time_limit;
         }
 
+        if (imported.variant_count) {
+            document.getElementById('variant_count').value = imported.variant_count;
+            refreshQuestionVariantOptions();
+        }
+
         if ((imported.grade_criteria || []).length && confirm('В файле найдены критерии оценивания. Заменить текущую шкалу?')) {
             document.getElementById('gradeCriteriaContainer').innerHTML = '';
             imported.grade_criteria.forEach(addGradeCriterion);
@@ -451,6 +546,7 @@
 
         const title = document.getElementById('title');
         const subjectName = document.getElementById('subject_name');
+        const variantCount = document.getElementById('variant_count');
         if (!subjectName.value.trim()) {
             subjectName.classList.add('error-border');
             valid = false;
@@ -458,6 +554,12 @@
 
         if (!title.value.trim()) {
             title.classList.add('error-border');
+            valid = false;
+        }
+
+        const normalizedVariantCount = parseInt(variantCount.value, 10) || 1;
+        if (normalizedVariantCount < 1 || normalizedVariantCount > 10) {
+            variantCount.classList.add('error-border');
             valid = false;
         }
 
@@ -470,6 +572,7 @@
         questions.forEach((question) => {
             const questionText = question.querySelector('.question-text');
             const points = question.querySelector('.question-points');
+            const questionVariant = question.querySelector('.question-variant');
             const answers = question.querySelectorAll('.answer-item');
             const filledAnswers = [];
             let hasCorrect = false;
@@ -481,6 +584,11 @@
 
             if ((parseInt(points.value, 10) || 0) < 1) {
                 points.classList.add('error-border');
+                valid = false;
+            }
+
+            if ((parseInt(questionVariant?.value, 10) || 1) < 1 || (parseInt(questionVariant?.value, 10) || 1) > normalizedVariantCount) {
+                questionVariant?.classList.add('error-border');
                 valid = false;
             }
 
@@ -533,6 +641,10 @@
             question_text: question.querySelector('.question-text').value.trim(),
             type: question.querySelector('.question-type').value,
             points: parseInt(question.querySelector('.question-points').value, 10) || 1,
+            variant_number: Math.max(1, Math.min(
+                normalizeVariantCountValue(),
+                parseInt(question.querySelector('.question-variant')?.value, 10) || 1
+            )),
             order: index,
             answers: Array.from(question.querySelectorAll('.answer-item')).map((answer, answerIndex) => ({
                 answer_text: answer.querySelector('.answer-text').value.trim(),
@@ -556,6 +668,7 @@
             subject_name: document.getElementById('subject_name').value.trim(),
             description: document.getElementById('description').value.trim() || null,
             time_limit: document.getElementById('time_limit').value ? parseInt(document.getElementById('time_limit').value, 10) : null,
+            variant_count: parseInt(document.getElementById('variant_count').value, 10) || 1,
             is_active: document.getElementById('is_active').value === '1',
             grade_criteria: collectGradeCriteria(),
             questions: collectQuestions()
@@ -584,9 +697,13 @@
     });
 
     document.addEventListener('input', (event) => {
-        if (event.target.classList.contains('question-points')) {
+        if (event.target.classList.contains('question-points') || event.target.classList.contains('question-variant')) {
             updateTotalPoints();
         }
+    });
+
+    document.getElementById('variant_count').addEventListener('input', () => {
+        refreshQuestionVariantOptions();
     });
 
     document.getElementById('questionsImportInput').addEventListener('change', async (event) => {
@@ -606,6 +723,7 @@
         }
 
         addQuestion();
+        refreshQuestionVariantOptions();
         fillSuggestedCriteria();
     });
 </script>

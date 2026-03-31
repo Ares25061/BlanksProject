@@ -3,9 +3,11 @@ namespace App\Http\Controllers;
 
 use App\Models\BlankForm;
 use App\Models\Test;
+use App\Services\TestExportService;
 use App\Services\TestService;
 use App\Services\TestImportService;
 use App\Services\TestPrintLayoutService;
+use App\Services\TestVariantService;
 use App\Support\BlankScanLayout;
 use App\Http\Requests\TestRequest;
 use Illuminate\Http\Request;
@@ -18,17 +20,23 @@ class TestController extends Controller
 
     protected $testService;
     protected $testImportService;
+    protected $testExportService;
     protected $testPrintLayoutService;
+    protected $testVariantService;
 
     public function __construct(
         TestService $testService,
         TestImportService $testImportService,
+        TestExportService $testExportService,
         TestPrintLayoutService $testPrintLayoutService,
+        TestVariantService $testVariantService,
     )
     {
         $this->testService = $testService;
         $this->testImportService = $testImportService;
+        $this->testExportService = $testExportService;
         $this->testPrintLayoutService = $testPrintLayoutService;
+        $this->testVariantService = $testVariantService;
     }
 
     public function index(Request $request)
@@ -111,6 +119,7 @@ class TestController extends Controller
             'type' => 'required|in:single,multiple',
             'points' => 'nullable|integer|min:1',
             'order' => 'nullable|integer',
+            'variant_number' => 'nullable|integer|min:1|max:10',
             'answers' => 'required|array|min:2|max:' . BlankScanLayout::ANSWER_OPTION_COUNT,
             'answers.*.answer_text' => 'required|string',
             'answers.*.is_correct' => 'boolean',
@@ -143,6 +152,39 @@ class TestController extends Controller
         ]);
     }
 
+    public function export(Request $request, Test $test)
+    {
+        $this->authorize('view', $test);
+
+        $format = Str::lower(trim((string) $request->query('format', 'json')));
+        $loadedTest = $test->load('questions.answers');
+
+        if ($format === 'xlsx' || $format === 'excel') {
+            $path = $this->testExportService->buildSpreadsheetPath($loadedTest);
+            $fileName = $this->testExportService->buildDownloadFileName($loadedTest, 'xlsx');
+
+            return response()->download(
+                $path,
+                $fileName,
+                ['Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']
+            )->deleteFileAfterSend(true);
+        }
+
+        if ($format !== 'json') {
+            abort(422, 'Поддерживаются только форматы json и xlsx.');
+        }
+
+        $payload = $this->testExportService->buildJsonPayload($loadedTest);
+        $fileName = $this->testExportService->buildDownloadFileName($loadedTest, 'json');
+
+        return response()->json(
+            $payload,
+            200,
+            ['Content-Disposition' => 'attachment; filename="' . $fileName . '"'],
+            JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT
+        );
+    }
+
     public function print(Request $request, Test $test)
     {
         // Web-страницы в этом проекте сейчас открываются без Laravel session:
@@ -172,6 +214,7 @@ class TestController extends Controller
                     'id' => 0,
                     'test_id' => $test->id,
                     'form_number' => 'PREVIEW',
+                    'variant_number' => (int) $request->query('variant_number', 1),
                     'group_name' => 'ДЕМО-ГРУППА',
                     'last_name' => 'ИВАНОВ',
                     'first_name' => 'ИВАН',
@@ -185,14 +228,28 @@ class TestController extends Controller
         $documentTitle = $this->buildPrintDocumentTitle($test, $blankForms, $printMode);
 
         $loadedTest = $test->load('questions.answers');
+        $answerSheetPagesByBlankForm = $blankForms->mapWithKeys(function (BlankForm $blankForm) use ($loadedTest) {
+            $variantNumber = $this->testVariantService->normalizeVariantNumber($loadedTest, $blankForm->variant_number ?? 1);
+
+            return [
+                (int) $blankForm->id => $this->testPrintLayoutService->paginateAnswerSheetQuestions($loadedTest, $variantNumber),
+            ];
+        })->all();
+        $questionPagesByBlankForm = $blankForms->mapWithKeys(function (BlankForm $blankForm) use ($loadedTest) {
+            $variantNumber = $this->testVariantService->normalizeVariantNumber($loadedTest, $blankForm->variant_number ?? 1);
+
+            return [
+                (int) $blankForm->id => $this->testPrintLayoutService->paginateQuestions($loadedTest, $variantNumber),
+            ];
+        })->all();
 
         return view('tests.print', [
             'test' => $loadedTest,
             'blankForms' => $blankForms,
             'documentTitle' => $documentTitle,
             'printMode' => $printMode,
-            'answerSheetPages' => $this->testPrintLayoutService->paginateAnswerSheetQuestions($loadedTest),
-            'questionPages' => $this->testPrintLayoutService->paginateQuestions($loadedTest),
+            'answerSheetPagesByBlankForm' => $answerSheetPagesByBlankForm,
+            'questionPagesByBlankForm' => $questionPagesByBlankForm,
         ]);
     }
 

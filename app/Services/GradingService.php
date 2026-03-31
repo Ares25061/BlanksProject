@@ -10,6 +10,7 @@ class GradingService
 {
     public function __construct(
         private StudentGradeService $studentGradeService,
+        private TestVariantService $testVariantService,
     ) {
     }
 
@@ -18,7 +19,9 @@ class GradingService
         return DB::transaction(function () use ($blankForm) {
             $totalScore = 0;
             $blankForm->loadMissing('test.questions.answers', 'studentAnswers');
-            $questions = $blankForm->test->questions;
+            $questions = $this->testVariantService
+                ->questionsForVariant($blankForm->test, $blankForm->variant_number ?? 1)
+                ->values();
 
             foreach ($questions as $question) {
                 $studentAnswer = $blankForm->studentAnswers()
@@ -97,7 +100,10 @@ class GradingService
 
     public function getStudentGrade(BlankForm $blankForm)
     {
-        $maxScore = $blankForm->test->questions->sum('points');
+        $questions = $this->testVariantService
+            ->questionsForVariant($blankForm->test, $blankForm->variant_number ?? 1)
+            ->values();
+        $maxScore = $questions->sum('points');
         $studentScore = $blankForm->total_score ?? 0;
 
         return [
@@ -140,6 +146,89 @@ class GradingService
             'groupStudent',
             'gradeAssigner',
         ]);
+    }
+
+    public function buildTransientScanReview(BlankForm $blankForm, array $questionAnswers, array $scanMetadata = []): array
+    {
+        $blankForm->loadMissing('test.questions.answers', 'studentGroup', 'groupStudent');
+        $this->testVariantService->attachVariantAnswers($blankForm);
+        $questions = $blankForm->test->questions->values();
+
+        $studentAnswers = [];
+        $totalScore = 0;
+
+        foreach ($questions as $question) {
+            $selectedAnswerIds = collect($questionAnswers[$question->id] ?? [])
+                ->map(fn ($id) => (int) $id)
+                ->filter()
+                ->unique()
+                ->values()
+                ->all();
+
+            if ($question->type === 'single') {
+                $correctAnswer = $question->answers()->where('is_correct', true)->first();
+                $answerId = count($selectedAnswerIds) === 1 ? $selectedAnswerIds[0] : null;
+                $isCorrect = $correctAnswer
+                    && $answerId === (int) $correctAnswer->id
+                    && count($selectedAnswerIds) <= 1;
+
+                $studentAnswers[] = [
+                    'question_id' => $question->id,
+                    'answer_id' => $answerId,
+                    'selected_answers' => count($selectedAnswerIds) > 1 ? $selectedAnswerIds : null,
+                    'is_correct' => (bool) $isCorrect,
+                    'points_earned' => $isCorrect ? (int) $question->points : 0,
+                ];
+
+                $totalScore += $isCorrect ? (int) $question->points : 0;
+                continue;
+            }
+
+            $correctAnswers = $question->answers()->where('is_correct', true)->pluck('id')->map(fn ($id) => (int) $id)->all();
+            $isCorrect = empty(array_diff($correctAnswers, $selectedAnswerIds))
+                && empty(array_diff($selectedAnswerIds, $correctAnswers));
+
+            $studentAnswers[] = [
+                'question_id' => $question->id,
+                'answer_id' => null,
+                'selected_answers' => $selectedAnswerIds,
+                'is_correct' => $isCorrect,
+                'points_earned' => $isCorrect ? (int) $question->points : 0,
+            ];
+
+            $totalScore += $isCorrect ? (int) $question->points : 0;
+        }
+
+        $maxScore = (int) $questions->sum('points');
+        $gradeLabel = $this->calculateGrade($blankForm->test, $totalScore, $maxScore);
+        $data = $blankForm->toArray();
+        $data['id'] = null;
+        $data['original_blank_form_id'] = $blankForm->id;
+        $data['status'] = 'foreign_preview';
+        $data['student_answers'] = $studentAnswers;
+        $data['total_score'] = $totalScore;
+        $data['grade_label'] = $gradeLabel;
+        $data['assigned_grade_value'] = null;
+        $data['assigned_grade_date'] = null;
+        $data['grade_assigner'] = null;
+        $data['group_student_id'] = null;
+        $data['can_assign_grade'] = false;
+        $data['is_foreign_scan'] = true;
+        $data['metadata'] = array_merge($data['metadata'] ?? [], [
+            'scan' => $scanMetadata,
+        ]);
+
+        return [
+            'data' => $data,
+            'grade' => [
+                'student_name' => $blankForm->student_full_name,
+                'group' => $blankForm->group_name,
+                'score' => $totalScore,
+                'max_score' => $maxScore,
+                'percentage' => $maxScore > 0 ? round(($totalScore / $maxScore) * 100, 2) : 0,
+                'grade' => $gradeLabel,
+            ],
+        ];
     }
 
     protected function calculateGrade($test, $score, $maxScore)

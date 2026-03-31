@@ -16,6 +16,8 @@ class BlankScanService
     public function __construct(
         private BlankFormService $blankFormService,
         private GradingService $gradingService,
+        private ScanPreviewService $scanPreviewService,
+        private TestVariantService $testVariantService,
     ) {
     }
 
@@ -23,7 +25,7 @@ class BlankScanService
     {
         return collect($files)
             ->map(fn (UploadedFile $file) => $this->scanUploadedPage($test, $file))
-            ->groupBy('blank_form_id')
+            ->groupBy('processing_key')
             ->map(fn ($pageScans) => $this->finalizeGroupedScan($pageScans))
             ->values()
             ->all();
@@ -47,17 +49,20 @@ class BlankScanService
             $blankForm = BlankForm::with(['test.questions.answers', 'studentGroup', 'groupStudent'])
                 ->findOrFail($pagePayload['blank_form_id']);
 
-            if ((int) $blankForm->test_id !== (int) $test->id) {
-                throw ValidationException::withMessages([
-                    'scan' => "Скан относится к другому тесту: {$blankForm->form_number}.",
-                ]);
-            }
+            $isCurrentTestForm = (int) $blankForm->test_id === (int) $test->id;
 
-            $expectedPageCount = BlankScanLayout::questionPageCount($blankForm->test->questions->count());
+            $variantQuestions = $this->testVariantService
+                ->questionsForVariant($blankForm->test, $blankForm->variant_number ?? 1)
+                ->values();
+            $expectedPageCount = BlankScanLayout::questionPageCount($variantQuestions->count());
             $pageNumber = min($pagePayload['page_number'], $expectedPageCount);
             $recognized = $this->extractAnswers($image, $markers, $blankForm, $pageNumber);
             $scanPath = $this->storeNormalizedScanImage($image);
             $warnings = $recognized['warnings'];
+
+            if (!$isCurrentTestForm) {
+                $warnings[] = "Скан относится к другому тесту: {$blankForm->form_number}. Сохраняю только временный OCR-разбор без выставления оценки.";
+            }
 
             if ((int) $pagePayload['page_count'] !== $expectedPageCount) {
                 $warnings[] = 'Количество листов на распечатанном бланке отличается от текущей версии теста. Использую актуальную разбивку по листам.';
@@ -65,11 +70,14 @@ class BlankScanService
 
             return [
                 'file_name' => $file->getClientOriginalName(),
+                'processing_key' => ($isCurrentTestForm ? 'blank-form:' : 'foreign-preview:') . $blankForm->id,
+                'processing_mode' => $isCurrentTestForm ? 'persist' : 'foreign_preview',
                 'blank_form_id' => $blankForm->id,
                 'blank_form' => $blankForm,
                 'form_number' => $blankForm->form_number,
                 'student_name' => $blankForm->student_full_name,
                 'group_name' => $blankForm->group_name,
+                'variant_number' => $blankForm->variant_number ?? 1,
                 'page_number' => $pageNumber,
                 'page_count' => $expectedPageCount,
                 'recognized_answers' => $recognized['display_answers'],
@@ -86,9 +94,16 @@ class BlankScanService
     protected function finalizeGroupedScan($pageScans): array
     {
         $firstPage = $pageScans->first();
+
+        if (($firstPage['processing_mode'] ?? 'persist') === 'foreign_preview') {
+            return $this->finalizeForeignPreview($pageScans);
+        }
+
         $blankForm = $firstPage['blank_form'];
         $expectedPageCount = (int) $firstPage['page_count'];
-        $maxScore = (int) $blankForm->test->questions->sum('points');
+        $maxScore = (int) $this->testVariantService
+            ->questionsForVariant($blankForm->test, $blankForm->variant_number ?? 1)
+            ->sum('points');
         $pagesByNumber = [];
         $warnings = [];
 
@@ -120,6 +135,7 @@ class BlankScanService
                 'form_number' => $blankForm->form_number,
                 'student_name' => $blankForm->student_full_name,
                 'group_name' => $blankForm->group_name,
+                'variant_number' => $blankForm->variant_number ?? 1,
                 'recognized_answers' => collect($pagesByNumber)
                     ->flatMap(fn ($pageScan) => $pageScan['recognized_answers'] ?? [])
                     ->sortBy('question_number')
@@ -177,12 +193,119 @@ class BlankScanService
             'form_number' => $blankForm->form_number,
             'student_name' => $blankForm->student_full_name,
             'group_name' => $blankForm->group_name,
+            'variant_number' => $blankForm->variant_number ?? 1,
             'recognized_answers' => $displayAnswers,
             'warnings' => array_values(array_unique($warnings)),
             'score' => $grade['score'],
             'max_score' => $grade['max_score'],
             'grade' => $grade['grade'],
             'status' => $blankForm->status,
+            'pages_processed' => $receivedPages,
+            'expected_pages' => $expectedPageCount,
+        ];
+    }
+
+    protected function finalizeForeignPreview($pageScans): array
+    {
+        $firstPage = $pageScans->first();
+        $blankForm = $firstPage['blank_form'];
+        $expectedPageCount = (int) $firstPage['page_count'];
+        $pagesByNumber = [];
+        $warnings = [];
+
+        foreach ($pageScans as $pageScan) {
+            $pageNumber = (int) $pageScan['page_number'];
+
+            if (isset($pagesByNumber[$pageNumber])) {
+                $warnings[] = 'Лист ответов ' . $pageNumber . ' загружен несколько раз. Использую последний загруженный вариант.';
+            }
+
+            $pagesByNumber[$pageNumber] = $pageScan;
+        }
+
+        ksort($pagesByNumber);
+
+        $receivedPages = array_keys($pagesByNumber);
+        $missingPages = array_values(array_diff(range(1, $expectedPageCount), $receivedPages));
+
+        foreach ($pagesByNumber as $pageScan) {
+            $warnings = array_merge($warnings, $pageScan['warnings'] ?? []);
+        }
+
+        if ($missingPages !== []) {
+            $warnings[] = 'Для формы ' . $blankForm->form_number . ' загружено ' . count($receivedPages) . ' из ' . $expectedPageCount . ' листов ответов. Не хватает: ' . implode(', ', $missingPages) . '.';
+
+            return [
+                'file_name' => $this->summarizeFileNames($pagesByNumber),
+                'blank_form_id' => null,
+                'form_number' => $blankForm->form_number,
+                'student_name' => $blankForm->student_full_name,
+                'group_name' => $blankForm->group_name,
+                'variant_number' => $blankForm->variant_number ?? 1,
+                'recognized_answers' => collect($pagesByNumber)
+                    ->flatMap(fn ($pageScan) => $pageScan['recognized_answers'] ?? [])
+                    ->sortBy('question_number')
+                    ->values()
+                    ->all(),
+                'warnings' => array_values(array_unique($warnings)),
+                'score' => null,
+                'max_score' => (int) $this->testVariantService
+                    ->questionsForVariant($blankForm->test, $blankForm->variant_number ?? 1)
+                    ->sum('points'),
+                'grade' => null,
+                'status' => 'incomplete_scan',
+                'pages_processed' => $receivedPages,
+                'expected_pages' => $expectedPageCount,
+            ];
+        }
+
+        $mergedAnswers = [];
+        $displayAnswers = [];
+        $pageMetadata = [];
+
+        foreach ($pagesByNumber as $pageNumber => $pageScan) {
+            foreach ($pageScan['question_answers'] as $questionId => $answerIds) {
+                $mergedAnswers[$questionId] = $answerIds;
+            }
+
+            $displayAnswers = array_merge($displayAnswers, $pageScan['recognized_answers'] ?? []);
+            $pageMetadata[] = [
+                'page_number' => $pageNumber,
+                'file_name' => $pageScan['file_name'] ?? null,
+                'scan_path' => $pageScan['scan_path'] ?? null,
+                'question_range' => $pageScan['question_range'] ?? null,
+            ];
+        }
+
+        usort($displayAnswers, fn (array $left, array $right) => ($left['question_number'] ?? 0) <=> ($right['question_number'] ?? 0));
+
+        $preview = $this->scanPreviewService->createPreview((int) auth()->id(), $this->gradingService->buildTransientScanReview(
+            $blankForm,
+            $mergedAnswers,
+            [
+                'file_name' => $this->summarizeFileNames($pagesByNumber),
+                'files' => array_values(array_map(fn (array $pageScan) => $pageScan['file_name'] ?? '', $pagesByNumber)),
+                'scan_path' => $pagesByNumber[1]['scan_path'] ?? ($firstPage['scan_path'] ?? null),
+                'warnings' => array_values(array_unique($warnings)),
+                'recognized_answers' => $displayAnswers,
+                'pages' => $pageMetadata,
+            ]
+        ));
+
+        return [
+            'file_name' => $this->summarizeFileNames($pagesByNumber),
+            'blank_form_id' => null,
+            'preview_token' => $preview['token'],
+            'form_number' => $blankForm->form_number,
+            'student_name' => $blankForm->student_full_name,
+            'group_name' => $blankForm->group_name,
+            'variant_number' => $blankForm->variant_number ?? 1,
+            'recognized_answers' => $displayAnswers,
+            'warnings' => array_values(array_unique($warnings)),
+            'score' => data_get($preview, 'grade.score'),
+            'max_score' => data_get($preview, 'grade.max_score'),
+            'grade' => data_get($preview, 'grade.grade'),
+            'status' => 'foreign_preview',
             'pages_processed' => $receivedPages,
             'expected_pages' => $expectedPageCount,
         ];
@@ -323,7 +446,9 @@ class BlankScanService
 
     protected function extractAnswers($image, array $markers, BlankForm $blankForm, int $pageNumber): array
     {
-        $questions = $blankForm->test->questions->sortBy('order')->values();
+        $questions = $this->testVariantService
+            ->questionsForVariant($blankForm->test, $blankForm->variant_number ?? 1)
+            ->values();
         $startIndex = BlankScanLayout::questionStartIndexForPage($pageNumber);
         $pageQuestions = $questions
             ->slice($startIndex, BlankScanLayout::questionsPerPage())
@@ -336,9 +461,10 @@ class BlankScanService
 
         foreach ($pageQuestions as $index => $question) {
             $cellMeasurements = [];
+            $variantAnswers = $this->testVariantService->orderedAnswersForQuestion($question, $blankForm->variant_number ?? 1);
 
             for ($optionIndex = 0; $optionIndex < count($letters); $optionIndex++) {
-                if ($optionIndex >= $question->answers->count()) {
+                if ($optionIndex >= $variantAnswers->count()) {
                     continue;
                 }
 
@@ -382,7 +508,7 @@ class BlankScanService
             }
 
             $selectedAnswerIds = collect($selectedIndexes)
-                ->map(fn ($optionIndex) => $question->answers[$optionIndex]->id ?? null)
+                ->map(fn ($optionIndex) => $variantAnswers[$optionIndex]->id ?? null)
                 ->filter()
                 ->values()
                 ->all();

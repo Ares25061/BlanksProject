@@ -7,6 +7,7 @@ use App\Models\StudentGroup;
 use App\Services\BlankFormService;
 use App\Services\BlankScanService;
 use App\Services\GradingService;
+use App\Services\TestVariantService;
 use Illuminate\Http\Request;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Support\Facades\Storage;
@@ -18,16 +19,19 @@ class BlankFormController extends Controller
     protected $blankFormService;
     protected $gradingService;
     protected $blankScanService;
+    protected $testVariantService;
 
     public function __construct(
         BlankFormService $blankFormService,
         GradingService $gradingService,
-        BlankScanService $blankScanService
+        BlankScanService $blankScanService,
+        TestVariantService $testVariantService,
     )
     {
         $this->blankFormService = $blankFormService;
         $this->gradingService = $gradingService;
         $this->blankScanService = $blankScanService;
+        $this->testVariantService = $testVariantService;
     }
 
     public function generateForTest(Request $request, Test $test)
@@ -44,10 +48,20 @@ class BlankFormController extends Controller
             'students.*.last_name' => 'nullable|string',
             'students.*.first_name' => 'nullable|string',
             'students.*.patronymic' => 'nullable|string',
-            'students.*.group_name' => 'nullable|string'
+            'students.*.group_name' => 'nullable|string',
+            'variant_assignment_mode' => 'nullable|in:same,balanced,custom',
+            'variant_number' => 'nullable|integer|min:1|max:10',
+            'variant_numbers' => 'nullable|array',
         ]);
 
         $count = $validated['count'] ?? 1;
+        $variantOptions = [
+            'mode' => $validated['variant_assignment_mode'] ?? 'same',
+            'variant_number' => $validated['variant_number'] ?? 1,
+            'variant_numbers' => collect($request->input('variant_numbers', []))
+                ->mapWithKeys(fn ($variantNumber, $studentId) => [(int) $studentId => (int) $variantNumber])
+                ->all(),
+        ];
 
         if (!empty($validated['student_group_id'])) {
             $group = StudentGroup::with('students')->findOrFail($validated['student_group_id']);
@@ -56,15 +70,20 @@ class BlankFormController extends Controller
             $forms = $this->blankFormService->generateBlankFormsForGroup(
                 $test,
                 $group,
-                $validated['group_student_ids'] ?? []
+                $validated['group_student_ids'] ?? [],
+                $variantOptions
             );
         } elseif (isset($validated['students'])) {
             $forms = [];
             foreach ($validated['students'] as $studentData) {
-                $forms[] = $this->blankFormService->generateBlankForm($test, $studentData);
+                $forms[] = $this->blankFormService->generateBlankForm(
+                    $test,
+                    $studentData,
+                    $variantOptions['variant_number'] ?? 1
+                );
             }
         } else {
-            $forms = $this->blankFormService->generateMultipleBlankForms($test, $count);
+            $forms = $this->blankFormService->generateMultipleBlankForms($test, $count, $variantOptions);
         }
 
         return response()->json([
@@ -79,6 +98,9 @@ class BlankFormController extends Controller
         $this->authorize('view', $blankForm);
 
         $blankForm->load(['test.questions.answers', 'studentAnswers.question.answers', 'studentGroup', 'groupStudent', 'gradeAssigner']);
+        $this->testVariantService->attachVariantAnswers($blankForm);
+        $blankForm->setAttribute('can_assign_grade', (bool) $blankForm->group_student_id);
+        $blankForm->setAttribute('is_foreign_scan', false);
 
         return response()->json([
             'status' => 'success',

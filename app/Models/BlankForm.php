@@ -15,6 +15,7 @@ class BlankForm extends Model
         'student_group_id',
         'group_student_id',
         'form_number',
+        'variant_number',
         'last_name',
         'first_name',
         'patronymic',
@@ -39,7 +40,8 @@ class BlankForm extends Model
         'checked_at' => 'datetime',
         'scanned_at' => 'datetime',
         'metadata' => 'array',
-        'total_score' => 'integer'
+        'total_score' => 'integer',
+        'variant_number' => 'integer',
     ];
 
     public function test()

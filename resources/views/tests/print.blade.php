@@ -442,7 +442,7 @@
     $hasTooManyAnswers = $test->questions->contains(fn ($question) => $question->answers->count() > count($letters));
     $showAnswerSheets = $printMode !== 'questions';
     $showQuestionSheets = $printMode !== 'blank';
-    $answerSheetPageCount = count($answerSheetPages ?? []);
+    $hasMultiPageAnswerSheets = collect($answerSheetPagesByBlankForm ?? [])->contains(fn ($pages) => count($pages) > 1);
 @endphp
 
 <div class="toolbar">
@@ -457,10 +457,10 @@
     </div>
 @endif
 
-@if($showAnswerSheets && $answerSheetPageCount > 1)
+@if($showAnswerSheets && $hasMultiPageAnswerSheets)
     <div class="screen-note">
-        Для этого теста будет напечатано <strong>{{ $answerSheetPageCount }} сканируемых листа ответов</strong>.
-        При проверке загрузите все листы конкретного ученика одной пачкой или одним PDF.
+        Для некоторых вариантов этого теста будет напечатано <strong>несколько сканируемых листов ответов</strong>.
+        При проверке загружайте все листы конкретного ученика одной пачкой или одним PDF.
     </div>
 @endif
 
@@ -480,6 +480,15 @@
 @foreach($blankForms as $blankForm)
     @php
         $studentName = trim(implode(' ', array_filter([$blankForm->last_name, $blankForm->first_name, $blankForm->patronymic])));
+        $variantNumber = max(1, (int) ($blankForm->variant_number ?? 1));
+        $answerSheetPages = $answerSheetPagesByBlankForm[(int) $blankForm->id] ?? [];
+        $questionPages = $questionPagesByBlankForm[(int) $blankForm->id] ?? [];
+        $variantQuestions = $test->questions->where('variant_number', $variantNumber)->values();
+        if ($variantQuestions->isEmpty() && $variantNumber === 1) {
+            $variantQuestions = $test->questions->values();
+        }
+        $variantQuestionCount = $variantQuestions->count();
+        $variantMaxScore = $variantQuestions->sum('points');
         $criteriaLabel = collect($test->grade_criteria)
             ->sortByDesc('min_points')
             ->map(fn ($criterion) => ($criterion['label'] ?? 'Оценка') . ' от ' . ($criterion['min_points'] ?? 0))
@@ -510,8 +519,9 @@
 
                 <div class="answer-sheet-subline">
                     <span>Время: {{ $test->time_limit ? $test->time_limit . ' мин' : 'без лимита' }}</span>
-                    <span>Макс. балл: {{ $test->questions->sum('points') }}</span>
-                    <span>Заданий: {{ $questionCount }}</span>
+                    <span>Макс. балл: {{ $variantMaxScore }}</span>
+                    <span>Заданий: {{ $variantQuestionCount }}</span>
+                    <span>Вариант: {{ $variantNumber }}</span>
                     <span>Лист ответов: {{ $answerSheetPage['page_number'] }} / {{ $answerSheetPage['page_count'] }}</span>
                     <span>Форма: {{ $blankForm->form_number }}</span>
                 </div>
@@ -597,7 +607,7 @@
                     </div>
                     <div style="text-align:right;">
                         <div>{{ $studentName ?: 'Студент не указан' }}</div>
-                        <div>{{ $blankForm->group_name ?: 'Группа не указана' }} • Форма {{ $blankForm->form_number }}</div>
+                        <div>{{ $blankForm->group_name ?: 'Группа не указана' }} • Вариант {{ $variantNumber }} • Форма {{ $blankForm->form_number }}</div>
                     </div>
                 </div>
 
@@ -614,7 +624,7 @@
                             <div class="question-meta">
                                 {{ $question->type === 'single' ? 'Один правильный ответ' : 'Несколько правильных ответов' }} • {{ $question->points }} балл.
                             </div>
-                            @foreach($question->answers as $answerIndex => $answer)
+                            @foreach(($questionData['variant_answers'] ?? $question->answers) as $answerIndex => $answer)
                                 <div class="answer-option">
                                     <strong>{{ $letters[$answerIndex] ?? ($answerIndex + 1) }}.</strong>
                                     <span>{{ $answer->answer_text }}</span>

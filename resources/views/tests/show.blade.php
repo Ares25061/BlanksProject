@@ -32,6 +32,14 @@
                         <i class="fas fa-pen"></i>
                         Редактировать
                     </button>
+                    <button onclick="downloadTestExport('json')" class="bg-white border border-slate-200 text-slate-700 px-4 py-3 rounded-2xl hover:border-sky-300 hover:text-sky-700 transition flex items-center gap-2">
+                        <i class="fas fa-file-code"></i>
+                        Экспорт JSON
+                    </button>
+                    <button onclick="downloadTestExport('xlsx')" class="bg-white border border-slate-200 text-slate-700 px-4 py-3 rounded-2xl hover:border-sky-300 hover:text-sky-700 transition flex items-center gap-2">
+                        <i class="fas fa-file-excel"></i>
+                        Экспорт Excel
+                    </button>
                     <button onclick="openPrintMode('all')" class="bg-white border border-slate-200 text-slate-700 px-4 py-3 rounded-2xl hover:border-sky-300 hover:text-sky-700 transition flex items-center gap-2">
                         <i class="fas fa-print"></i>
                         Демо-комплект
@@ -50,7 +58,7 @@
                 </div>
             </div>
 
-            <div class="grid md:grid-cols-4 gap-4 mt-6">
+            <div class="grid md:grid-cols-5 gap-4 mt-6">
                 <div class="bg-slate-50 rounded-2xl p-4">
                     <div class="text-xs uppercase tracking-[0.25em] text-slate-400">Вопросы</div>
                     <div id="questionCount" class="text-2xl font-bold mt-2">0</div>
@@ -66,6 +74,10 @@
                 <div class="bg-slate-50 rounded-2xl p-4">
                     <div class="text-xs uppercase tracking-[0.25em] text-slate-400">Статус</div>
                     <div id="testStatus" class="text-2xl font-bold mt-2">Черновик</div>
+                </div>
+                <div class="bg-slate-50 rounded-2xl p-4">
+                    <div class="text-xs uppercase tracking-[0.25em] text-slate-400">Варианты</div>
+                    <div id="variantCount" class="text-2xl font-bold mt-2">1</div>
                 </div>
             </div>
         </section>
@@ -93,7 +105,7 @@
                     <h2 class="text-xl font-semibold">Сканирование</h2>
                     <div id="scanSupportNote" class="mt-3 text-sm rounded-2xl border border-amber-200 bg-amber-50 text-amber-800 p-4 hidden"></div>
                     <div class="mt-4 text-sm text-slate-600">
-                        Поддерживаются <span class="font-semibold">JPG / PNG / WEBP / PDF</span>. Если загружен PDF, браузер автоматически преобразует все его листы в изображения перед отправкой.
+                        Поддерживаются <span class="font-semibold">JPG / PNG / WEBP / PDF</span>. Если загружен PDF, браузер автоматически преобразует все его листы в изображения перед отправкой. Чужие бланки тоже можно распознать, но оценку им поставить нельзя.
                     </div>
                 </section>
             </div>
@@ -130,6 +142,12 @@
                                     <div class="text-sm mt-1 opacity-80">Ниже можно отметить только тех студентов, кому нужны бланки сейчас.</div>
                                 </button>
                             </div>
+                        </div>
+
+                        <div class="rounded-3xl border border-slate-200 bg-slate-50 p-4">
+                            <div class="text-sm uppercase tracking-[0.25em] text-slate-400">Варианты</div>
+                            <div id="variantAssignmentSummary" class="text-sm text-slate-600 mt-2">Для этого теста используется один вариант.</div>
+                            <div id="variantAssignmentSettings" class="mt-4 space-y-3"></div>
                         </div>
 
                         <div class="rounded-3xl border border-slate-200 bg-slate-50 p-4">
@@ -211,6 +229,9 @@
     let lastGeneratedBlankIds = [];
     let blankGenerationMode = 'all';
     let selectedGroupStudentIds = [];
+    let blankVariantDistributionMode = 'same';
+    let sharedVariantNumber = 1;
+    let customStudentVariants = {};
     let pdfJsLoadingPromise = null;
 
     async function apiFetch(url, options = {}) {
@@ -253,37 +274,27 @@
             ? `Предмет: ${currentTest.subject_name}`
             : 'Предмет не указан';
         document.getElementById('testDescription').textContent = currentTest.description || 'Описание не указано';
-        document.getElementById('questionCount').textContent = currentTest.questions?.length || 0;
-        document.getElementById('maxPoints').textContent = (currentTest.questions || []).reduce((sum, question) => sum + (question.points || 0), 0);
+        const variantSummaries = getVariantSummaries();
+        const variantCount = normalizeVariantCount();
+        const maxVariantQuestionCount = variantSummaries.length
+            ? Math.max(...variantSummaries.map((summary) => summary.questionCount))
+            : 0;
+        const maxVariantScore = variantSummaries.length
+            ? Math.max(...variantSummaries.map((summary) => summary.score))
+            : 0;
+
+        document.getElementById('questionCount').textContent = variantCount > 1
+            ? `${maxVariantQuestionCount} / вариант`
+            : (currentTest.questions?.length || 0);
+        document.getElementById('maxPoints').textContent = variantCount > 1
+            ? `${maxVariantScore} / вариант`
+            : (currentTest.questions || []).reduce((sum, question) => sum + (question.points || 0), 0);
         document.getElementById('timeLimit').textContent = currentTest.time_limit ? `${currentTest.time_limit} мин` : 'Без лимита';
         document.getElementById('testStatus').textContent = currentTest.is_active ? 'Активен' : 'Черновик';
+        document.getElementById('variantCount').textContent = variantCount;
 
         const questionsList = document.getElementById('questionsList');
-        questionsList.innerHTML = (currentTest.questions || []).map((question, index) => `
-            <article class="border border-slate-200 rounded-2xl p-4 ${question.type === 'multiple' ? 'bg-violet-50' : 'bg-slate-50'}">
-                <div class="flex justify-between items-start gap-3">
-                    <div>
-                        <h3 class="font-semibold text-slate-900">${index + 1}. ${escapeHtml(question.question_text)}</h3>
-                        <div class="text-sm text-slate-500 mt-2">
-                            ${question.type === 'single' ? 'Один правильный ответ' : 'Несколько правильных ответов'}
-                        </div>
-                    </div>
-                    <span class="bg-white border border-slate-200 rounded-full px-3 py-1 text-sm font-semibold text-slate-700">
-                        ${question.points || 1} балл.
-                    </span>
-                </div>
-
-                <div class="mt-4 grid gap-2">
-                    ${(question.answers || []).map((answer, answerIndex) => `
-                        <div class="flex items-start gap-3 rounded-xl px-3 py-2 ${answer.is_correct ? 'bg-emerald-100 text-emerald-900' : 'bg-white'}">
-                            <span class="font-semibold">${String.fromCharCode(65 + answerIndex)}.</span>
-                            <span>${escapeHtml(answer.answer_text)}</span>
-                            ${answer.is_correct ? '<i class="fas fa-check mt-1 text-emerald-700"></i>' : ''}
-                        </div>
-                    `).join('')}
-                </div>
-            </article>
-        `).join('');
+        questionsList.innerHTML = buildQuestionCards(variantSummaries);
 
         const criteria = [...(currentTest.grade_criteria || [])].sort((a, b) => b.min_points - a.min_points);
         document.getElementById('gradeCriteriaList').innerHTML = criteria.map((criterion) => `
@@ -293,10 +304,12 @@
             </div>
         `).join('');
 
-        const questionCount = currentTest.questions?.length || 0;
         const hasTooManyAnswers = (currentTest.questions || []).some((question) => (question.answers || []).length > 5);
         const scanSupportNote = document.getElementById('scanSupportNote');
-        const answerSheetPageCount = Math.max(1, Math.ceil(questionCount / SCAN_ROWS_PER_PAGE));
+        const answerSheetPageCount = Math.max(
+            1,
+            ...variantSummaries.map((summary) => Math.max(1, Math.ceil(summary.questionCount / SCAN_ROWS_PER_PAGE)))
+        );
         const scanButton = document.getElementById('scanButton');
 
         scanButton.disabled = false;
@@ -309,10 +322,202 @@
             scanButton.classList.add('opacity-50', 'cursor-not-allowed');
         } else if (answerSheetPageCount > 1) {
             scanSupportNote.classList.remove('hidden');
-            scanSupportNote.textContent = `Для этого теста понадобится ${answerSheetPageCount} листа(ов) ответов на каждого ученика. При проверке загружайте все листы ученика одной пачкой.`;
+            scanSupportNote.textContent = `Для самого длинного варианта этого теста понадобится ${answerSheetPageCount} листа(ов) ответов на каждого ученика. При проверке загружайте все листы ученика одной пачкой.`;
         } else {
             scanSupportNote.classList.add('hidden');
         }
+
+        if (normalizeVariantCount() <= 1) {
+            blankVariantDistributionMode = 'same';
+            sharedVariantNumber = 1;
+            customStudentVariants = {};
+        } else {
+            sharedVariantNumber = clampVariantNumber(sharedVariantNumber);
+        }
+
+        renderVariantAssignmentSettings();
+    }
+
+    function buildQuestionCards(variantSummaries) {
+        return variantSummaries.map((summary) => `
+            <section class="space-y-4">
+                ${normalizeVariantCount() > 1 ? `
+                    <div class="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600">
+                        <span class="font-semibold text-slate-900">Вариант ${summary.variantNumber}</span>
+                        <span class="ml-3">Вопросов: ${summary.questionCount}</span>
+                        <span class="ml-3">Макс. балл: ${summary.score}</span>
+                    </div>
+                ` : ''}
+                ${summary.questions.map((questionData) => `
+                    <article class="border border-slate-200 rounded-2xl p-4 ${questionData.question.type === 'multiple' ? 'bg-violet-50' : 'bg-slate-50'}">
+                        <div class="flex justify-between items-start gap-3">
+                            <div>
+                                <div class="flex flex-wrap items-center gap-2">
+                                    <h3 class="font-semibold text-slate-900">${questionData.number}. ${escapeHtml(questionData.question.question_text)}</h3>
+                                    ${normalizeVariantCount() > 1 ? `
+                                        <span class="bg-white border border-slate-200 rounded-full px-3 py-1 text-xs font-semibold text-slate-700">
+                                            Вариант ${summary.variantNumber}
+                                        </span>
+                                    ` : ''}
+                                </div>
+                                <div class="text-sm text-slate-500 mt-2">
+                                    ${questionData.question.type === 'single' ? 'Один правильный ответ' : 'Несколько правильных ответов'}
+                                </div>
+                            </div>
+                            <span class="bg-white border border-slate-200 rounded-full px-3 py-1 text-sm font-semibold text-slate-700">
+                                ${questionData.question.points || 1} балл.
+                            </span>
+                        </div>
+
+                        <div class="mt-4 grid gap-2">
+                            ${(questionData.question.answers || []).map((answer, answerIndex) => `
+                                <div class="flex items-start gap-3 rounded-xl px-3 py-2 ${answer.is_correct ? 'bg-emerald-100 text-emerald-900' : 'bg-white'}">
+                                    <span class="font-semibold">${String.fromCharCode(65 + answerIndex)}.</span>
+                                    <span>${escapeHtml(answer.answer_text)}</span>
+                                    ${answer.is_correct ? '<i class="fas fa-check mt-1 text-emerald-700"></i>' : ''}
+                                </div>
+                            `).join('')}
+                        </div>
+                    </article>
+                `).join('')}
+            </section>
+        `).join('');
+    }
+
+    function normalizeVariantCount() {
+        return Math.max(1, Math.min(10, Number(currentTest?.variant_count) || 1));
+    }
+
+    function getAvailableVariantNumbers() {
+        return Array.from({ length: normalizeVariantCount() }, (_, index) => index + 1);
+    }
+
+    function clampVariantNumber(value) {
+        const normalized = Number(value) || 1;
+
+        return Math.max(1, Math.min(normalizeVariantCount(), normalized));
+    }
+
+    function getQuestionVariantNumber(question) {
+        return clampVariantNumber(question?.variant_number || 1);
+    }
+
+    function getVariantSummaries() {
+        const variantCount = normalizeVariantCount();
+        const questions = Array.isArray(currentTest?.questions) ? currentTest.questions : [];
+
+        return getAvailableVariantNumbers().map((variantNumber) => {
+            const variantQuestions = questions
+                .filter((question) => getQuestionVariantNumber(question) === variantNumber)
+                .sort((left, right) => (left.order || 0) - (right.order || 0))
+                .map((question, index) => ({
+                    number: index + 1,
+                    question,
+                }));
+
+            return {
+                variantNumber,
+                questions: variantQuestions,
+                questionCount: variantQuestions.length,
+                score: variantQuestions.reduce((sum, questionData) => sum + (questionData.question.points || 0), 0),
+            };
+        }).filter((summary) => summary.questionCount > 0 || variantCount === 1);
+    }
+
+    function renderVariantAssignmentSettings() {
+        const container = document.getElementById('variantAssignmentSettings');
+        const summary = document.getElementById('variantAssignmentSummary');
+        const variantCount = normalizeVariantCount();
+
+        if (!container || !summary) {
+            return;
+        }
+
+        if (variantCount <= 1) {
+            summary.textContent = 'Для этого теста используется один вариант.';
+            container.innerHTML = `
+                <div class="rounded-2xl border border-dashed border-slate-300 bg-white px-4 py-4 text-sm text-slate-500">
+                    Дополнительные настройки вариантов не нужны: у теста только один вариант.
+                </div>
+            `;
+            return;
+        }
+
+        const buttons = [
+            {
+                id: 'same',
+                title: 'Всем один вариант',
+                description: 'Каждому выбранному ученику будет выдан один и тот же вариант.'
+            },
+            {
+                id: 'balanced',
+                title: 'Распределить поровну',
+                description: 'Варианты будут выданы по кругу, чтобы группа делилась максимально равномерно.'
+            },
+            {
+                id: 'custom',
+                title: 'Назначить вручную',
+                description: 'Для каждого студента можно выбрать свой вариант прямо в списке группы.'
+            }
+        ];
+
+        summary.textContent = blankVariantDistributionMode === 'balanced'
+            ? `Сейчас варианты 1-${variantCount} будут распределяться по выбранным студентам максимально равномерно.`
+            : blankVariantDistributionMode === 'custom'
+                ? 'Сейчас можно вручную назначить вариант каждому студенту в списке ниже.'
+                : `Сейчас всем выбранным студентам будет выдан вариант ${clampVariantNumber(sharedVariantNumber)}.`;
+
+        container.innerHTML = `
+            <div class="grid md:grid-cols-3 gap-3">
+                ${buttons.map((button) => `
+                    <button type="button"
+                            onclick="setVariantDistributionMode('${button.id}')"
+                            class="${blankVariantDistributionMode === button.id
+                                ? 'rounded-2xl border border-slate-900 bg-slate-900 px-4 py-3 text-left transition text-white'
+                                : 'rounded-2xl border border-slate-300 px-4 py-3 text-left transition hover:border-sky-300 hover:bg-white'}">
+                        <div class="font-semibold">${button.title}</div>
+                        <div class="text-sm mt-1 opacity-80">${button.description}</div>
+                    </button>
+                `).join('')}
+            </div>
+            ${blankVariantDistributionMode === 'same' ? `
+                <div>
+                    <label for="sharedVariantNumber" class="block text-sm font-medium text-slate-700 mb-2">Общий вариант для всех выбранных</label>
+                    <select id="sharedVariantNumber"
+                            onchange="updateSharedVariantNumber(this.value)"
+                            class="w-full md:max-w-xs px-4 py-3 rounded-2xl border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500">
+                        ${getAvailableVariantNumbers().map((variantNumber) => `
+                            <option value="${variantNumber}" ${variantNumber === clampVariantNumber(sharedVariantNumber) ? 'selected' : ''}>
+                                Вариант ${variantNumber}
+                            </option>
+                        `).join('')}
+                    </select>
+                </div>
+            ` : ''}
+        `;
+    }
+
+    function setVariantDistributionMode(mode) {
+        if (normalizeVariantCount() <= 1) {
+            blankVariantDistributionMode = 'same';
+            renderVariantAssignmentSettings();
+            return;
+        }
+
+        blankVariantDistributionMode = ['same', 'balanced', 'custom'].includes(mode) ? mode : 'same';
+
+        if (blankVariantDistributionMode !== 'custom') {
+            customStudentVariants = {};
+        }
+
+        renderVariantAssignmentSettings();
+        renderGroupStudents();
+    }
+
+    function updateSharedVariantNumber(value) {
+        sharedVariantNumber = clampVariantNumber(value);
+        renderVariantAssignmentSettings();
+        renderGroupStudents();
     }
 
     function renderGroups() {
@@ -365,10 +570,54 @@
             : normalizeBufferedSelectedGroupStudentIds();
     }
 
+    function getStudentsForGeneration() {
+        const students = getSelectedGroupStudents();
+        const selectedIds = new Set(getRenderableSelectedGroupStudentIds());
+
+        return blankGenerationMode === 'all'
+            ? students
+            : students.filter((student) => selectedIds.has(Number(student.id)));
+    }
+
+    function getStudentVariantAssignments() {
+        const variantCount = normalizeVariantCount();
+        const students = getSelectedGroupStudents();
+        const selectedIds = new Set(getRenderableSelectedGroupStudentIds());
+        const assignments = {};
+        let balancedIndex = 0;
+
+        students.forEach((student) => {
+            const studentId = Number(student.id);
+            const isIncluded = blankGenerationMode === 'all' || selectedIds.has(studentId);
+
+            if (variantCount <= 1) {
+                assignments[studentId] = 1;
+                return;
+            }
+
+            if (blankVariantDistributionMode === 'balanced' && isIncluded) {
+                assignments[studentId] = (balancedIndex % variantCount) + 1;
+                balancedIndex += 1;
+                return;
+            }
+
+            if (blankVariantDistributionMode === 'custom') {
+                assignments[studentId] = clampVariantNumber(customStudentVariants[studentId] || 1);
+                return;
+            }
+
+            assignments[studentId] = clampVariantNumber(sharedVariantNumber);
+        });
+
+        return assignments;
+    }
+
     function handleGroupChange() {
         selectedGroupStudentIds = [];
         blankGenerationMode = 'all';
+        customStudentVariants = {};
         syncBlankGenerationModeButtons();
+        renderVariantAssignmentSettings();
         renderGroupStudents();
     }
 
@@ -380,6 +629,17 @@
             selectedGroupStudentIds = normalizeBufferedSelectedGroupStudentIds();
         }
         syncBlankGenerationModeButtons();
+        renderVariantAssignmentSettings();
+        renderGroupStudents();
+    }
+
+    function updateCustomStudentVariant(studentId, variantNumber) {
+        customStudentVariants = {
+            ...customStudentVariants,
+            [Number(studentId)]: clampVariantNumber(variantNumber),
+        };
+        blankVariantDistributionMode = 'custom';
+        renderVariantAssignmentSettings();
         renderGroupStudents();
     }
 
@@ -408,6 +668,8 @@
         const group = getSelectedGroup();
         const students = group?.students || [];
         const selectedIds = new Set(getRenderableSelectedGroupStudentIds());
+        const variantAssignments = getStudentVariantAssignments();
+        const variantCount = normalizeVariantCount();
 
         if (!list || !summary || !selectAllButton || !clearButton) {
             return;
@@ -445,6 +707,29 @@
         list.innerHTML = students.map((student) => {
             const studentId = Number(student.id);
             const isChecked = selectedIds.has(studentId);
+            const assignedVariant = variantAssignments[studentId] || 1;
+            const variantBadge = variantCount > 1
+                ? (blankVariantDistributionMode === 'custom'
+                    ? `
+                        <div class="mt-3">
+                            <label class="block text-xs uppercase tracking-[0.2em] text-slate-400 mb-2">Вариант</label>
+                            <select onchange="updateCustomStudentVariant(${studentId}, this.value)"
+                                    class="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white focus:ring-2 focus:ring-sky-500 focus:border-sky-500 text-sm">
+                                ${getAvailableVariantNumbers().map((variantNumber) => `
+                                    <option value="${variantNumber}" ${variantNumber === assignedVariant ? 'selected' : ''}>
+                                        Вариант ${variantNumber}
+                                    </option>
+                                `).join('')}
+                            </select>
+                        </div>
+                    `
+                    : `
+                        <div class="mt-3 inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
+                            <i class="fas fa-layer-group"></i>
+                            ${isChecked ? `Вариант ${assignedVariant}` : 'Не выбран для печати'}
+                        </div>
+                    `)
+                : '';
 
             return `
                 <label class="flex items-start gap-3 rounded-2xl border px-4 py-3 cursor-pointer transition ${isChecked ? 'border-sky-300 bg-white shadow-sm' : 'border-slate-200 bg-white hover:border-slate-300'}">
@@ -454,6 +739,7 @@
                            class="mt-1 h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500">
                     <div class="min-w-0">
                         <div class="font-medium text-slate-900">${escapeHtml(student.full_name || 'Без имени')}</div>
+                        ${variantBadge}
                     </div>
                 </label>
             `;
@@ -493,6 +779,7 @@
         }
 
         syncBlankGenerationModeButtons();
+        renderVariantAssignmentSettings();
         renderGroupStudents();
     }
 
@@ -500,6 +787,7 @@
         blankGenerationMode = 'all';
         syncBlankGenerationModeButtons();
         selectedGroupStudentIds = [];
+        renderVariantAssignmentSettings();
         renderGroupStudents();
     }
 
@@ -507,6 +795,7 @@
         blankGenerationMode = 'selected';
         syncBlankGenerationModeButtons();
         selectedGroupStudentIds = [];
+        renderVariantAssignmentSettings();
         renderGroupStudents();
     }
 
@@ -545,6 +834,7 @@
             const assignedGrade = blankForm.assigned_grade_value
                 ? `${escapeHtml(blankForm.assigned_grade_value)} • ${formatDate(blankForm.assigned_grade_date)}`
                 : '';
+            const variantLabel = `Вариант ${blankForm.variant_number || 1}`;
 
             return `
                 <article class="border border-slate-200 rounded-2xl p-4">
@@ -553,6 +843,7 @@
                             <div class="flex flex-wrap items-center gap-3">
                                 <h3 class="font-semibold text-slate-900">${escapeHtml(studentName)}</h3>
                                 <span class="px-3 py-1 rounded-full text-xs ${statusClass}">${statusLabel}</span>
+                                <span class="px-3 py-1 rounded-full text-xs bg-slate-100 text-slate-700">${escapeHtml(variantLabel)}</span>
                             </div>
                             <div class="text-sm text-slate-500 mt-2">${escapeHtml(blankForm.group_name || 'Группа не указана')}</div>
                             <div class="text-xs text-slate-400 mt-2">${escapeHtml(blankForm.form_number || '')}</div>
@@ -605,6 +896,8 @@
         }
 
         const selectedIds = normalizeBufferedSelectedGroupStudentIds();
+        const selectedStudents = getStudentsForGeneration();
+        const variantAssignments = getStudentVariantAssignments();
 
         if (blankGenerationMode === 'selected' && !selectedIds.length) {
             alert('Отметьте хотя бы одного студента для выборочной генерации');
@@ -613,8 +906,19 @@
 
         try {
             const payload = {
-                student_group_id: parseInt(groupId, 10)
+                student_group_id: parseInt(groupId, 10),
+                variant_assignment_mode: blankVariantDistributionMode,
             };
+
+            if (blankVariantDistributionMode === 'same') {
+                payload.variant_number = clampVariantNumber(sharedVariantNumber);
+            } else if (blankVariantDistributionMode === 'custom') {
+                payload.variant_numbers = selectedStudents.reduce((carry, student) => {
+                    carry[student.id] = variantAssignments[Number(student.id)] || 1;
+
+                    return carry;
+                }, {});
+            }
 
             if (blankGenerationMode === 'selected') {
                 payload.group_student_ids = selectedIds;
@@ -649,6 +953,33 @@
         window.location.href = buildPrintUrl([], mode);
     }
 
+    async function downloadTestExport(format) {
+        try {
+            const response = await apiFetch(`/api/tests/${testId}/export?format=${encodeURIComponent(format)}`, {
+                headers: {
+                    'Accept': format === 'xlsx'
+                        ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+                        : 'application/json'
+                }
+            });
+
+            if (!response.ok) {
+                const error = await response.json().catch(() => ({}));
+                throw new Error(error.message || 'Не удалось экспортировать тест');
+            }
+
+            const blob = await response.blob();
+            const fileName = extractDownloadFileName(
+                response.headers.get('content-disposition'),
+                `test-${testId}.${format === 'xlsx' ? 'xlsx' : 'json'}`
+            );
+
+            triggerBlobDownload(blob, fileName);
+        } catch (error) {
+            alert(error.message || 'Ошибка экспорта');
+        }
+    }
+
     function printGeneratedPack(mode = 'all') {
         if (!lastGeneratedBlankIds.length) {
             return;
@@ -665,6 +996,9 @@
         const params = new URLSearchParams();
         if (blankFormIds.length) {
             params.set('blank_form_ids', blankFormIds.join(','));
+        }
+        if (!blankFormIds.length && normalizeVariantCount() > 1) {
+            params.set('variant_number', String(clampVariantNumber(sharedVariantNumber)));
         }
         if (mode && mode !== 'all') {
             params.set('print_mode', mode);
@@ -698,17 +1032,25 @@
         }
     }
 
-    function openResultsPage(blankFormIds) {
+    function openResultsPage(blankFormIds, previewTokens = []) {
         const ids = [...new Set((blankFormIds || []).map((value) => Number(value)).filter((value) => Number.isInteger(value) && value > 0))];
+        const tokens = [...new Set((previewTokens || []).map((value) => String(value || '').trim()).filter(Boolean))];
 
-        if (!ids.length) {
+        if (!ids.length && !tokens.length) {
             return;
         }
 
         const params = new URLSearchParams({
-            ids: ids.join(','),
             test_id: String(testId)
         });
+
+        if (ids.length) {
+            params.set('ids', ids.join(','));
+        }
+
+        if (tokens.length) {
+            params.set('preview_tokens', tokens.join(','));
+        }
 
         window.location.href = `/blank-forms/results?${params.toString()}`;
     }
@@ -750,10 +1092,13 @@
                 .filter((result) => Number.isInteger(Number(result.blank_form_id)) && result.status === 'checked')
                 .map((result) => Number(result.blank_form_id))
                 .filter((value) => value > 0))];
+            const previewTokens = [...new Set(results
+                .filter((result) => result.status === 'foreign_preview' && result.preview_token)
+                .map((result) => String(result.preview_token)))];
             input.value = '';
 
-            if (processedIds.length && processedIds.length === results.length) {
-                openResultsPage(processedIds);
+            if ((processedIds.length + previewTokens.length) === results.length && (processedIds.length || previewTokens.length)) {
+                openResultsPage(processedIds, previewTokens);
                 return;
             }
 
@@ -874,21 +1219,31 @@
         }
 
         container.innerHTML = results.map((result) => `
-            <article class="rounded-2xl border ${result.status === 'incomplete_scan' ? 'border-amber-200 bg-amber-50' : 'border-emerald-200 bg-emerald-50'} p-4">
+            <article class="rounded-2xl border ${result.status === 'incomplete_scan' ? 'border-amber-200 bg-amber-50' : result.status === 'foreign_preview' ? 'border-slate-200 bg-slate-50' : 'border-emerald-200 bg-emerald-50'} p-4">
                 <div class="flex flex-wrap justify-between gap-3">
                     <div>
-                        <div class="font-semibold ${result.status === 'incomplete_scan' ? 'text-amber-900' : 'text-emerald-900'}">${escapeHtml(result.student_name || 'Без имени')}</div>
-                        <div class="text-sm ${result.status === 'incomplete_scan' ? 'text-amber-800' : 'text-emerald-800'} mt-1">${escapeHtml(result.file_name || '')}</div>
-                        ${result.expected_pages ? `<div class="text-xs mt-2 ${result.status === 'incomplete_scan' ? 'text-amber-700' : 'text-emerald-700'}">Листы: ${(result.pages_processed || []).join(', ') || '—'} из ${result.expected_pages}</div>` : ''}
+                        <div class="font-semibold ${result.status === 'incomplete_scan' ? 'text-amber-900' : result.status === 'foreign_preview' ? 'text-slate-900' : 'text-emerald-900'}">${escapeHtml(result.student_name || 'Без имени')}</div>
+                        <div class="text-sm ${result.status === 'incomplete_scan' ? 'text-amber-800' : result.status === 'foreign_preview' ? 'text-slate-700' : 'text-emerald-800'} mt-1">${escapeHtml(result.file_name || '')}</div>
+                        <div class="text-xs mt-2 ${result.status === 'incomplete_scan' ? 'text-amber-700' : result.status === 'foreign_preview' ? 'text-slate-600' : 'text-emerald-700'}">
+                            ${escapeHtml(result.variant_number ? `Вариант ${result.variant_number}` : '')}
+                            ${result.expected_pages ? `${result.variant_number ? ' • ' : ''}Листы: ${(result.pages_processed || []).join(', ') || '—'} из ${result.expected_pages}` : ''}
+                        </div>
                     </div>
                     <div class="text-right">
-                        <div class="font-semibold ${result.status === 'incomplete_scan' ? 'text-amber-900' : 'text-emerald-900'}">${result.score ?? '—'} / ${result.max_score ?? '—'}</div>
-                        <div class="text-sm ${result.status === 'incomplete_scan' ? 'text-amber-800' : 'text-emerald-800'}">${escapeHtml(result.grade || (result.status === 'incomplete_scan' ? 'Нужно загрузить все листы' : ''))}</div>
+                        <div class="font-semibold ${result.status === 'incomplete_scan' ? 'text-amber-900' : result.status === 'foreign_preview' ? 'text-slate-900' : 'text-emerald-900'}">${result.score ?? '—'} / ${result.max_score ?? '—'}</div>
+                        <div class="text-sm ${result.status === 'incomplete_scan' ? 'text-amber-800' : result.status === 'foreign_preview' ? 'text-slate-700' : 'text-emerald-800'}">${escapeHtml(result.grade || (result.status === 'incomplete_scan' ? 'Нужно загрузить все листы' : result.status === 'foreign_preview' ? 'Чужой бланк • без оценки' : ''))}</div>
                     </div>
                 </div>
                 ${result.warnings?.length ? `
                     <div class="mt-3 text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-xl p-3">
                         ${result.warnings.map((warning) => escapeHtml(warning)).join('<br>')}
+                    </div>
+                ` : ''}
+                ${result.preview_token ? `
+                    <div class="mt-3 flex justify-end">
+                        <button onclick="openResultsPage([], ['${result.preview_token}'])" class="bg-slate-900 text-white px-4 py-2 rounded-xl hover:bg-slate-800 transition text-sm">
+                            Открыть OCR-разбор
+                        </button>
                     </div>
                 ` : ''}
             </article>
@@ -899,6 +1254,31 @@
         const div = document.createElement('div');
         div.textContent = text || '';
         return div.innerHTML;
+    }
+
+    function extractDownloadFileName(contentDisposition, fallback) {
+        if (!contentDisposition) {
+            return fallback;
+        }
+
+        const utfMatch = contentDisposition.match(/filename\*=UTF-8''([^;]+)/i);
+        if (utfMatch?.[1]) {
+            return decodeURIComponent(utfMatch[1]);
+        }
+
+        const plainMatch = contentDisposition.match(/filename=\"?([^\";]+)\"?/i);
+        return plainMatch?.[1] || fallback;
+    }
+
+    function triggerBlobDownload(blob, fileName) {
+        const objectUrl = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = objectUrl;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.URL.revokeObjectURL(objectUrl);
     }
 
     function formatDate(value) {

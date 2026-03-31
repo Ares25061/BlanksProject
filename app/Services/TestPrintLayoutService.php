@@ -13,9 +13,9 @@ class TestPrintLayoutService
     private const QUESTION_BLOCK_BASE_LINES = 3;
     private const QUESTION_BLOCK_EXTRA_LINES = 1;
 
-    public function paginateAnswerSheetQuestions(Test $test): array
+    public function paginateAnswerSheetQuestions(Test $test, int $variantNumber = 1): array
     {
-        $questions = $test->questions->sortBy('order')->values();
+        $questions = $this->testVariantService->questionsForVariant($test, $variantNumber)->values();
         $totalQuestions = $questions->count();
         $pageCount = BlankScanLayout::questionPageCount($totalQuestions);
         $pages = [];
@@ -38,16 +38,22 @@ class TestPrintLayoutService
         return $pages;
     }
 
-    public function paginateQuestions(Test $test): array
+    public function __construct(
+        private TestVariantService $testVariantService,
+    ) {
+    }
+
+    public function paginateQuestions(Test $test, int $variantNumber = 1): array
     {
         $pages = [];
         $currentPage = [];
         $currentLines = 0;
 
-        foreach ($test->questions->sortBy('order')->values() as $index => $question) {
+        foreach ($this->testVariantService->questionsForVariant($test, $variantNumber)->values() as $index => $question) {
             $questionPayload = [
                 'number' => $index + 1,
                 'question' => $question,
+                'variant_answers' => $this->testVariantService->orderedAnswersForQuestion($question, $variantNumber),
                 'estimated_lines' => $this->estimateQuestionLines($question),
             ];
 

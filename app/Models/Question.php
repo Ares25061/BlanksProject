@@ -13,13 +13,15 @@ class Question extends Model
         'question_text',
         'type',
         'points',
-        'order'
+        'order',
+        'variant_number',
     ];
 
     protected $casts = [
         'type' => 'string',
         'points' => 'integer',
-        'order' => 'integer'
+        'order' => 'integer',
+        'variant_number' => 'integer',
     ];
 
     public function test()

@@ -12,6 +12,11 @@ use JsonException;
 
 class TestImportService
 {
+    public function __construct(
+        private TestVariantService $testVariantService,
+    ) {
+    }
+
     public function importFromUploadedFile(UploadedFile $file): array
     {
         $extension = Str::lower($file->getClientOriginalExtension() ?: $file->extension() ?: '');
@@ -52,13 +57,16 @@ class TestImportService
             ]);
         }
 
+        $derivedVariantCount = $this->deriveVariantCount($questionSource, Arr::get($payload, 'variant_count'));
+
         return [
             'title' => $this->nullableString(Arr::get($payload, 'title')),
             'subject_name' => $this->nullableString(Arr::get($payload, 'subject_name')),
             'description' => $this->nullableString(Arr::get($payload, 'description')),
             'time_limit' => $this->nullableInt(Arr::get($payload, 'time_limit')),
+            'variant_count' => $derivedVariantCount,
             'grade_criteria' => $this->normalizeGradeCriteria(Arr::get($payload, 'grade_criteria', [])),
-            'questions' => $this->normalizeQuestions($questionSource),
+            'questions' => $this->normalizeQuestions($questionSource, $derivedVariantCount ?? 1),
         ];
     }
 
@@ -71,10 +79,11 @@ class TestImportService
             ]);
         }
 
-        $headers = $this->normalizeHeaders(array_shift($rows));
+        [$metadata, $headerRow, $dataRows] = $this->extractSpreadsheetSections($rows);
+        $headers = $this->normalizeHeaders($headerRow);
         $questions = [];
 
-        foreach ($rows as $row) {
+        foreach ($dataRows as $row) {
             $rowData = [];
 
             foreach ($headers as $index => $header) {
@@ -98,17 +107,20 @@ class TestImportService
             ]);
         }
 
+        $variantCount = $this->deriveVariantCount($questions, $metadata['variant_count'] ?? null);
+
         return [
-            'title' => null,
-            'subject_name' => null,
-            'description' => null,
-            'time_limit' => null,
-            'grade_criteria' => [],
-            'questions' => $questions,
+            'title' => $this->nullableString($metadata['title'] ?? null),
+            'subject_name' => $this->nullableString($metadata['subject_name'] ?? null),
+            'description' => $this->nullableString($metadata['description'] ?? null),
+            'time_limit' => $this->nullableInt($metadata['time_limit'] ?? null),
+            'variant_count' => $variantCount,
+            'grade_criteria' => $this->normalizeGradeCriteria($metadata['grade_criteria'] ?? []),
+            'questions' => $this->normalizeSpreadsheetQuestionVariants($questions, $variantCount),
         ];
     }
 
-    private function normalizeQuestions(array $questions): array
+    private function normalizeQuestions(array $questions, int $variantCount = 1): array
     {
         $normalized = [];
 
@@ -119,13 +131,13 @@ class TestImportService
                 ]);
             }
 
-            $normalized[] = $this->normalizeQuestion($question, $index);
+            $normalized[] = $this->normalizeQuestion($question, $index, $variantCount);
         }
 
         return $normalized;
     }
 
-    private function normalizeQuestion(array $question, int $index): array
+    private function normalizeQuestion(array $question, int $index, int $variantCount = 1): array
     {
         $questionText = $this->nullableString(
             $question['question_text']
@@ -164,6 +176,7 @@ class TestImportService
             'type' => $this->normalizeType($question['type'] ?? null, $correctCount),
             'points' => max(1, $this->nullableInt($question['points'] ?? $question['score'] ?? 1) ?? 1),
             'order' => $index,
+            'variant_number' => $this->normalizeQuestionVariant($question['variant_number'] ?? $question['variant'] ?? null, $variantCount),
             'answers' => $answers,
         ];
     }
@@ -212,6 +225,7 @@ class TestImportService
             'type' => $this->normalizeType($rowData['type'] ?? null, collect($answers)->where('is_correct', true)->count()),
             'points' => max(1, $this->nullableInt($rowData['points'] ?? 1) ?? 1),
             'order' => $index,
+            'variant_number' => $this->normalizeQuestionVariant($rowData['variant'] ?? null, 10),
             'answers' => $answers,
         ];
     }
@@ -327,6 +341,7 @@ class TestImportService
 
             return match ($normalized) {
                 'question', 'question_text', 'text', 'vopros', 'tekst_voprosa' => 'question_text',
+                'variant', 'variant_number', 'вариант' => 'variant',
                 'type', 'tip' => 'type',
                 'points', 'point', 'score', 'ball', 'bally' => 'points',
                 'correct', 'correct_answer', 'correct_answers', 'pravilnyj_otvet', 'pravilnye_otvety' => 'correct',
@@ -338,6 +353,95 @@ class TestImportService
                 default => null,
             };
         }, $headers);
+    }
+
+    private function extractSpreadsheetSections(array $rows): array
+    {
+        foreach (array_values($rows) as $index => $row) {
+            $normalizedHeaders = $this->normalizeHeaders($row);
+
+            if (in_array('question_text', $normalizedHeaders, true)) {
+                return [
+                    $this->parseSpreadsheetMetadata(array_slice($rows, 0, $index)),
+                    $row,
+                    array_slice($rows, $index + 1),
+                ];
+            }
+        }
+
+        throw ValidationException::withMessages([
+            'file' => 'В XLSX-файле не найдена строка заголовков с колонкой question_text.',
+        ]);
+    }
+
+    private function parseSpreadsheetMetadata(array $rows): array
+    {
+        $metadata = [];
+
+        foreach ($rows as $row) {
+            $key = $this->normalizeSpreadsheetMetadataKey($row[0] ?? null);
+            if ($key === null) {
+                continue;
+            }
+
+            $value = collect($row)
+                ->slice(1)
+                ->map(fn ($cell) => trim((string) $cell))
+                ->filter(fn (string $cell) => $cell !== '')
+                ->implode(' ');
+
+            if ($value === '') {
+                continue;
+            }
+
+            if ($key === 'grade_criteria') {
+                $metadata[$key] = $this->decodeSpreadsheetGradeCriteria($value);
+                continue;
+            }
+
+            $metadata[$key] = $value;
+        }
+
+        return $metadata;
+    }
+
+    private function normalizeSpreadsheetMetadataKey(mixed $value): ?string
+    {
+        $normalized = Str::of((string) $value)
+            ->ascii()
+            ->lower()
+            ->replaceMatches('/[^a-z0-9]+/u', '_')
+            ->trim('_')
+            ->value();
+
+        return match ($normalized) {
+            'title', 'name', 'nazvanie' => 'title',
+            'subject_name', 'subject', 'predmet' => 'subject_name',
+            'description', 'opisanie' => 'description',
+            'time_limit', 'time', 'vremya', 'time_limit_minutes' => 'time_limit',
+            'variant_count', 'variants', 'kolichestvo_variantov' => 'variant_count',
+            'grade_criteria_json', 'grade_criteria', 'criteria', 'kriterii' => 'grade_criteria',
+            default => null,
+        };
+    }
+
+    private function decodeSpreadsheetGradeCriteria(string $value): array
+    {
+        try {
+            $decoded = json_decode($value, true, 512, JSON_THROW_ON_ERROR);
+        } catch (JsonException) {
+            throw ValidationException::withMessages([
+                'grade_criteria' => 'Не удалось разобрать grade_criteria_json в XLSX. Ожидается JSON-массив.',
+            ]);
+        }
+
+        if (!is_array($decoded)) {
+            throw ValidationException::withMessages([
+                'grade_criteria' => 'grade_criteria_json в XLSX должен быть массивом.',
+            ]);
+        }
+
+        return $decoded;
     }
 
     private function correctTokens(mixed $value): array
@@ -390,5 +494,62 @@ class TestImportService
         }
 
         return (int) $value;
+    }
+
+    private function normalizeVariantCount(mixed $value): ?int
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        return $this->testVariantService->normalizeVariantCount((int) $value);
+    }
+
+    private function deriveVariantCount(array $questions, mixed $explicitVariantCount): int
+    {
+        $normalizedExplicit = $this->normalizeVariantCount($explicitVariantCount);
+        $derived = collect($questions)
+            ->map(fn ($question) => is_array($question) ? (int) ($question['variant_number'] ?? $question['variant'] ?? 1) : 1)
+            ->max() ?: 1;
+
+        if ($normalizedExplicit !== null && $normalizedExplicit < $derived) {
+            throw ValidationException::withMessages([
+                'variant_count' => 'Поле variant_count меньше, чем максимальный номер варианта в вопросах.',
+            ]);
+        }
+
+        return $normalizedExplicit ?? $this->testVariantService->normalizeVariantCount($derived);
+    }
+
+    private function normalizeSpreadsheetQuestionVariants(array $questions, int $variantCount): array
+    {
+        return array_map(function (array $question) use ($variantCount) {
+            $question['variant_number'] = $this->normalizeQuestionVariant($question['variant_number'] ?? 1, $variantCount);
+
+            return $question;
+        }, $questions);
+    }
+
+    private function normalizeQuestionVariant(mixed $value, int $variantCount): int
+    {
+        if ($value === null || $value === '') {
+            return 1;
+        }
+
+        $variantNumber = (int) $value;
+
+        if ($variantNumber < 1) {
+            throw ValidationException::withMessages([
+                'questions' => 'Номер варианта вопроса должен быть не меньше 1.',
+            ]);
+        }
+
+        if ($variantNumber > $variantCount) {
+            throw ValidationException::withMessages([
+                'questions' => 'Номер варианта вопроса не может быть больше ' . $variantCount . '.',
+            ]);
+        }
+
+        return $this->testVariantService->normalizeVariantCount($variantNumber);
     }
 }

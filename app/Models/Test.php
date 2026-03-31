@@ -17,12 +17,14 @@ class Test extends Model
         'time_limit',
         'is_active',
         'grade_criteria',
+        'variant_count',
     ];
 
     protected $casts = [
         'is_active' => 'boolean',
         'time_limit' => 'integer',
         'grade_criteria' => 'array',
+        'variant_count' => 'integer',
     ];
 
     public function creator()

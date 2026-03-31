@@ -15,6 +15,7 @@ use App\Services\GradingService;
 use App\Services\StudentGradeService;
 use App\Services\StudentGroupService;
 use App\Services\TestPrintLayoutService;
+use App\Services\TestVariantService;
 use App\Support\BlankScanLayout;
 use App\Support\SimpleXlsx;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -507,6 +508,41 @@ class TeacherWorkflowTest extends TestCase
         $response->assertSee('Вопросы:</strong> 25-30', false);
     }
 
+    public function test_blank_form_service_balances_variants_across_group_students(): void
+    {
+        $teacher = User::factory()->create();
+        $this->actingAs($teacher);
+        Auth::login($teacher);
+
+        $group = app(StudentGroupService::class)->createGroup([
+            'name' => '22ИС4-1',
+            'students' => [
+                'Дудина Софья Романовна',
+                'Каличенок Иван Максимович',
+                'Семенов Евгений Дмитриевич',
+                'Марсов Георгий Павлович',
+            ],
+        ]);
+
+        $test = Test::create([
+            'title' => 'Тест с вариантами',
+            'subject_name' => 'Программирование',
+            'created_by' => $teacher->id,
+            'is_active' => true,
+            'variant_count' => 3,
+            'grade_criteria' => [
+                ['label' => '5', 'min_points' => 0],
+            ],
+        ]);
+
+        $forms = app(BlankFormService::class)->generateBlankFormsForGroup($test, $group, [], [
+            'mode' => 'balanced',
+        ]);
+
+        $this->assertCount(4, $forms);
+        $this->assertSame([1, 2, 3, 1], collect($forms)->pluck('variant_number')->map(fn ($value) => (int) $value)->all());
+    }
+
     public function test_question_print_layout_splits_short_questions_before_browser_print_overflow(): void
     {
         $teacher = User::factory()->create();
@@ -542,6 +578,85 @@ class TeacherWorkflowTest extends TestCase
         $this->assertCount(2, $pages[1]);
         $this->assertSame(1, $pages[0][0]['number']);
         $this->assertSame(6, $pages[1][0]['number']);
+    }
+
+    public function test_grading_service_builds_foreign_scan_preview_without_grade_assignment(): void
+    {
+        $teacher = User::factory()->create();
+        $this->actingAs($teacher);
+        Auth::login($teacher);
+
+        $test = Test::create([
+            'title' => 'OCR preview',
+            'subject_name' => 'Программирование',
+            'created_by' => $teacher->id,
+            'is_active' => true,
+            'variant_count' => 4,
+            'grade_criteria' => [
+                ['label' => '5', 'min_points' => 1],
+                ['label' => '2', 'min_points' => 0],
+            ],
+        ]);
+
+        $question = Question::create([
+            'test_id' => $test->id,
+            'question_text' => 'Выберите правильный ответ',
+            'type' => 'single',
+            'points' => 1,
+            'order' => 0,
+            'variant_number' => 2,
+        ]);
+
+        $answerOne = Answer::create([
+            'question_id' => $question->id,
+            'answer_text' => 'Неверно',
+            'is_correct' => false,
+            'order' => 0,
+        ]);
+
+        $answerTwo = Answer::create([
+            'question_id' => $question->id,
+            'answer_text' => 'Верно',
+            'is_correct' => true,
+            'order' => 1,
+        ]);
+
+        $blankForm = BlankForm::create([
+            'test_id' => $test->id,
+            'form_number' => 'TEST-FOREIGN-PREVIEW',
+            'variant_number' => 2,
+            'last_name' => 'Семенов',
+            'first_name' => 'Евгений',
+            'patronymic' => 'Дмитриевич',
+            'group_name' => '22ИС4-1',
+            'status' => 'generated',
+        ]);
+
+        $variantAnswers = app(TestVariantService::class)->orderedAnswersForQuestion(
+            $question->load('answers'),
+            2
+        );
+        $selectedCorrectAnswerId = $variantAnswers->firstWhere('is_correct', true)?->id;
+
+        $preview = app(GradingService::class)->buildTransientScanReview(
+            $blankForm->fresh('test.questions.answers'),
+            [$question->id => [$selectedCorrectAnswerId]],
+            [
+                'file_name' => 'foreign.jpg',
+                'recognized_answers' => [
+                    ['question_number' => 1, 'selected' => ['A']],
+                ],
+            ]
+        );
+
+        $this->assertNull($preview['data']['id']);
+        $this->assertTrue($preview['data']['is_foreign_scan']);
+        $this->assertFalse($preview['data']['can_assign_grade']);
+        $this->assertSame(1, $preview['grade']['score']);
+        $this->assertSame('5', $preview['grade']['grade']);
+        $this->assertSame(2, $preview['data']['variant_number']);
+        $this->assertSame($selectedCorrectAnswerId, $preview['data']['student_answers'][0]['answer_id']);
+        $this->assertNull($preview['data']['group_student_id']);
     }
 
     public function test_test_service_rejects_more_than_five_answers_in_question(): void
@@ -616,13 +731,103 @@ class TeacherWorkflowTest extends TestCase
         $response->assertOk();
         $response->assertJsonPath('data.title', 'Импортированный тест');
         $response->assertJsonPath('data.subject_name', 'Информатика');
+        $response->assertJsonPath('data.variant_count', 1);
         $response->assertJsonPath('data.questions.0.question_text', 'Столица Франции');
+        $response->assertJsonPath('data.questions.0.variant_number', 1);
+        $response->assertJsonPath('data.questions.1.type', 'multiple');
+        $response->assertJsonPath('data.questions.1.variant_number', 1);
+        $response->assertJsonPath('data.questions.1.answers.0.is_correct', true);
+        $response->assertJsonPath('data.questions.1.answers.1.is_correct', false);
+        $response->assertJsonPath('data.questions.1.answers.2.is_correct', true);
+
+        @unlink($jsonPath);
+    }
+
+    public function test_api_can_import_variant_questions_from_json_file(): void
+    {
+        $teacher = User::factory()->create();
+        $payload = [
+            'title' => 'Импорт с вариантами',
+            'subject_name' => 'Программирование',
+            'grade_criteria' => [
+                ['label' => '5', 'min_points' => 2],
+            ],
+            'questions' => [
+                [
+                    'variant' => 1,
+                    'question_text' => 'Вариант 1. Вопрос 1',
+                    'type' => 'single',
+                    'points' => 1,
+                    'answers' => [
+                        ['answer_text' => 'A1', 'is_correct' => true],
+                        ['answer_text' => 'B1', 'is_correct' => false],
+                    ],
+                ],
+                [
+                    'variant' => 2,
+                    'question_text' => 'Вариант 2. Вопрос 1',
+                    'type' => 'multiple',
+                    'points' => 2,
+                    'correct' => ['A', 'C'],
+                    'answers' => [
+                        ['answer_text' => 'A2'],
+                        ['answer_text' => 'B2'],
+                        ['answer_text' => 'C2'],
+                    ],
+                ],
+            ],
+        ];
+
+        $jsonPath = storage_path('framework/testing/questions-import-variants.json');
+        file_put_contents($jsonPath, json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR));
+        $file = new UploadedFile($jsonPath, 'questions-variants.json', 'application/json', null, true);
+
+        $response = $this->actingAs($teacher, 'api')->post('/api/tests/import-questions', [
+            'file' => $file,
+        ], [
+            'Accept' => 'application/json',
+        ]);
+
+        $response->assertOk();
+        $response->assertJsonPath('data.variant_count', 2);
+        $response->assertJsonPath('data.questions.0.variant_number', 1);
+        $response->assertJsonPath('data.questions.1.variant_number', 2);
         $response->assertJsonPath('data.questions.1.type', 'multiple');
         $response->assertJsonPath('data.questions.1.answers.0.is_correct', true);
         $response->assertJsonPath('data.questions.1.answers.1.is_correct', false);
         $response->assertJsonPath('data.questions.1.answers.2.is_correct', true);
 
         @unlink($jsonPath);
+    }
+
+    public function test_test_service_requires_questions_for_each_variant_when_multiple_variants(): void
+    {
+        $teacher = User::factory()->create();
+        $this->actingAs($teacher);
+        Auth::login($teacher);
+
+        $this->expectException(ValidationException::class);
+
+        app(TestService::class)->createTest([
+            'title' => 'Неполный набор вариантов',
+            'subject_name' => 'Программирование',
+            'variant_count' => 2,
+            'grade_criteria' => [
+                ['label' => '5', 'min_points' => 0],
+            ],
+            'questions' => [
+                [
+                    'question_text' => 'Только для первого варианта',
+                    'type' => 'single',
+                    'points' => 1,
+                    'variant_number' => 1,
+                    'answers' => [
+                        ['answer_text' => 'A', 'is_correct' => true],
+                        ['answer_text' => 'B', 'is_correct' => false],
+                    ],
+                ],
+            ],
+        ]);
     }
 
     public function test_api_can_import_questions_from_xlsx_file(): void
@@ -656,6 +861,164 @@ class TeacherWorkflowTest extends TestCase
         $response->assertJsonPath('data.questions.1.answers.2.is_correct', true);
 
         @unlink($xlsxPath);
+    }
+
+    public function test_api_can_import_questions_from_exported_xlsx_layout(): void
+    {
+        $teacher = User::factory()->create();
+        $xlsxPath = SimpleXlsx::writeWorkbook('Тест', [
+            ['title', 'Контрольная работа с вариантами'],
+            ['subject_name', 'Программирование'],
+            ['description', 'Импорт из экспортированного XLSX'],
+            ['time_limit', '45'],
+            ['variant_count', '2'],
+            ['grade_criteria_json', '[{"label":"5","min_points":2},{"label":"4","min_points":1},{"label":"2","min_points":0}]'],
+            [],
+            ['question_text', 'variant', 'type', 'points', 'answer_a', 'answer_b', 'answer_c', 'answer_d', 'answer_e', 'correct'],
+            ['Вариант 1. Вопрос 1', '1', 'single', '1', 'A1', 'B1', '', '', '', 'A'],
+            ['Вариант 2. Вопрос 1', '2', 'multiple', '2', 'A2', 'B2', 'C2', '', '', 'A,C'],
+        ]);
+
+        $file = new UploadedFile(
+            $xlsxPath,
+            'questions-exported.xlsx',
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            null,
+            true
+        );
+
+        $response = $this->actingAs($teacher, 'api')->post('/api/tests/import-questions', [
+            'file' => $file,
+        ], [
+            'Accept' => 'application/json',
+        ]);
+
+        $response->assertOk();
+        $response->assertJsonPath('data.title', 'Контрольная работа с вариантами');
+        $response->assertJsonPath('data.subject_name', 'Программирование');
+        $response->assertJsonPath('data.description', 'Импорт из экспортированного XLSX');
+        $response->assertJsonPath('data.time_limit', 45);
+        $response->assertJsonPath('data.variant_count', 2);
+        $response->assertJsonPath('data.grade_criteria.0.label', '5');
+        $response->assertJsonPath('data.questions.0.variant_number', 1);
+        $response->assertJsonPath('data.questions.1.variant_number', 2);
+        $response->assertJsonPath('data.questions.1.answers.0.is_correct', true);
+        $response->assertJsonPath('data.questions.1.answers.2.is_correct', true);
+
+        @unlink($xlsxPath);
+    }
+
+    public function test_api_can_export_test_as_json_file(): void
+    {
+        $teacher = User::factory()->create();
+        $this->actingAs($teacher, 'api');
+        Auth::login($teacher);
+
+        $test = app(TestService::class)->createTest([
+            'title' => 'Экспорт JSON',
+            'subject_name' => 'Программирование',
+            'variant_count' => 2,
+            'grade_criteria' => [
+                ['label' => '5', 'min_points' => 2],
+                ['label' => '2', 'min_points' => 0],
+            ],
+            'questions' => [
+                [
+                    'question_text' => 'Вариант 1. Вопрос 1',
+                    'type' => 'single',
+                    'points' => 1,
+                    'variant_number' => 1,
+                    'answers' => [
+                        ['answer_text' => 'A1', 'is_correct' => true],
+                        ['answer_text' => 'B1', 'is_correct' => false],
+                    ],
+                ],
+                [
+                    'question_text' => 'Вариант 2. Вопрос 1',
+                    'type' => 'multiple',
+                    'points' => 2,
+                    'variant_number' => 2,
+                    'answers' => [
+                        ['answer_text' => 'A2', 'is_correct' => true],
+                        ['answer_text' => 'B2', 'is_correct' => false],
+                        ['answer_text' => 'C2', 'is_correct' => true],
+                    ],
+                ],
+            ],
+        ]);
+
+        $response = $this->get('/api/tests/' . $test->id . '/export?format=json');
+
+        $response->assertOk();
+        $response->assertHeader('content-disposition');
+
+        $payload = json_decode((string) $response->getContent(), true, 512, JSON_THROW_ON_ERROR);
+
+        $this->assertSame('Экспорт JSON', $payload['title'] ?? null);
+        $this->assertSame('Программирование', $payload['subject_name'] ?? null);
+        $this->assertSame(2, $payload['variant_count'] ?? null);
+        $this->assertSame(1, $payload['questions'][0]['variant'] ?? null);
+        $this->assertSame(2, $payload['questions'][1]['variant'] ?? null);
+        $this->assertTrue($payload['questions'][1]['answers'][2]['is_correct'] ?? false);
+    }
+
+    public function test_api_can_export_test_as_xlsx_file(): void
+    {
+        $teacher = User::factory()->create();
+        $this->actingAs($teacher, 'api');
+        Auth::login($teacher);
+
+        $test = app(TestService::class)->createTest([
+            'title' => 'Экспорт XLSX',
+            'subject_name' => 'Программирование',
+            'description' => 'Проверка экспортируемого Excel',
+            'time_limit' => 40,
+            'variant_count' => 2,
+            'grade_criteria' => [
+                ['label' => '5', 'min_points' => 2],
+                ['label' => '2', 'min_points' => 0],
+            ],
+            'questions' => [
+                [
+                    'question_text' => 'Вариант 1. Вопрос 1',
+                    'type' => 'single',
+                    'points' => 1,
+                    'variant_number' => 1,
+                    'answers' => [
+                        ['answer_text' => 'A1', 'is_correct' => true],
+                        ['answer_text' => 'B1', 'is_correct' => false],
+                    ],
+                ],
+                [
+                    'question_text' => 'Вариант 2. Вопрос 1',
+                    'type' => 'multiple',
+                    'points' => 2,
+                    'variant_number' => 2,
+                    'answers' => [
+                        ['answer_text' => 'A2', 'is_correct' => true],
+                        ['answer_text' => 'B2', 'is_correct' => false],
+                        ['answer_text' => 'C2', 'is_correct' => true],
+                    ],
+                ],
+            ],
+        ]);
+
+        $response = $this->get('/api/tests/' . $test->id . '/export?format=xlsx');
+
+        $response->assertOk();
+        $response->assertHeader('content-disposition');
+
+        $rows = SimpleXlsx::readRows($response->baseResponse->getFile()->getPathname());
+        $headerRowIndex = collect($rows)->search(fn (array $row) => ($row[0] ?? null) === 'question_text');
+        $variantTwoRowIndex = collect($rows)->search(fn (array $row) => ($row[0] ?? null) === 'Вариант 2. Вопрос 1');
+
+        $this->assertSame(['title', 'Экспорт XLSX'], [$rows[0][0] ?? null, $rows[0][1] ?? null]);
+        $this->assertSame(['variant_count', '2'], [$rows[4][0] ?? null, $rows[4][1] ?? null]);
+        $this->assertNotFalse($headerRowIndex);
+        $this->assertSame('variant', $rows[$headerRowIndex][1] ?? null);
+        $this->assertNotFalse($variantTwoRowIndex);
+        $this->assertSame('2', $rows[$variantTwoRowIndex][1] ?? null);
+        $this->assertSame('A,C', $rows[$variantTwoRowIndex][9] ?? null);
     }
 
     public function test_gradebook_month_export_returns_xlsx_file(): void

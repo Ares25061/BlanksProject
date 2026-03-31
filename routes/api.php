@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\TestController;
 use App\Http\Controllers\BlankFormController;
+use App\Http\Controllers\ScanPreviewController;
 use App\Http\Controllers\StudentGroupController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
@@ -20,6 +21,7 @@ Route::middleware('auth:api')->group(function () {
     Route::apiResource('tests', TestController::class)->names('api.tests');
     Route::post('tests/{test}/questions', [TestController::class, 'addQuestion']);
     Route::post('tests/import-questions', [TestController::class, 'importQuestions']);
+    Route::get('tests/{test}/export', [TestController::class, 'export']);
 
     // Бланки
     Route::get('blank-forms', [BlankFormController::class, 'index']);
@@ -29,6 +31,8 @@ Route::middleware('auth:api')->group(function () {
     Route::patch('blank-forms/{blank_form}/assign-grade', [BlankFormController::class, 'assignGrade']);
     Route::delete('blank-forms/{blank_form}', [BlankFormController::class, 'destroy']);
     Route::get('blank-forms/{blank_form}/scan-image', [BlankFormController::class, 'scanImage']);
+    Route::get('scan-previews/{token}', [ScanPreviewController::class, 'show']);
+    Route::get('scan-previews/{token}/scan-image', [ScanPreviewController::class, 'scanImage']);
     Route::post('blank-forms/{blank_form}/submit', [BlankFormController::class, 'submitAnswers']);
     Route::post('blank-forms/{blank_form}/check', [BlankFormController::class, 'check']);
     Route::post('blank-forms/check-multiple', [BlankFormController::class, 'checkMultiple']);

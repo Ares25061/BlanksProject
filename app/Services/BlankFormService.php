@@ -14,17 +14,27 @@ use App\Support\StudentName;
 
 class BlankFormService
 {
-    public function generateBlankForm(Test $test, array $studentData = [])
+    public function __construct(
+        private TestVariantService $testVariantService,
+    ) {
+    }
+
+    public function generateBlankForm(Test $test, array $studentData = [], ?int $variantNumber = null)
     {
-        return DB::transaction(function () use ($test, $studentData) {
+        return DB::transaction(function () use ($test, $studentData, $variantNumber) {
             $formNumber = $this->generateFormNumber($test);
             $parsedName = StudentName::parse($studentData['full_name'] ?? null);
+            $resolvedVariantNumber = $this->testVariantService->normalizeVariantNumber(
+                $test,
+                $variantNumber ?? ($studentData['variant_number'] ?? 1)
+            );
 
             $blankForm = BlankForm::create([
                 'test_id' => $test->id,
                 'student_group_id' => $studentData['student_group_id'] ?? null,
                 'group_student_id' => $studentData['group_student_id'] ?? null,
                 'form_number' => $formNumber,
+                'variant_number' => $resolvedVariantNumber,
                 'last_name' => $studentData['last_name'] ?? $parsedName['last_name'],
                 'first_name' => $studentData['first_name'] ?? $parsedName['first_name'],
                 'patronymic' => $studentData['patronymic'] ?? $parsedName['patronymic'],
@@ -35,6 +45,7 @@ class BlankFormService
                     'generated_at' => now(),
                     'generated_by' => auth()->id(),
                     'student_full_name' => $studentData['full_name'] ?? $parsedName['full_name'],
+                    'variant_number' => $resolvedVariantNumber,
                 ]
             ]);
 
@@ -42,16 +53,19 @@ class BlankFormService
         });
     }
 
-    public function generateMultipleBlankForms(Test $test, int $count)
+    public function generateMultipleBlankForms(Test $test, int $count, array $variantOptions = [])
     {
         $forms = [];
+        $variantNumbers = $this->resolveAnonymousVariantAssignments($test, $count, $variantOptions);
+
         for ($i = 0; $i < $count; $i++) {
-            $forms[] = $this->generateBlankForm($test);
+            $forms[] = $this->generateBlankForm($test, [], $variantNumbers[$i] ?? 1);
         }
+
         return $forms;
     }
 
-    public function generateBlankFormsForGroup(Test $test, StudentGroup $group, array $studentIds = []): array
+    public function generateBlankFormsForGroup(Test $test, StudentGroup $group, array $studentIds = [], array $variantOptions = []): array
     {
         $normalizedStudentIds = collect($studentIds)
             ->map(fn ($id) => (int) $id)
@@ -79,6 +93,7 @@ class BlankFormService
             ]);
         }
 
+        $variantAssignments = $this->resolveGroupVariantAssignments($test, $students, $variantOptions);
         $forms = [];
 
         foreach ($students as $student) {
@@ -87,7 +102,8 @@ class BlankFormService
                 'group_name' => $group->name,
                 'student_group_id' => $group->id,
                 'group_student_id' => $student->id,
-            ]);
+                'variant_number' => $variantAssignments[$student->id] ?? 1,
+            ], $variantAssignments[$student->id] ?? 1);
         }
 
         return $forms;
@@ -233,5 +249,83 @@ class BlankFormService
         ]);
 
         return array_values(array_unique($paths));
+    }
+
+    protected function resolveAnonymousVariantAssignments(Test $test, int $count, array $variantOptions = []): array
+    {
+        $mode = $this->normalizeVariantAssignmentMode($variantOptions['mode'] ?? null);
+
+        if ($mode === 'balanced') {
+            return $this->testVariantService->buildBalancedVariantNumbers($test, $count);
+        }
+
+        $variantNumber = $this->testVariantService->validateVariantNumber(
+            $test,
+            $variantOptions['variant_number'] ?? 1
+        );
+
+        return array_fill(0, max(0, $count), $variantNumber);
+    }
+
+    protected function resolveGroupVariantAssignments(Test $test, $students, array $variantOptions = []): array
+    {
+        $mode = $this->normalizeVariantAssignmentMode($variantOptions['mode'] ?? null);
+
+        if ($students->isEmpty()) {
+            return [];
+        }
+
+        if ($mode === 'balanced') {
+            $variantNumbers = $this->testVariantService->buildBalancedVariantNumbers($test, $students->count());
+
+            return $students->values()->mapWithKeys(function ($student, int $index) use ($variantNumbers) {
+                return [(int) $student->id => (int) ($variantNumbers[$index] ?? 1)];
+            })->all();
+        }
+
+        if ($mode === 'custom') {
+            $customAssignments = collect($variantOptions['variant_numbers'] ?? [])
+                ->mapWithKeys(function ($variantNumber, $studentId) use ($test) {
+                    $normalizedStudentId = (int) $studentId;
+
+                    return [$normalizedStudentId => $this->testVariantService->validateVariantNumber(
+                        $test,
+                        $variantNumber,
+                        'variant_numbers.' . $normalizedStudentId
+                    )];
+                })
+                ->all();
+
+            $missingAssignments = $students
+                ->pluck('id')
+                ->map(fn ($id) => (int) $id)
+                ->filter(fn ($studentId) => !array_key_exists($studentId, $customAssignments))
+                ->values()
+                ->all();
+
+            if ($missingAssignments !== []) {
+                throw ValidationException::withMessages([
+                    'variant_numbers' => 'Для некоторых выбранных студентов не указан номер варианта.',
+                ]);
+            }
+
+            return $customAssignments;
+        }
+
+        $variantNumber = $this->testVariantService->validateVariantNumber(
+            $test,
+            $variantOptions['variant_number'] ?? 1
+        );
+
+        return $students->mapWithKeys(fn ($student) => [(int) $student->id => $variantNumber])->all();
+    }
+
+    protected function normalizeVariantAssignmentMode(?string $mode): string
+    {
+        $normalized = trim((string) $mode);
+
+        return in_array($normalized, ['same', 'balanced', 'custom'], true)
+            ? $normalized
+            : 'same';
     }
 }

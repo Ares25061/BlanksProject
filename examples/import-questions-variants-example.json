@@ -1,0 +1,80 @@
+{
+  "title": "Контрольная работа по программированию",
+  "subject_name": "Программирование",
+  "description": "Пример нового JSON-формата с несколькими вариантами. Если у вопроса нет поля variant, он считается вопросом варианта 1.",
+  "time_limit": 45,
+  "grade_criteria": [
+    { "label": "5 (Отлично)", "min_points": 4 },
+    { "label": "4 (Хорошо)", "min_points": 3 },
+    { "label": "3 (Удовлетворительно)", "min_points": 2 },
+    { "label": "2 (Нужно доработать)", "min_points": 0 }
+  ],
+  "questions": [
+    {
+      "variant": 1,
+      "question_text": "Сколько будет 2 + 2?",
+      "type": "single",
+      "points": 1,
+      "answers": [
+        { "answer_text": "3", "is_correct": false },
+        { "answer_text": "4", "is_correct": true },
+        { "answer_text": "5", "is_correct": false }
+      ]
+    },
+    {
+      "variant": 1,
+      "question_text": "Выберите циклы в Python",
+      "type": "multiple",
+      "points": 1,
+      "answers": [
+        { "answer_text": "for", "is_correct": true },
+        { "answer_text": "while", "is_correct": true },
+        { "answer_text": "switch", "is_correct": false }
+      ]
+    },
+    {
+      "variant": 1,
+      "question_text": "Какой тип данных хранит целые числа?",
+      "type": "single",
+      "points": 1,
+      "answers": [
+        { "answer_text": "int", "is_correct": true },
+        { "answer_text": "float", "is_correct": false },
+        { "answer_text": "bool", "is_correct": false }
+      ]
+    },
+    {
+      "variant": 2,
+      "question_text": "Сколько будет 5 - 2?",
+      "type": "single",
+      "points": 1,
+      "answers": [
+        { "answer_text": "2", "is_correct": false },
+        { "answer_text": "3", "is_correct": true },
+        { "answer_text": "4", "is_correct": false }
+      ]
+    },
+    {
+      "variant": 2,
+      "question_text": "Выберите изменяемые типы данных в Python",
+      "type": "multiple",
+      "points": 1,
+      "answers": [
+        { "answer_text": "list", "is_correct": true },
+        { "answer_text": "tuple", "is_correct": false },
+        { "answer_text": "dict", "is_correct": true }
+      ]
+    },
+    {
+      "variant": 2,
+      "question_text": "Какой оператор используется для ветвления?",
+      "type": "single",
+      "points": 1,
+      "answers": [
+        { "answer_text": "if", "is_correct": true },
+        { "answer_text": "for", "is_correct": false },
+        { "answer_text": "def", "is_correct": false }
+      ]
+    }
+  ]
+}

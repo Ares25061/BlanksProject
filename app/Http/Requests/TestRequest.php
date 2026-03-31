@@ -20,6 +20,7 @@ class TestRequest extends FormRequest
             'description' => 'nullable|string',
             'time_limit' => 'nullable|integer|min:1',
             'is_active' => 'nullable|boolean',
+            'variant_count' => 'nullable|integer|min:1|max:10',
             'grade_criteria' => 'required|array|min:1',
             'grade_criteria.*.label' => 'required|string|max:255',
             'grade_criteria.*.min_points' => 'required|integer|min:0',
@@ -32,6 +33,7 @@ class TestRequest extends FormRequest
             $rules['questions.*.question_text'] = 'required_with:questions|string';
             $rules['questions.*.type'] = 'required_with:questions|in:single,multiple';
             $rules['questions.*.points'] = 'nullable|integer|min:1';
+            $rules['questions.*.variant_number'] = 'nullable|integer|min:1|max:10';
             $rules['questions.*.answers'] = 'required_with:questions|array|min:2|max:' . BlankScanLayout::ANSWER_OPTION_COUNT;
             $rules['questions.*.answers.*.id'] = 'sometimes|integer|exists:answers,id';
             $rules['questions.*.answers.*.answer_text'] = 'required_with:questions.*.answers|string';
@@ -46,6 +48,7 @@ class TestRequest extends FormRequest
         return [
             'title.required' => 'Название теста обязательно',
             'subject_name.required' => 'Укажите предмет теста',
+            'variant_count.max' => 'Поддерживается не более 10 вариантов теста',
             'questions.*.question_text.required' => 'Текст вопроса обязателен',
             'questions.*.answers.*.answer_text.required' => 'Текст ответа обязателен',
             'questions.*.answers.min' => 'У вопроса должно быть минимум 2 варианта ответа',

@@ -6,16 +6,22 @@ use App\Models\Test;
 use App\Models\Question;
 use App\Models\Answer;
 use App\Support\BlankScanLayout;
-use Illuminate\Validation\ValidationException;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class TestService
 {
+    public function __construct(
+        private TestVariantService $testVariantService,
+    ) {
+    }
+
     public function createTest(array $data)
     {
         return DB::transaction(function () use ($data) {
-            $this->ensureQuestionStructureWithinScanFormat($data['questions'] ?? []);
+            $variantCount = $this->testVariantService->normalizeVariantCount($data['variant_count'] ?? 1);
+            $this->ensureQuestionStructureWithinScanFormat($data['questions'] ?? [], $variantCount);
             $subjectName = $this->normalizeSubjectName($data['subject_name'] ?? null, $data['title']);
 
             $test = Test::create([
@@ -26,11 +32,12 @@ class TestService
                 'time_limit' => $data['time_limit'] ?? null,
                 'is_active' => $data['is_active'] ?? true,
                 'grade_criteria' => $this->normalizeGradeCriteria($data['grade_criteria'] ?? []),
+                'variant_count' => $variantCount,
             ]);
 
             if (isset($data['questions'])) {
                 foreach ($data['questions'] as $questionData) {
-                    $this->addQuestionToTest($test, $questionData);
+                    $this->addQuestionToTest($test, $questionData, $variantCount);
                 }
             }
 
@@ -43,8 +50,9 @@ class TestService
     public function updateTest(Test $test, array $data)
     {
         return DB::transaction(function () use ($test, $data) {
+            $nextVariantCount = $this->testVariantService->normalizeVariantCount($data['variant_count'] ?? $test->variant_count ?? 1);
             if (isset($data['questions'])) {
-                $this->ensureQuestionStructureWithinScanFormat($data['questions']);
+                $this->ensureQuestionStructureWithinScanFormat($data['questions'], $nextVariantCount);
             }
 
             $nextTitle = $data['title'] ?? $test->title;
@@ -57,11 +65,12 @@ class TestService
                 'time_limit' => $data['time_limit'] ?? $test->time_limit,
                 'is_active' => $data['is_active'] ?? $test->is_active,
                 'grade_criteria' => $this->normalizeGradeCriteria($data['grade_criteria'] ?? $test->grade_criteria ?? []),
+                'variant_count' => $nextVariantCount,
             ]);
 
             // Обновляем вопросы, если они переданы
             if (isset($data['questions'])) {
-                $this->updateTestQuestions($test, $data['questions']);
+                $this->updateTestQuestions($test, $data['questions'], $nextVariantCount);
             }
 
             $this->ensureGradeCriteriaFitsMaxScore($test->fresh('questions'));
@@ -70,7 +79,7 @@ class TestService
         });
     }
 
-    protected function updateTestQuestions(Test $test, array $questions)
+    protected function updateTestQuestions(Test $test, array $questions, int $variantCount)
     {
         // Получаем ID существующих вопросов
         $existingQuestionIds = $test->questions()->pluck('id')->toArray();
@@ -84,7 +93,8 @@ class TestService
                     'question_text' => $questionData['question_text'],
                     'type' => $questionData['type'],
                     'points' => $questionData['points'] ?? 1,
-                    'order' => $index
+                    'order' => $index,
+                    'variant_number' => $this->normalizeQuestionVariantNumber($questionData, $variantCount),
                 ]);
 
                 // Обновляем ответы
@@ -97,7 +107,8 @@ class TestService
                     'question_text' => $questionData['question_text'],
                     'type' => $questionData['type'],
                     'points' => $questionData['points'] ?? 1,
-                    'order' => $index
+                    'order' => $index,
+                    'variant_number' => $this->normalizeQuestionVariantNumber($questionData, $variantCount),
                 ]);
 
                 // Добавляем ответы
@@ -156,15 +167,17 @@ class TestService
         }
     }
 
-    public function addQuestionToTest(Test $test, array $questionData)
+    public function addQuestionToTest(Test $test, array $questionData, ?int $variantCount = null)
     {
         $this->ensureAnswerCountWithinScanLimit($questionData['answers'] ?? []);
+        $resolvedVariantCount = $variantCount ?? $this->testVariantService->normalizeVariantCount($test->variant_count ?? 1);
 
         $question = $test->questions()->create([
             'question_text' => $questionData['question_text'],
             'type' => $questionData['type'],
             'points' => $questionData['points'] ?? 1,
-            'order' => $questionData['order'] ?? ($test->questions()->max('order') + 1)
+            'order' => $questionData['order'] ?? ($test->questions()->max('order') + 1),
+            'variant_number' => $this->normalizeQuestionVariantNumber($questionData, $resolvedVariantCount),
         ]);
 
         if (isset($questionData['answers'])) {
@@ -202,22 +215,40 @@ class TestService
 
     protected function ensureGradeCriteriaFitsMaxScore(Test $test): void
     {
-        $maxScore = (int) $test->questions->sum('points');
+        $questions = $test->questions->values();
+        if ($questions->isEmpty()) {
+            return;
+        }
+
+        $variantCount = $this->testVariantService->normalizeVariantCount($test->variant_count ?? 1);
+        $variantScores = collect(range(1, $variantCount))
+            ->map(function (int $variantNumber) use ($questions) {
+                return (int) $questions
+                    ->filter(fn ($question) => (int) ($question->variant_number ?? 1) === $variantNumber)
+                    ->sum('points');
+            })
+            ->filter(fn (int $score) => $score > 0)
+            ->values();
+
+        $maxScore = (int) ($variantScores->min() ?? $questions->sum('points'));
         $invalidCriterion = collect($test->grade_criteria ?? [])
             ->first(fn (array $criterion) => (int) $criterion['min_points'] > $maxScore);
 
         if ($invalidCriterion) {
             throw ValidationException::withMessages([
-                'grade_criteria' => "Критерий \"{$invalidCriterion['label']}\" превышает максимальный балл теста ({$maxScore}).",
+                'grade_criteria' => "Критерий \"{$invalidCriterion['label']}\" превышает максимальный балл одного варианта ({$maxScore}).",
             ]);
         }
     }
 
-    protected function ensureQuestionStructureWithinScanFormat(array $questions): void
+    protected function ensureQuestionStructureWithinScanFormat(array $questions, int $variantCount = 1): void
     {
         foreach ($questions as $index => $question) {
             $this->ensureAnswerCountWithinScanLimit($question['answers'] ?? [], $index);
+            $this->normalizeQuestionVariantNumber($question, $variantCount, $index);
         }
+
+        $this->ensureAllVariantsContainQuestions($questions, $variantCount);
     }
 
     protected function ensureAnswerCountWithinScanLimit(array $answers, ?int $questionIndex = null): void
@@ -244,5 +275,44 @@ class TestService
         $normalized = trim((string) $subjectName);
 
         return $normalized !== '' ? $normalized : trim($fallbackTitle);
+    }
+
+    protected function normalizeQuestionVariantNumber(array $questionData, int $variantCount, ?int $questionIndex = null): int
+    {
+        $variantNumber = (int) ($questionData['variant_number'] ?? $questionData['variant'] ?? 1);
+
+        if ($variantNumber < 1 || $variantNumber > $variantCount) {
+            $key = $questionIndex === null ? 'questions' : 'questions.' . $questionIndex . '.variant_number';
+
+            throw ValidationException::withMessages([
+                $key => 'Номер варианта вопроса должен быть от 1 до ' . $variantCount . '.',
+            ]);
+        }
+
+        return $variantNumber;
+    }
+
+    protected function ensureAllVariantsContainQuestions(array $questions, int $variantCount): void
+    {
+        if ($variantCount <= 1 || $questions === []) {
+            return;
+        }
+
+        $usedVariants = collect($questions)
+            ->map(fn (array $question) => (int) ($question['variant_number'] ?? $question['variant'] ?? 1))
+            ->filter(fn (int $variantNumber) => $variantNumber >= 1 && $variantNumber <= $variantCount)
+            ->unique()
+            ->values();
+
+        $missingVariants = collect(range(1, $variantCount))
+            ->reject(fn (int $variantNumber) => $usedVariants->contains($variantNumber))
+            ->values()
+            ->all();
+
+        if ($missingVariants !== []) {
+            throw ValidationException::withMessages([
+                'questions' => 'Для вариантов ' . implode(', ', $missingVariants) . ' не добавлено ни одного вопроса.',
+            ]);
+        }
     }
 }

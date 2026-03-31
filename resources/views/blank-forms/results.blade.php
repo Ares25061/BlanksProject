@@ -46,6 +46,10 @@
         .split(',')
         .map((value) => parseInt(value.trim(), 10))
         .filter((value) => !Number.isNaN(value) && value > 0);
+    const previewTokens = (params.get('preview_tokens') || '')
+        .split(',')
+        .map((value) => value.trim())
+        .filter(Boolean);
     const testId = params.get('test_id');
 
     async function authorizedFetch(url, options = {}) {
@@ -59,32 +63,41 @@
     }
 
     async function loadResults() {
-        if (!blankFormIds.length) {
+        if (!blankFormIds.length && !previewTokens.length) {
             document.getElementById('loading').classList.add('hidden');
             document.getElementById('pageContent').classList.remove('hidden');
             document.getElementById('resultsList').innerHTML = `
                 <section class="bg-white border border-dashed border-slate-300 rounded-3xl p-12 text-center text-slate-500">
-                    Идентификаторы проверенных бланков не переданы.
+                    Идентификаторы результатов проверки не переданы.
                 </section>
             `;
             return;
         }
 
         try {
-            const responses = await Promise.all(blankFormIds.map((id) => apiFetch(`/api/blank-forms/${id}`)));
+            const blankFormResponses = await Promise.all(blankFormIds.map((id) => apiFetch(`/api/blank-forms/${id}`)));
+            const previewResponses = await Promise.all(previewTokens.map((token) => apiFetch(`/api/scan-previews/${encodeURIComponent(token)}`)));
+            const responses = [...blankFormResponses, ...previewResponses];
             const failedResponse = responses.find((response) => !response.ok);
 
             if (failedResponse) {
                 throw new Error('Не удалось загрузить один или несколько результатов проверки');
             }
 
-            const payloads = await Promise.all(responses.map((response) => response.json()));
-            const orderedPayloads = blankFormIds.map((id) => payloads.find((payload) => payload.data?.id === id)).filter(Boolean);
+            const [blankFormPayloads, previewPayloads] = await Promise.all([
+                Promise.all(blankFormResponses.map((response) => response.json())),
+                Promise.all(previewResponses.map((response) => response.json())),
+            ]);
+            const orderedBlankFormPayloads = blankFormIds
+                .map((id) => blankFormPayloads.find((payload) => payload.data?.id === id))
+                .filter(Boolean);
+            const orderedPreviewPayloads = previewPayloads;
+            const orderedPayloads = [...orderedBlankFormPayloads, ...orderedPreviewPayloads];
             const scanPreviewUrls = await Promise.all(orderedPayloads.map(({ data: blankForm }) => fetchScanPreviewUrls(blankForm)));
 
             const subtitle = orderedPayloads.length > 1
-                ? `Показываю выбранные и правильные варианты ответов, а также итоговую оценку для ${orderedPayloads.length} проверенных бланков.`
-                : 'Показываю выбранные и правильные варианты ответов, а также итоговую оценку.';
+                ? `Показываю выбранные и правильные варианты ответов, а также итоговый результат для ${orderedPayloads.length} бланков.`
+                : 'Показываю выбранные и правильные варианты ответов, а также итоговый результат.';
             document.getElementById('pageSubtitle').textContent = subtitle;
 
             renderResults(orderedPayloads.map((payload, index) => ({
@@ -116,7 +129,10 @@
 
         const previews = await Promise.all(entries.map(async (entry) => {
             const pageQuery = entry.pageNumber ? `?page=${entry.pageNumber}` : '';
-            const response = await authorizedFetch(`/api/blank-forms/${blankForm.id}/scan-image${pageQuery}`, {
+            const baseUrl = blankForm.is_foreign_scan
+                ? `/api/scan-previews/${encodeURIComponent(blankForm.preview_token)}/scan-image`
+                : `/api/blank-forms/${blankForm.id}/scan-image`;
+            const response = await authorizedFetch(`${baseUrl}${pageQuery}`, {
                 accept: 'image/*'
             });
 
@@ -168,6 +184,7 @@
             const scanWarnings = blankForm.metadata?.scan?.warnings || [];
             const scanFileName = blankForm.metadata?.scan?.file_name || '';
             const recognizedAnswers = blankForm.metadata?.scan?.recognized_answers || [];
+            const variantNumber = blankForm.variant_number || 1;
             const recognizedSummary = recognizedAnswers.length
                 ? recognizedAnswers.map((item) => `${item.question_number}: ${formatRecognizedAnswer(item.selected)}`).join(' • ')
                 : '';
@@ -179,7 +196,8 @@
                             <div>
                                 <p class="text-sm uppercase tracking-[0.25em] text-sky-700 font-semibold">${escapeHtml(blankForm.test?.title || 'Тест')}</p>
                                 <h2 class="text-2xl font-bold mt-2">${escapeHtml(studentName)}</h2>
-                                <div class="text-slate-500 mt-2">${escapeHtml(blankForm.group_name || 'Группа не указана')} • ${escapeHtml(blankForm.form_number || '')}</div>
+                                <div class="text-slate-500 mt-2">${escapeHtml(blankForm.group_name || 'Группа не указана')} • Вариант ${escapeHtml(String(variantNumber))} • ${escapeHtml(blankForm.form_number || '')}</div>
+                                ${blankForm.is_foreign_scan ? '<div class="mt-2 inline-flex items-center gap-2 rounded-full bg-slate-900 px-3 py-1 text-xs font-semibold text-white">Чужой бланк • только OCR-разбор</div>' : ''}
                             </div>
                             <div class="grid sm:grid-cols-3 gap-3 min-w-[280px]">
                                 <div class="bg-white border border-slate-200 rounded-2xl px-4 py-3">
@@ -247,7 +265,7 @@
                         ${questions.map((question, index) => {
                             const studentAnswer = answerMap.get(question.id);
                             const selectedIds = normalizeSelectedAnswerIds(studentAnswer);
-                            const answers = question.answers || [];
+                            const answers = question.variant_answers || question.answers || [];
                             const selectedAnswers = answers.filter((answer) => selectedIds.includes(answer.id));
                             const correctAnswers = answers.filter((answer) => answer.is_correct);
                             const selectedLabel = selectedAnswers.length ? selectedAnswers.map((answer, answerIndex) => buildAnswerBadge(answer, answers)).join(', ') : 'Нет ответа';
@@ -314,6 +332,14 @@
     }
 
     function renderAssignedGradePanel(blankForm, grade) {
+        if (blankForm.is_foreign_scan) {
+            return `
+                <div class="rounded-3xl border border-dashed border-slate-300 bg-white p-5 text-slate-500">
+                    Это чужой бланк или временный OCR-разбор. Его можно просмотреть и сравнить со сканом, но поставить оценку в журнал нельзя.
+                </div>
+            `;
+        }
+
         if (!blankForm.group_student_id) {
             return `
                 <div class="flex flex-wrap justify-between gap-4 items-start">
