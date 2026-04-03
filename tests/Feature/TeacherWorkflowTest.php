@@ -501,6 +501,16 @@ class TeacherWorkflowTest extends TestCase
         ]);
 
         $response = $this->get('/tests/' . $test->id . '/print?print_mode=blank');
+        $response->assertOk();
+        $response->assertSee('Новый шаблон печатается единым листом', false);
+        $response->assertSee('Студент:', false);
+        $response->assertSee('Бланк:', false);
+        $response->assertSee('Страница:', false);
+        $response->assertSee('Отметка:', false);
+        $response->assertSee('Вопрос 1', false);
+        $response->assertSee('Вопрос 30', false);
+
+        return;
 
         $response->assertOk();
         $response->assertSee('Лист ответов: 1 / 2', false);

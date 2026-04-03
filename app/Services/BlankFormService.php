@@ -246,6 +246,10 @@ class BlankFormService
                 ->pluck('scan_path')
                 ->filter()
                 ->all(),
+            ...collect(data_get($blankForm->metadata, 'print_layout.pages', []))
+                ->pluck('manifest_path')
+                ->filter()
+                ->all(),
         ]);
 
         return array_values(array_unique($paths));

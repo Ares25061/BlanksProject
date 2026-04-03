@@ -3,11 +3,11 @@ namespace App\Http\Controllers;
 
 use App\Models\BlankForm;
 use App\Models\Test;
+use App\Services\BlankSheetManifestService;
+use App\Services\BlankSheetQrCodeService;
 use App\Services\TestExportService;
 use App\Services\TestService;
 use App\Services\TestImportService;
-use App\Services\TestPrintLayoutService;
-use App\Services\TestVariantService;
 use App\Support\BlankScanLayout;
 use App\Http\Requests\TestRequest;
 use Illuminate\Http\Request;
@@ -21,22 +21,22 @@ class TestController extends Controller
     protected $testService;
     protected $testImportService;
     protected $testExportService;
-    protected $testPrintLayoutService;
-    protected $testVariantService;
+    protected $blankSheetManifestService;
+    protected $blankSheetQrCodeService;
 
     public function __construct(
         TestService $testService,
         TestImportService $testImportService,
         TestExportService $testExportService,
-        TestPrintLayoutService $testPrintLayoutService,
-        TestVariantService $testVariantService,
+        BlankSheetManifestService $blankSheetManifestService,
+        BlankSheetQrCodeService $blankSheetQrCodeService,
     )
     {
         $this->testService = $testService;
         $this->testImportService = $testImportService;
         $this->testExportService = $testExportService;
-        $this->testPrintLayoutService = $testPrintLayoutService;
-        $this->testVariantService = $testVariantService;
+        $this->blankSheetManifestService = $blankSheetManifestService;
+        $this->blankSheetQrCodeService = $blankSheetQrCodeService;
     }
 
     public function index(Request $request)
@@ -228,18 +228,21 @@ class TestController extends Controller
         $documentTitle = $this->buildPrintDocumentTitle($test, $blankForms, $printMode);
 
         $loadedTest = $test->load('questions.answers');
-        $answerSheetPagesByBlankForm = $blankForms->mapWithKeys(function (BlankForm $blankForm) use ($loadedTest) {
-            $variantNumber = $this->testVariantService->normalizeVariantNumber($loadedTest, $blankForm->variant_number ?? 1);
+        $sheetPagesByBlankForm = $blankForms->mapWithKeys(function (BlankForm $blankForm) {
+            $pages = (int) $blankForm->id > 0
+                ? $this->blankSheetManifestService->ensurePersisted($blankForm->fresh('test.questions.answers'))
+                : $this->blankSheetManifestService->buildPreview($blankForm->loadMissing('test.questions.answers'));
+
+            $pages = collect($pages)
+                ->map(function (array $page) {
+                    $page['qr_data_uri'] = $this->blankSheetQrCodeService->renderDataUri($page['qr_payload'] ?? []);
+
+                    return $page;
+                })
+                ->all();
 
             return [
-                (int) $blankForm->id => $this->testPrintLayoutService->paginateAnswerSheetQuestions($loadedTest, $variantNumber),
-            ];
-        })->all();
-        $questionPagesByBlankForm = $blankForms->mapWithKeys(function (BlankForm $blankForm) use ($loadedTest) {
-            $variantNumber = $this->testVariantService->normalizeVariantNumber($loadedTest, $blankForm->variant_number ?? 1);
-
-            return [
-                (int) $blankForm->id => $this->testPrintLayoutService->paginateQuestions($loadedTest, $variantNumber),
+                (int) $blankForm->id => $pages,
             ];
         })->all();
 
@@ -248,8 +251,7 @@ class TestController extends Controller
             'blankForms' => $blankForms,
             'documentTitle' => $documentTitle,
             'printMode' => $printMode,
-            'answerSheetPagesByBlankForm' => $answerSheetPagesByBlankForm,
-            'questionPagesByBlankForm' => $questionPagesByBlankForm,
+            'sheetPagesByBlankForm' => $sheetPagesByBlankForm,
         ]);
     }
 
