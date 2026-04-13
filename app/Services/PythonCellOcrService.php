@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Support\UnifiedSheetLayout;
 use App\Support\Utf8Normalizer;
 use Illuminate\Support\Arr;
 use Illuminate\Validation\ValidationException;
@@ -14,6 +15,9 @@ class PythonCellOcrService
         $payload = $this->runPython([
             'operation' => 'identify',
             'image_path' => $imagePath,
+            'qr_zone' => UnifiedSheetLayout::qrZoneMm(),
+            'page_width_mm' => UnifiedSheetLayout::PAGE_WIDTH_MM,
+            'page_height_mm' => UnifiedSheetLayout::PAGE_HEIGHT_MM,
         ]);
 
         if (!is_array($payload) || !array_key_exists('qr_payload', $payload)) {
@@ -36,7 +40,8 @@ class PythonCellOcrService
             'operation' => 'recognize',
             'image_path' => $imagePath,
             'manifest' => $manifest,
-            'fill_threshold' => (float) config('services.paddle_ocr.fill_threshold', 0.40),
+            'fill_threshold' => (float) config('services.paddle_ocr.fill_threshold', 0.38),
+            'uncertain_margin' => (float) config('services.paddle_ocr.uncertain_margin', 0.06),
         ]);
 
         if (!is_array($payload) || !isset($payload['question_results'])) {

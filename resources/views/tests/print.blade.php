@@ -108,18 +108,38 @@
             position: absolute;
             border: 0.35mm solid #111111;
             border-radius: 4mm;
-            padding: 3.5mm 35mm 3mm 4mm;
+            padding: 1mm 2.4mm 1mm 2.6mm;
+            display: flex;
+            align-items: flex-start;
+        }
+
+        .service-meta {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 0.7mm;
+            width: 100%;
+            height: 100%;
         }
 
         .service-line {
             margin: 0;
-            font-size: 3.45mm;
-            line-height: 1.2;
+            font-size: 2.9mm;
+            line-height: 1.08;
             white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .service-label {
+            font-weight: 700;
         }
 
         .qr-zone {
             position: absolute;
+            border: 0.35mm solid #111111;
+            border-radius: 3.2mm;
+            padding: 0.5mm;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -130,6 +150,7 @@
             display: block;
             width: 100%;
             height: 100%;
+            object-fit: contain;
         }
 
         .question-card {
@@ -161,6 +182,7 @@
             position: absolute;
             font-size: 3.2mm;
             line-height: 1;
+            white-space: nowrap;
         }
 
         .answer-cell {
@@ -249,13 +271,11 @@
                     height: {{ $serviceZone['height_mm'] ?? 0 }}mm;
                 "
             >
-                <p class="service-line">Студент: {{ $serviceZone['student_label'] ?? '' }}</p>
-                <p class="service-line">ID: {{ $serviceZone['student_id_label'] ?? 'N/A' }}</p>
-                <p class="service-line">Группа: {{ $serviceZone['group_label'] ?? 'N/A' }}</p>
-                <p class="service-line">Тест: {{ $serviceZone['test_label'] ?? $test->title }}</p>
-                <p class="service-line">Версия: {{ $serviceZone['version_label'] ?? ('V' . ($page['variant_number'] ?? 1)) }}</p>
-                <p class="service-line">Бланк: {{ $serviceZone['form_label'] ?? '' }}</p>
-                <p class="service-line">Страница: {{ $serviceZone['page_label'] ?? (($page['page_number'] ?? 1) . '/' . ($page['page_count'] ?? 1)) }}</p>
+                <div class="service-meta">
+                    <p class="service-line"><span class="service-label">Студент:</span> {{ $serviceZone['student_label'] ?? '' }}</p>
+                    <p class="service-line"><span class="service-label">Тест:</span> {{ $serviceZone['test_label'] ?? $test->title }}</p>
+                    <p class="service-line"><span class="service-label">Группа:</span> {{ $serviceZone['group_label'] ?? 'N/A' }} | <span class="service-label">Стр.:</span> {{ $serviceZone['page_label'] ?? (($page['page_number'] ?? 1) . '/' . ($page['page_count'] ?? 1)) }}</p>
+                </div>
             </div>
 
             <div

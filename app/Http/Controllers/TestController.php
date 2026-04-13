@@ -224,8 +224,7 @@ class TestController extends Controller
             ]);
         }
 
-        $printMode = $this->normalizePrintMode((string) $request->query('print_mode', 'all'));
-        $documentTitle = $this->buildPrintDocumentTitle($test, $blankForms, $printMode);
+        $documentTitle = $this->buildPrintDocumentTitle($test, $blankForms);
 
         $loadedTest = $test->load('questions.answers');
         $sheetPagesByBlankForm = $blankForms->mapWithKeys(function (BlankForm $blankForm) {
@@ -250,44 +249,30 @@ class TestController extends Controller
             'test' => $loadedTest,
             'blankForms' => $blankForms,
             'documentTitle' => $documentTitle,
-            'printMode' => $printMode,
             'sheetPagesByBlankForm' => $sheetPagesByBlankForm,
         ]);
     }
 
-    private function buildPrintDocumentTitle(Test $test, $blankForms, string $printMode): string
+    private function buildPrintDocumentTitle(Test $test, $blankForms): string
     {
         $firstBlankForm = $blankForms->first();
         $studentLabel = trim(implode(' ', array_filter([
             $firstBlankForm?->last_name,
             $firstBlankForm?->first_name,
         ])));
-        $modeLabel = match ($printMode) {
-            'blank' => 'Бланк',
-            'questions' => 'Задания',
-            default => 'Комплект',
-        };
 
         if ($blankForms->count() === 1 && $studentLabel !== '') {
-            return $this->sanitizeDocumentTitle("{$modeLabel} {$studentLabel} {$test->title}");
+            return $this->sanitizeDocumentTitle("Бланк {$studentLabel} {$test->title}");
         }
 
         $groupLabel = trim((string) ($firstBlankForm?->group_name ?? ''));
-        $baseTitle = "{$modeLabel} {$test->title}";
+        $baseTitle = 'Бланки ' . $test->title;
 
         if ($groupLabel !== '') {
             $baseTitle .= " {$groupLabel}";
         }
 
         return $this->sanitizeDocumentTitle($baseTitle);
-    }
-
-    private function normalizePrintMode(string $value): string
-    {
-        return match (Str::lower(trim($value))) {
-            'blank', 'questions' => Str::lower(trim($value)),
-            default => 'all',
-        };
     }
 
     private function sanitizeDocumentTitle(string $value): string

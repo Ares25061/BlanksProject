@@ -11,12 +11,20 @@ class UnifiedSheetLayoutTest extends TestCase
     public function test_layout_matches_ocr_upd_page_geometry(): void
     {
         $this->assertSame(90.0, UnifiedSheetLayout::columnWidthMm());
-        $this->assertSame(52.0, UnifiedSheetLayout::questionAreaTopMm());
-        $this->assertSame(277.0, UnifiedSheetLayout::questionAreaBottomMm());
+        $this->assertSame(31.0, UnifiedSheetLayout::questionAreaTopMm());
+        $this->assertSame(281.0, UnifiedSheetLayout::questionAreaBottomMm());
         $this->assertSame([
-            'x_mm' => 9.5,
-            'y_mm' => 9.5,
+            'x_mm' => 7.0,
+            'y_mm' => 7.0,
         ], UnifiedSheetLayout::markerCentersMm()['top_left']);
+
+        $serviceZone = UnifiedSheetLayout::serviceZoneMm();
+        $qrZone = UnifiedSheetLayout::qrZoneMm();
+
+        $this->assertGreaterThan(
+            $serviceZone['left_mm'] + $serviceZone['width_mm'],
+            $qrZone['left_mm']
+        );
     }
 
     public function test_qr_payload_round_trip_preserves_blank_form_and_page_data(): void

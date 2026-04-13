@@ -196,10 +196,12 @@ class UnifiedSheetLayoutService
             )
         );
         $cellRowCount = max(1, (int) ceil($answerCount / $cellsPerRow));
-        $answerAreaHeightMm = UnifiedSheetLayout::LABEL_LINE_HEIGHT_MM
-            + UnifiedSheetLayout::LABEL_TOP_GAP_MM
-            + ($cellRowCount * UnifiedSheetLayout::CHOICE_BOX_SIZE_MM)
-            + (max(0, $cellRowCount - 1) * UnifiedSheetLayout::CHOICE_ROW_GAP_MM);
+        $firstAnswerRowHeightMm = max(
+            UnifiedSheetLayout::LABEL_LINE_HEIGHT_MM,
+            UnifiedSheetLayout::CHOICE_BOX_SIZE_MM
+        );
+        $answerAreaHeightMm = $firstAnswerRowHeightMm
+            + (max(0, $cellRowCount - 1) * (UnifiedSheetLayout::CHOICE_BOX_SIZE_MM + UnifiedSheetLayout::CHOICE_ROW_GAP_MM));
         $blockHeightMm = (UnifiedSheetLayout::QUESTION_INNER_PADDING_MM * 2)
             + ($titleLineCount * UnifiedSheetLayout::TITLE_LINE_HEIGHT_MM)
             + UnifiedSheetLayout::TITLE_TO_OPTIONS_GAP_MM
@@ -207,11 +209,16 @@ class UnifiedSheetLayoutService
             + UnifiedSheetLayout::OPTIONS_TO_LABEL_GAP_MM
             + $answerAreaHeightMm
             + UnifiedSheetLayout::BOTTOM_BUFFER_MM;
-        $cellsTopMm = $topMm
-            + $blockHeightMm
-            - UnifiedSheetLayout::QUESTION_INNER_PADDING_MM
-            - ($cellRowCount * UnifiedSheetLayout::CHOICE_BOX_SIZE_MM)
-            - (max(0, $cellRowCount - 1) * UnifiedSheetLayout::CHOICE_ROW_GAP_MM);
+        $answerRowTopMm = $topMm
+            + UnifiedSheetLayout::QUESTION_INNER_PADDING_MM
+            + ($titleLineCount * UnifiedSheetLayout::TITLE_LINE_HEIGHT_MM)
+            + UnifiedSheetLayout::TITLE_TO_OPTIONS_GAP_MM
+            + ($optionLineCount * UnifiedSheetLayout::OPTION_LINE_HEIGHT_MM)
+            + UnifiedSheetLayout::OPTIONS_TO_LABEL_GAP_MM;
+        $cellsTopMm = $answerRowTopMm + max(
+            0,
+            ($firstAnswerRowHeightMm - UnifiedSheetLayout::CHOICE_BOX_SIZE_MM) / 2
+        );
         $cellOriginX = $blockLeftMm
             + UnifiedSheetLayout::QUESTION_INNER_PADDING_MM
             + UnifiedSheetLayout::ANSWER_LABEL_WIDTH_MM
@@ -251,9 +258,12 @@ class UnifiedSheetLayoutService
                 'width_mm' => round($blockWidthMm, 2),
                 'height_mm' => round($blockHeightMm, 2),
             ],
-            'cells_label' => 'Отметка:',
+            'cells_label' => 'Ответ:',
             'cells_label_left_mm' => round($blockLeftMm + UnifiedSheetLayout::QUESTION_INNER_PADDING_MM, 2),
-            'cells_label_top_mm' => round($cellsTopMm - UnifiedSheetLayout::LABEL_TOP_GAP_MM - UnifiedSheetLayout::LABEL_LINE_HEIGHT_MM, 2),
+            'cells_label_top_mm' => round($answerRowTopMm + max(
+                0,
+                ($firstAnswerRowHeightMm - UnifiedSheetLayout::LABEL_LINE_HEIGHT_MM) / 2
+            ), 2),
             'cells' => $cells,
         ];
     }
@@ -302,7 +312,10 @@ class UnifiedSheetLayoutService
             return [''];
         }
 
-        $limit = max(12, (int) floor($widthMm / max($charWidthMm, 0.1)));
+        $limit = max(
+            12,
+            (int) floor($widthMm / max($charWidthMm, 0.1)) - UnifiedSheetLayout::WRAP_SAFETY_CHARS
+        );
         $words = preg_split('/\s+/u', $normalized) ?: [];
         $lines = [];
         $current = '';

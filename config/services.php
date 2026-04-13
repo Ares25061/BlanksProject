@@ -44,7 +44,8 @@ return [
         ),
         'entrypoint' => env('PADDLE_OCR_ENTRYPOINT', base_path('ocr_paddle_module/blank_sheet_ocr/cli.py')),
         'timeout' => env('PADDLE_OCR_TIMEOUT', 60),
-        'fill_threshold' => env('PADDLE_OCR_FILL_THRESHOLD', 0.40),
+        'fill_threshold' => env('PADDLE_OCR_FILL_THRESHOLD', 0.38),
+        'uncertain_margin' => env('PADDLE_OCR_UNCERTAIN_MARGIN', 0.06),
     ],
 
 ];

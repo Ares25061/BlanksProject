@@ -203,6 +203,13 @@ class TestImportService
         }
 
         $correctTokens = $this->correctTokens($rowData['correct'] ?? '');
+
+        if ($this->nullableString($rowData['answer_e'] ?? null) !== null) {
+            throw ValidationException::withMessages([
+                'file' => 'В XLSX-файле найден пятый вариант ответа. Сейчас поддерживается максимум 4 варианта ответа на вопрос.',
+            ]);
+        }
+
         $answers = [];
 
         foreach ($answerTexts as $answerIndex => $answerText) {

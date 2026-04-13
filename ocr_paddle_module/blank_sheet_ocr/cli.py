@@ -10,18 +10,28 @@ import cv2
 import numpy as np
 import pypdfium2 as pdfium
 
-from paddle_adapter import runtime_status
+try:
+    import zxingcpp
+except Exception:  # pragma: no cover - optional runtime dependency
+    zxingcpp = None
 
 TARGET_WIDTH_PX = 2480
 TARGET_HEIGHT_PX = 3508
 PAGE_WIDTH_MM = 210.0
 PAGE_HEIGHT_MM = 297.0
+DEFAULT_QR_PADDING_MM = 4.0
+DEFAULT_QR_ZONE_MM = {
+    "left_mm": 180.0,
+    "top_mm": 11.0,
+    "width_mm": 18.0,
+    "height_mm": 18.0,
+}
 
 DEFAULT_MARKER_CENTERS_MM = {
-    "top_left": {"x_mm": 9.5, "y_mm": 9.5},
-    "top_right": {"x_mm": 200.5, "y_mm": 9.5},
-    "bottom_left": {"x_mm": 9.5, "y_mm": 287.5},
-    "bottom_right": {"x_mm": 200.5, "y_mm": 287.5},
+    "top_left": {"x_mm": 7.0, "y_mm": 7.0},
+    "top_right": {"x_mm": 203.0, "y_mm": 7.0},
+    "bottom_left": {"x_mm": 7.0, "y_mm": 290.0},
+    "bottom_right": {"x_mm": 203.0, "y_mm": 290.0},
 }
 
 
@@ -145,36 +155,98 @@ def try_parse_qr_text(text: str) -> dict[str, Any] | None:
 def candidate_qr_images(image: np.ndarray) -> list[np.ndarray]:
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY) if image.ndim == 3 else image
     _, binary = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-    top_right = image[: max(1, image.shape[0] // 3), image.shape[1] * 2 // 3 :]
 
     variants = [
         image,
         cv2.cvtColor(gray, cv2.COLOR_GRAY2BGR),
         cv2.cvtColor(binary, cv2.COLOR_GRAY2BGR),
-        cv2.resize(image, None, fx=1.75, fy=1.75, interpolation=cv2.INTER_CUBIC),
-        cv2.resize(cv2.cvtColor(binary, cv2.COLOR_GRAY2BGR), None, fx=2.0, fy=2.0, interpolation=cv2.INTER_NEAREST),
-        top_right,
-        cv2.resize(top_right, None, fx=2.0, fy=2.0, interpolation=cv2.INTER_CUBIC),
+        cv2.resize(image, None, fx=2.0, fy=2.0, interpolation=cv2.INTER_CUBIC),
+        cv2.resize(cv2.cvtColor(binary, cv2.COLOR_GRAY2BGR), None, fx=2.5, fy=2.5, interpolation=cv2.INTER_NEAREST),
     ]
 
     return [variant for variant in variants if variant.size]
 
 
-def decode_qr_payload(image: np.ndarray) -> dict[str, Any] | None:
+def expanded_rect(
+    rect: dict[str, Any],
+    padding_mm: float,
+    page_width_mm: float,
+    page_height_mm: float,
+) -> dict[str, float]:
+    left = max(0.0, float(rect.get("left_mm", 0.0)) - padding_mm)
+    top = max(0.0, float(rect.get("top_mm", 0.0)) - padding_mm)
+    right = min(page_width_mm, float(rect.get("left_mm", 0.0)) + float(rect.get("width_mm", 0.0)) + padding_mm)
+    bottom = min(page_height_mm, float(rect.get("top_mm", 0.0)) + float(rect.get("height_mm", 0.0)) + padding_mm)
+
+    return {
+        "left_mm": left,
+        "top_mm": top,
+        "width_mm": max(1.0, right - left),
+        "height_mm": max(1.0, bottom - top),
+    }
+
+
+def qr_candidate_regions(
+    image: np.ndarray,
+    qr_zone: dict[str, Any] | None,
+    page_width_mm: float,
+    page_height_mm: float,
+) -> list[np.ndarray]:
+    regions: list[np.ndarray] = []
+
+    if qr_zone:
+        for rect in (
+            expanded_rect(qr_zone, -0.8, page_width_mm, page_height_mm),
+            qr_zone,
+            expanded_rect(qr_zone, DEFAULT_QR_PADDING_MM, page_width_mm, page_height_mm),
+            expanded_rect(qr_zone, DEFAULT_QR_PADDING_MM + 4.0, page_width_mm, page_height_mm),
+        ):
+            crop = extract_rect(image, rect, page_width_mm, page_height_mm)
+            if crop.size:
+                regions.append(crop)
+
+    fallback_regions = [
+        image[: max(1, image.shape[0] // 5), image.shape[1] * 3 // 4 :],
+        image[: max(1, image.shape[0] // 4), image.shape[1] * 2 // 3 :],
+    ]
+
+    for region in fallback_regions:
+        if region.size:
+            regions.append(region)
+
+    return regions
+
+
+def decode_qr_payload(
+    image: np.ndarray,
+    qr_zone: dict[str, Any] | None = None,
+    page_width_mm: float = PAGE_WIDTH_MM,
+    page_height_mm: float = PAGE_HEIGHT_MM,
+) -> dict[str, Any] | None:
     detector = cv2.QRCodeDetector()
 
-    for candidate in candidate_qr_images(image):
-        decoded_text, _, _ = detector.detectAndDecode(candidate)
-        parsed = try_parse_qr_text(decoded_text)
-        if parsed:
-            return parsed
+    for region in qr_candidate_regions(image, qr_zone, page_width_mm, page_height_mm):
+        for candidate in candidate_qr_images(region):
+            if zxingcpp is not None:
+                try:
+                    for barcode in zxingcpp.read_barcodes(candidate):
+                        parsed = try_parse_qr_text(getattr(barcode, "text", ""))
+                        if parsed:
+                            return parsed
+                except Exception:
+                    pass
 
-        multi_ok, decoded_list, _, _ = detector.detectAndDecodeMulti(candidate)
-        if multi_ok:
-            for text in decoded_list:
-                parsed = try_parse_qr_text(text)
-                if parsed:
-                    return parsed
+            decoded_text, _, _ = detector.detectAndDecode(candidate)
+            parsed = try_parse_qr_text(decoded_text)
+            if parsed:
+                return parsed
+
+            multi_ok, decoded_list, _, _ = detector.detectAndDecodeMulti(candidate)
+            if multi_ok:
+                for text in decoded_list:
+                    parsed = try_parse_qr_text(text)
+                    if parsed:
+                        return parsed
 
     return None
 
@@ -212,7 +284,13 @@ def fill_ratio(crop: np.ndarray) -> float:
     return float(np.count_nonzero(binary)) / max(binary.size, 1)
 
 
-def recognize_questions(image: np.ndarray, manifest: dict[str, Any], threshold: float) -> dict[str, Any]:
+def is_borderline_ratio(ratio: float, threshold: float, uncertain_margin: float) -> bool:
+    if uncertain_margin <= 0:
+        return False
+    return abs(float(ratio) - float(threshold)) <= float(uncertain_margin)
+
+
+def recognize_questions(image: np.ndarray, manifest: dict[str, Any], threshold: float, uncertain_margin: float) -> dict[str, Any]:
     page_width_mm = float(manifest.get("page_width_mm", PAGE_WIDTH_MM))
     page_height_mm = float(manifest.get("page_height_mm", PAGE_HEIGHT_MM))
     question_results: list[dict[str, Any]] = []
@@ -220,6 +298,8 @@ def recognize_questions(image: np.ndarray, manifest: dict[str, Any], threshold: 
     for question in manifest.get("questions", []):
         selected_answer_ids: list[int] = []
         selected_letters: list[str] = []
+        borderline_selected_letters: list[str] = []
+        borderline_unselected_letters: list[str] = []
         cells_payload: list[dict[str, Any]] = []
 
         for cell in question.get("cells", []):
@@ -232,6 +312,7 @@ def recognize_questions(image: np.ndarray, manifest: dict[str, Any], threshold: 
             crop = extract_rect(image, rect, page_width_mm, page_height_mm)
             ratio = fill_ratio(crop)
             selected = ratio >= threshold
+            borderline = is_borderline_ratio(ratio, threshold, uncertain_margin)
             answer_id = int(cell.get("answer_id", 0))
             option_letter = str(cell.get("option_letter", "")).strip()
 
@@ -240,12 +321,19 @@ def recognize_questions(image: np.ndarray, manifest: dict[str, Any], threshold: 
                 if option_letter:
                     selected_letters.append(option_letter)
 
+            if borderline and option_letter:
+                if selected:
+                    borderline_selected_letters.append(option_letter)
+                else:
+                    borderline_unselected_letters.append(option_letter)
+
             cells_payload.append(
                 {
                     "answer_id": answer_id,
                     "option_letter": option_letter,
                     "fill_ratio": round(float(ratio), 4),
                     "selected": selected,
+                    "borderline": borderline,
                 }
             )
 
@@ -256,6 +344,9 @@ def recognize_questions(image: np.ndarray, manifest: dict[str, Any], threshold: 
                 "type": str(question.get("type", "single")),
                 "selected_answer_ids": selected_answer_ids,
                 "selected_letters": selected_letters,
+                "borderline_letters": sorted(set(borderline_selected_letters + borderline_unselected_letters)),
+                "borderline_selected_letters": sorted(set(borderline_selected_letters)),
+                "borderline_unselected_letters": sorted(set(borderline_unselected_letters)),
                 "cells": cells_payload,
             }
         )
@@ -267,9 +358,16 @@ def recognize_questions(image: np.ndarray, manifest: dict[str, Any], threshold: 
     }
 
 
-def handle_identify(image: np.ndarray) -> dict[str, Any]:
+def handle_identify(image: np.ndarray, request: dict[str, Any]) -> dict[str, Any]:
     aligned, alignment_debug = align_page(image)
-    qr_payload = decode_qr_payload(image) or decode_qr_payload(aligned)
+    page_width_mm = float(request.get("page_width_mm", PAGE_WIDTH_MM))
+    page_height_mm = float(request.get("page_height_mm", PAGE_HEIGHT_MM))
+    qr_zone = request.get("qr_zone") or DEFAULT_QR_ZONE_MM
+    qr_payload = decode_qr_payload(aligned, qr_zone, page_width_mm, page_height_mm)
+
+    if qr_payload is None:
+        qr_payload = decode_qr_payload(image)
+
     warnings: list[str] = []
 
     if qr_payload is None:
@@ -284,16 +382,16 @@ def handle_identify(image: np.ndarray) -> dict[str, Any]:
 
 def handle_recognize(image: np.ndarray, request: dict[str, Any]) -> dict[str, Any]:
     manifest = request["manifest"]
-    threshold = float(request.get("fill_threshold", 0.40))
+    threshold = float(request.get("fill_threshold", 0.38))
+    uncertain_margin = max(0.0, float(request.get("uncertain_margin", 0.06)))
     aligned, alignment_debug = align_page(
         image,
         manifest.get("marker_centers_mm") or DEFAULT_MARKER_CENTERS_MM,
         float(manifest.get("page_width_mm", PAGE_WIDTH_MM)),
         float(manifest.get("page_height_mm", PAGE_HEIGHT_MM)),
     )
-    payload = recognize_questions(aligned, manifest, threshold)
+    payload = recognize_questions(aligned, manifest, threshold, uncertain_margin)
     payload["alignment"] = alignment_debug
-    payload["qr_payload"] = decode_qr_payload(image) or decode_qr_payload(aligned)
     return payload
 
 
@@ -328,18 +426,13 @@ def main() -> int:
             return 1
 
         if operation == "identify":
-            payload = handle_identify(image)
+            payload = handle_identify(image, request)
         elif operation == "recognize":
             payload = handle_recognize(image, request)
         else:
             print(json.dumps({"error": f"Unsupported operation: {operation}"}, ensure_ascii=False))
             return 1
 
-    paddle = runtime_status()
-    payload["paddle"] = {
-        "available": paddle.available,
-        "details": paddle.details,
-    }
     print(json.dumps(payload, ensure_ascii=False))
     return 0
 

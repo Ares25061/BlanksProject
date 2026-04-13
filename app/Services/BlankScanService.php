@@ -25,6 +25,8 @@ class BlankScanService
 
     public function scanUploadedForms(Test $test, array $files): array
     {
+        $this->prepareLongRunningScan();
+
         $results = collect($files)
             ->map(fn (UploadedFile $file) => $this->scanUploadedPage($test, $file))
             ->groupBy('processing_key')
@@ -56,7 +58,8 @@ class BlankScanService
             $pages = $this->blankSheetManifestService->ensurePersisted($blankForm);
             $expectedPageCount = max(1, count($pages));
             $pageNumber = max(1, min((int) $pagePayload['page_number'], $expectedPageCount));
-            $manifest = $this->blankSheetManifestService->loadPageManifest($blankForm, $pageNumber);
+            $manifest = collect($pages)
+                ->first(fn (array $page) => (int) ($page['page_number'] ?? 0) === $pageNumber);
 
             if (!$manifest) {
                 throw ValidationException::withMessages([
@@ -125,6 +128,21 @@ class BlankScanService
                 ->filter()
                 ->values()
                 ->all();
+            $borderlineLetters = collect($questionResult['borderline_letters'] ?? [])
+                ->map(fn ($letter) => Utf8Normalizer::string(trim((string) $letter)))
+                ->filter()
+                ->values()
+                ->all();
+            $borderlineSelectedLetters = collect($questionResult['borderline_selected_letters'] ?? [])
+                ->map(fn ($letter) => Utf8Normalizer::string(trim((string) $letter)))
+                ->filter()
+                ->values()
+                ->all();
+            $borderlineUnselectedLetters = collect($questionResult['borderline_unselected_letters'] ?? [])
+                ->map(fn ($letter) => Utf8Normalizer::string(trim((string) $letter)))
+                ->filter()
+                ->values()
+                ->all();
 
             if ($questionId > 0) {
                 $questionAnswers[$questionId] = $selectedAnswerIds;
@@ -134,9 +152,18 @@ class BlankScanService
                 $warnings[] = 'A single-choice question has multiple marked cells.';
             }
 
+            if ($borderlineUnselectedLetters !== []) {
+                $warnings[] = 'Question ' . $questionNumber . ' has weak borderline marks that stayed below the threshold: ' . implode(', ', $borderlineUnselectedLetters) . '.';
+            } elseif ($borderlineSelectedLetters !== [] && count($borderlineSelectedLetters) === count($selectedLetters)) {
+                $warnings[] = 'Question ' . $questionNumber . ' was recognized from weak borderline marks: ' . implode(', ', $borderlineSelectedLetters) . '.';
+            }
+
             $displayAnswers[] = [
                 'question_number' => $questionNumber,
                 'selected' => $selectedLetters,
+                'borderline' => $borderlineLetters,
+                'borderline_selected' => $borderlineSelectedLetters,
+                'borderline_unselected' => $borderlineUnselectedLetters,
                 'type' => $questionType,
                 'page_number' => $pageNumber,
             ];
@@ -392,6 +419,17 @@ class BlankScanService
         $normalized = Utf8Normalizer::string($fileName) ?? 'scan-file';
 
         return trim($normalized) !== '' ? $normalized : 'scan-file';
+    }
+
+    protected function prepareLongRunningScan(): void
+    {
+        if (function_exists('set_time_limit')) {
+            @set_time_limit(0);
+        }
+
+        if (function_exists('ini_set')) {
+            @ini_set('max_execution_time', '0');
+        }
     }
 
     protected function loadImage(UploadedFile $file)

@@ -3,3 +3,4 @@ opencv-python-headless>=4.10
 paddleocr>=3.0
 pillow>=10
 pypdfium2>=4
+zxing-cpp>=3.0

@@ -186,7 +186,7 @@
             const recognizedAnswers = blankForm.metadata?.scan?.recognized_answers || [];
             const variantNumber = blankForm.variant_number || 1;
             const recognizedSummary = recognizedAnswers.length
-                ? recognizedAnswers.map((item) => `${item.question_number}: ${formatRecognizedAnswer(item.selected)}`).join(' • ')
+                ? recognizedAnswers.map((item) => `${item.question_number}: ${formatRecognizedAnswer(item.selected, item.borderline)}`).join(' • ')
                 : '';
 
             return `
@@ -504,12 +504,15 @@
         return `${escapeHtml(getAnswerLetter(answer, answers))} (${escapeHtml(answer.answer_text)})`;
     }
 
-    function formatRecognizedAnswer(selected) {
-        if (!Array.isArray(selected) || !selected.length) {
-            return 'нет ответа';
-        }
+    function formatRecognizedAnswer(selected, borderline = []) {
+        const answerLabel = Array.isArray(selected) && selected.length
+            ? selected.join('+')
+            : 'нет ответа';
+        const borderlineLabel = Array.isArray(borderline) && borderline.length
+            ? ` (сомн.: ${borderline.join('+')})`
+            : '';
 
-        return selected.join('+');
+        return `${answerLabel}${borderlineLabel}`;
     }
 
     function suggestAssignedGrade(blankForm, grade) {
