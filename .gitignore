@@ -3,6 +3,7 @@
 .env
 .env.backup
 .env.production
+.venv/
 .phpactor.json
 .phpunit.result.cache
 /.fleet
@@ -19,6 +20,11 @@
 /storage/*.key
 /storage/pail
 /vendor
+/OCR_Upd/
+**/__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
 Homestead.json
 Homestead.yaml
 Thumbs.db

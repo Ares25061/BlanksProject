@@ -29,7 +29,7 @@
             <div class="flex flex-wrap justify-between gap-4 items-center">
                 <h2 class="text-xl font-semibold">Основная информация</h2>
                 <div class="text-sm text-slate-500">
-                    Формат бланка: неограниченное число вопросов и до <span class="font-semibold text-slate-700">5 вариантов ответа</span> на вопрос
+                    Формат бланка: неограниченное число вопросов и до <span class="font-semibold text-slate-700">4 вариантов ответа</span> на вопрос
                 </div>
             </div>
 
@@ -103,7 +103,7 @@
                 </div>
                 <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
                     <div class="font-semibold text-slate-900 mb-2">Поддерживаемый XLSX</div>
-                    <div>Первая строка должна быть заголовком. Колонки: <code>question_text</code>, <code>variant</code>, <code>type</code>, <code>points</code>, <code>answer_a</code> ... <code>answer_e</code>, <code>correct</code>.</div>
+                    <div>Первая строка должна быть заголовком. Колонки: <code>question_text</code>, <code>variant</code>, <code>type</code>, <code>points</code>, <code>answer_a</code> ... <code>answer_d</code>, <code>correct</code>.</div>
                     <div class="mt-2">В колонке <code>correct</code> можно писать, например, <code>A</code>, <code>B,D</code> или <code>1 3</code>.</div>
                 </div>
             </div>
@@ -244,7 +244,7 @@
 </template>
 
 <script>
-    const MAX_ANSWERS = 5;
+    const MAX_ANSWERS = 4;
     const DEFAULT_VARIANT_COUNT = 1;
 
     function createUid() {

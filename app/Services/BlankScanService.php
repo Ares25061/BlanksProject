@@ -3,9 +3,8 @@
 namespace App\Services;
 
 use App\Models\BlankForm;
-use App\Support\AnswerScanResolver;
 use App\Models\Test;
-use App\Support\BlankScanLayout;
+use App\Support\Utf8Normalizer;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -17,18 +16,25 @@ class BlankScanService
         private BlankFormService $blankFormService,
         private GradingService $gradingService,
         private ScanPreviewService $scanPreviewService,
+        private BlankSheetManifestService $blankSheetManifestService,
+        private PythonCellOcrService $pythonCellOcrService,
+        private BlankSheetQrCodeService $blankSheetQrCodeService,
         private TestVariantService $testVariantService,
     ) {
     }
 
     public function scanUploadedForms(Test $test, array $files): array
     {
-        return collect($files)
+        $this->prepareLongRunningScan();
+
+        $results = collect($files)
             ->map(fn (UploadedFile $file) => $this->scanUploadedPage($test, $file))
             ->groupBy('processing_key')
             ->map(fn ($pageScans) => $this->finalizeGroupedScan($pageScans))
             ->values()
             ->all();
+
+        return Utf8Normalizer::deep($results);
     }
 
     protected function scanUploadedPage(Test $test, UploadedFile $file): array
@@ -36,59 +42,139 @@ class BlankScanService
         $image = $this->loadImage($file);
 
         try {
-            $markers = $this->detectMarkers($image);
-            $bitString = $this->decodeBitString($image, $markers);
-            $pagePayload = BlankScanLayout::decodePageBitString($bitString);
+            $scanPath = $this->storeNormalizedScanImage($image);
+            $absoluteScanPath = Storage::disk('local')->path($scanPath);
+            $identified = Utf8Normalizer::deep($this->pythonCellOcrService->identifyPage($absoluteScanPath));
+            $pagePayload = $this->blankSheetQrCodeService->normalizePayload((array) ($identified['qr_payload'] ?? []));
 
             if (!$pagePayload) {
                 throw ValidationException::withMessages([
-                    'scan' => 'Не удалось прочитать код бланка. Проверьте, что загружен корректный лист бланка ответов целиком.',
+                    'scan' => 'Could not recognize the page QR code. Make sure the page markers and the top QR are visible.',
                 ]);
             }
 
             $blankForm = BlankForm::with(['test.questions.answers', 'studentGroup', 'groupStudent'])
                 ->findOrFail($pagePayload['blank_form_id']);
+            $pages = $this->blankSheetManifestService->ensurePersisted($blankForm);
+            $expectedPageCount = max(1, count($pages));
+            $pageNumber = max(1, min((int) $pagePayload['page_number'], $expectedPageCount));
+            $manifest = collect($pages)
+                ->first(fn (array $page) => (int) ($page['page_number'] ?? 0) === $pageNumber);
 
+            if (!$manifest) {
+                throw ValidationException::withMessages([
+                    'scan' => 'Could not load the page manifest for cell recognition.',
+                ]);
+            }
+
+            $recognized = Utf8Normalizer::deep($this->extractAnswersViaPython($absoluteScanPath, $manifest, $pageNumber));
+            $warnings = array_merge($identified['warnings'] ?? [], $recognized['warnings']);
             $isCurrentTestForm = (int) $blankForm->test_id === (int) $test->id;
 
-            $variantQuestions = $this->testVariantService
-                ->questionsForVariant($blankForm->test, $blankForm->variant_number ?? 1)
-                ->values();
-            $expectedPageCount = BlankScanLayout::questionPageCount($variantQuestions->count());
-            $pageNumber = min($pagePayload['page_number'], $expectedPageCount);
-            $recognized = $this->extractAnswers($image, $markers, $blankForm, $pageNumber);
-            $scanPath = $this->storeNormalizedScanImage($image);
-            $warnings = $recognized['warnings'];
-
             if (!$isCurrentTestForm) {
-                $warnings[] = "Скан относится к другому тесту: {$blankForm->form_number}. Сохраняю только временный OCR-разбор без выставления оценки.";
+                $warnings[] = 'This scan belongs to another test. Saved only as a temporary OCR preview without grading.';
+            }
+
+            if (($pagePayload['form_number'] ?? '') !== '' && (string) $pagePayload['form_number'] !== (string) $blankForm->form_number) {
+                $warnings[] = 'The QR code points to a different form number. Using the form found by ID.';
             }
 
             if ((int) $pagePayload['page_count'] !== $expectedPageCount) {
-                $warnings[] = 'Количество листов на распечатанном бланке отличается от текущей версии теста. Использую актуальную разбивку по листам.';
+                $warnings[] = 'The QR page count differs from the saved manifest. Using the saved manifest.';
             }
 
             return [
-                'file_name' => $file->getClientOriginalName(),
+                'file_name' => $this->normalizeFileName($file->getClientOriginalName()),
                 'processing_key' => ($isCurrentTestForm ? 'blank-form:' : 'foreign-preview:') . $blankForm->id,
                 'processing_mode' => $isCurrentTestForm ? 'persist' : 'foreign_preview',
                 'blank_form_id' => $blankForm->id,
                 'blank_form' => $blankForm,
-                'form_number' => $blankForm->form_number,
-                'student_name' => $blankForm->student_full_name,
-                'group_name' => $blankForm->group_name,
+                'form_number' => Utf8Normalizer::string($blankForm->form_number),
+                'student_name' => Utf8Normalizer::string($blankForm->student_full_name),
+                'group_name' => Utf8Normalizer::string($blankForm->group_name),
                 'variant_number' => $blankForm->variant_number ?? 1,
                 'page_number' => $pageNumber,
                 'page_count' => $expectedPageCount,
                 'recognized_answers' => $recognized['display_answers'],
                 'question_answers' => $recognized['question_answers'],
-                'warnings' => $warnings,
+                'warnings' => array_values(array_unique(array_filter($warnings))),
                 'scan_path' => $scanPath,
                 'question_range' => $recognized['question_range'],
             ];
         } finally {
             \imagedestroy($image);
         }
+    }
+
+    protected function extractAnswersViaPython(string $imagePath, array $manifest, int $pageNumber): array
+    {
+        $payload = Utf8Normalizer::deep($this->pythonCellOcrService->recognize($imagePath, $manifest));
+        $questionAnswers = [];
+        $displayAnswers = [];
+        $warnings = collect($payload['warnings'] ?? [])->filter()->values()->all();
+
+        foreach (($payload['question_results'] ?? []) as $questionResult) {
+            $questionId = (int) ($questionResult['question_id'] ?? 0);
+            $questionNumber = (int) ($questionResult['question_number'] ?? 0);
+            $questionType = (string) ($questionResult['type'] ?? 'single');
+            $selectedAnswerIds = collect($questionResult['selected_answer_ids'] ?? [])
+                ->map(fn ($id) => (int) $id)
+                ->filter()
+                ->unique()
+                ->values()
+                ->all();
+            $selectedLetters = collect($questionResult['selected_letters'] ?? [])
+                ->map(fn ($letter) => Utf8Normalizer::string(trim((string) $letter)))
+                ->filter()
+                ->values()
+                ->all();
+            $borderlineLetters = collect($questionResult['borderline_letters'] ?? [])
+                ->map(fn ($letter) => Utf8Normalizer::string(trim((string) $letter)))
+                ->filter()
+                ->values()
+                ->all();
+            $borderlineSelectedLetters = collect($questionResult['borderline_selected_letters'] ?? [])
+                ->map(fn ($letter) => Utf8Normalizer::string(trim((string) $letter)))
+                ->filter()
+                ->values()
+                ->all();
+            $borderlineUnselectedLetters = collect($questionResult['borderline_unselected_letters'] ?? [])
+                ->map(fn ($letter) => Utf8Normalizer::string(trim((string) $letter)))
+                ->filter()
+                ->values()
+                ->all();
+
+            if ($questionId > 0) {
+                $questionAnswers[$questionId] = $selectedAnswerIds;
+            }
+
+            if ($questionType === 'single' && count($selectedAnswerIds) > 1) {
+                $warnings[] = 'A single-choice question has multiple marked cells.';
+            }
+
+            if ($borderlineUnselectedLetters !== []) {
+                $warnings[] = 'Question ' . $questionNumber . ' has weak borderline marks that stayed below the threshold: ' . implode(', ', $borderlineUnselectedLetters) . '.';
+            } elseif ($borderlineSelectedLetters !== [] && count($borderlineSelectedLetters) === count($selectedLetters)) {
+                $warnings[] = 'Question ' . $questionNumber . ' was recognized from weak borderline marks: ' . implode(', ', $borderlineSelectedLetters) . '.';
+            }
+
+            $displayAnswers[] = [
+                'question_number' => $questionNumber,
+                'selected' => $selectedLetters,
+                'borderline' => $borderlineLetters,
+                'borderline_selected' => $borderlineSelectedLetters,
+                'borderline_unselected' => $borderlineUnselectedLetters,
+                'type' => $questionType,
+                'page_number' => $pageNumber,
+            ];
+        }
+
+        return [
+            'question_answers' => $questionAnswers,
+            'display_answers' => $displayAnswers,
+            'warnings' => $warnings,
+            'question_range' => $payload['question_range'] ?? ($manifest['question_range'] ?? null),
+        ];
     }
 
     protected function finalizeGroupedScan($pageScans): array
@@ -101,9 +187,6 @@ class BlankScanService
 
         $blankForm = $firstPage['blank_form'];
         $expectedPageCount = (int) $firstPage['page_count'];
-        $maxScore = (int) $this->testVariantService
-            ->questionsForVariant($blankForm->test, $blankForm->variant_number ?? 1)
-            ->sum('points');
         $pagesByNumber = [];
         $warnings = [];
 
@@ -111,7 +194,7 @@ class BlankScanService
             $pageNumber = (int) $pageScan['page_number'];
 
             if (isset($pagesByNumber[$pageNumber])) {
-                $warnings[] = 'Лист ответов ' . $pageNumber . ' загружен несколько раз. Использую последний загруженный вариант.';
+                $warnings[] = 'The same page was uploaded more than once. Using the last uploaded copy.';
             }
 
             $pagesByNumber[$pageNumber] = $pageScan;
@@ -127,14 +210,14 @@ class BlankScanService
         }
 
         if ($missingPages !== []) {
-            $warnings[] = 'Для формы ' . $blankForm->form_number . ' загружено ' . count($receivedPages) . ' из ' . $expectedPageCount . ' листов ответов. Не хватает: ' . implode(', ', $missingPages) . '.';
+            $warnings[] = 'Not all pages of the form were uploaded. Missing pages: ' . implode(', ', $missingPages) . '.';
 
             return [
                 'file_name' => $this->summarizeFileNames($pagesByNumber),
                 'blank_form_id' => $blankForm->id,
-                'form_number' => $blankForm->form_number,
-                'student_name' => $blankForm->student_full_name,
-                'group_name' => $blankForm->group_name,
+                'form_number' => Utf8Normalizer::string($blankForm->form_number),
+                'student_name' => Utf8Normalizer::string($blankForm->student_full_name),
+                'group_name' => Utf8Normalizer::string($blankForm->group_name),
                 'variant_number' => $blankForm->variant_number ?? 1,
                 'recognized_answers' => collect($pagesByNumber)
                     ->flatMap(fn ($pageScan) => $pageScan['recognized_answers'] ?? [])
@@ -143,7 +226,9 @@ class BlankScanService
                     ->all(),
                 'warnings' => array_values(array_unique($warnings)),
                 'score' => null,
-                'max_score' => $maxScore,
+                'max_score' => (int) $this->testVariantService
+                    ->questionsForVariant($blankForm->test, $blankForm->variant_number ?? 1)
+                    ->sum('points'),
                 'grade' => null,
                 'status' => 'incomplete_scan',
                 'pages_processed' => $receivedPages,
@@ -190,9 +275,9 @@ class BlankScanService
         return [
             'file_name' => $this->summarizeFileNames($pagesByNumber),
             'blank_form_id' => $blankForm->id,
-            'form_number' => $blankForm->form_number,
-            'student_name' => $blankForm->student_full_name,
-            'group_name' => $blankForm->group_name,
+            'form_number' => Utf8Normalizer::string($blankForm->form_number),
+            'student_name' => Utf8Normalizer::string($blankForm->student_full_name),
+            'group_name' => Utf8Normalizer::string($blankForm->group_name),
             'variant_number' => $blankForm->variant_number ?? 1,
             'recognized_answers' => $displayAnswers,
             'warnings' => array_values(array_unique($warnings)),
@@ -217,7 +302,7 @@ class BlankScanService
             $pageNumber = (int) $pageScan['page_number'];
 
             if (isset($pagesByNumber[$pageNumber])) {
-                $warnings[] = 'Лист ответов ' . $pageNumber . ' загружен несколько раз. Использую последний загруженный вариант.';
+                $warnings[] = 'The same page was uploaded more than once. Using the last uploaded copy.';
             }
 
             $pagesByNumber[$pageNumber] = $pageScan;
@@ -233,14 +318,14 @@ class BlankScanService
         }
 
         if ($missingPages !== []) {
-            $warnings[] = 'Для формы ' . $blankForm->form_number . ' загружено ' . count($receivedPages) . ' из ' . $expectedPageCount . ' листов ответов. Не хватает: ' . implode(', ', $missingPages) . '.';
+            $warnings[] = 'Not all pages of the form were uploaded. Missing pages: ' . implode(', ', $missingPages) . '.';
 
             return [
                 'file_name' => $this->summarizeFileNames($pagesByNumber),
                 'blank_form_id' => null,
-                'form_number' => $blankForm->form_number,
-                'student_name' => $blankForm->student_full_name,
-                'group_name' => $blankForm->group_name,
+                'form_number' => Utf8Normalizer::string($blankForm->form_number),
+                'student_name' => Utf8Normalizer::string($blankForm->student_full_name),
+                'group_name' => Utf8Normalizer::string($blankForm->group_name),
                 'variant_number' => $blankForm->variant_number ?? 1,
                 'recognized_answers' => collect($pagesByNumber)
                     ->flatMap(fn ($pageScan) => $pageScan['recognized_answers'] ?? [])
@@ -296,9 +381,9 @@ class BlankScanService
             'file_name' => $this->summarizeFileNames($pagesByNumber),
             'blank_form_id' => null,
             'preview_token' => $preview['token'],
-            'form_number' => $blankForm->form_number,
-            'student_name' => $blankForm->student_full_name,
-            'group_name' => $blankForm->group_name,
+            'form_number' => Utf8Normalizer::string($blankForm->form_number),
+            'student_name' => Utf8Normalizer::string($blankForm->student_full_name),
+            'group_name' => Utf8Normalizer::string($blankForm->group_name),
             'variant_number' => $blankForm->variant_number ?? 1,
             'recognized_answers' => $displayAnswers,
             'warnings' => array_values(array_unique($warnings)),
@@ -323,10 +408,28 @@ class BlankScanService
         }
 
         if ($fileNames->count() === 1) {
-            return (string) $fileNames->first();
+            return Utf8Normalizer::string((string) $fileNames->first()) ?? '';
         }
 
-        return $fileNames->implode(', ');
+        return Utf8Normalizer::string($fileNames->implode(', ')) ?? '';
+    }
+
+    protected function normalizeFileName(string $fileName): string
+    {
+        $normalized = Utf8Normalizer::string($fileName) ?? 'scan-file';
+
+        return trim($normalized) !== '' ? $normalized : 'scan-file';
+    }
+
+    protected function prepareLongRunningScan(): void
+    {
+        if (function_exists('set_time_limit')) {
+            @set_time_limit(0);
+        }
+
+        if (function_exists('ini_set')) {
+            @ini_set('max_execution_time', '0');
+        }
     }
 
     protected function loadImage(UploadedFile $file)
@@ -336,7 +439,7 @@ class BlankScanService
 
         if (!function_exists('imagecreatefromjpeg') || !function_exists('imagecreatefrompng') || !function_exists('imagejpeg') || !function_exists('imagecreatefromstring')) {
             throw ValidationException::withMessages([
-                'scan' => 'На сервере не включено расширение GD для обработки изображений.',
+                'scan' => 'GD image extension is not enabled on the server.',
             ]);
         }
 
@@ -345,7 +448,7 @@ class BlankScanService
         } else {
             if ($mimeType === 'image/webp' && !function_exists('imagecreatefromwebp')) {
                 throw ValidationException::withMessages([
-                    'scan' => 'На сервере не включена поддержка WEBP в расширении GD.',
+                    'scan' => 'WEBP support is not enabled in GD on the server.',
                 ]);
             }
 
@@ -358,7 +461,7 @@ class BlankScanService
 
         if (!$image) {
             throw ValidationException::withMessages([
-                'scan' => 'Не удалось открыть изображение скана.',
+                'scan' => 'Could not open the uploaded scan image.',
             ]);
         }
 
@@ -369,308 +472,6 @@ class BlankScanService
         }
 
         return $image;
-    }
-
-    protected function detectMarkers($image): array
-    {
-        $width = \imagesx($image);
-        $height = \imagesy($image);
-        $searchWidth = (int) floor($width * 0.22);
-        $searchHeight = (int) floor($height * 0.18);
-        $window = max(18, (int) floor(min($width, $height) * 0.035));
-
-        return [
-            'tl' => $this->detectMarkerInRegion($image, 0, $searchWidth, 0, $searchHeight, $window),
-            'tr' => $this->detectMarkerInRegion($image, $width - $searchWidth, $width, 0, $searchHeight, $window),
-            'bl' => $this->detectMarkerInRegion($image, 0, $searchWidth, $height - $searchHeight, $height, $window),
-            'br' => $this->detectMarkerInRegion($image, $width - $searchWidth, $width, $height - $searchHeight, $height, $window),
-        ];
-    }
-
-    protected function detectMarkerInRegion($image, int $xStart, int $xEnd, int $yStart, int $yEnd, int $window): array
-    {
-        $step = max(4, (int) floor($window / 4));
-        $bestScore = -1.0;
-        $bestPoint = ['x' => $xStart + $window / 2, 'y' => $yStart + $window / 2];
-
-        for ($y = $yStart; $y <= $yEnd - $window; $y += $step) {
-            for ($x = $xStart; $x <= $xEnd - $window; $x += $step) {
-                $score = $this->averageDarkness($image, $x, $y, $window, $window);
-
-                if ($score > $bestScore) {
-                    $bestScore = $score;
-                    $bestPoint = [
-                        'x' => $x + ($window / 2),
-                        'y' => $y + ($window / 2),
-                    ];
-                }
-            }
-        }
-
-        return $this->refineMarkerCenter($image, $bestPoint, $window);
-    }
-
-    protected function decodeBitString($image, array $markers): string
-    {
-        $darknessValues = [];
-
-        for ($index = 0; $index < BlankScanLayout::CODE_BITS; $index++) {
-            $cell = BlankScanLayout::codeCellMm($index);
-
-            $darknessValues[] = $this->sampleDarknessMm(
-                $image,
-                $markers,
-                $cell['left'] + 0.35,
-                $cell['top'] + 0.35,
-                $cell['width'] - 0.7,
-                $cell['height'] - 0.7,
-            );
-        }
-
-        $minDarkness = min($darknessValues);
-        $maxDarkness = max($darknessValues);
-        $contrast = $maxDarkness - $minDarkness;
-
-        if ($contrast < 0.06) {
-            throw ValidationException::withMessages([
-                'scan' => 'Служебные точки бланка почти не видны на изображении. Сделайте фото ближе, без пересвета и полностью захватите нижнюю часть листа.',
-            ]);
-        }
-
-        $threshold = $minDarkness + ($contrast * 0.45);
-
-        return collect($darknessValues)
-            ->map(fn ($darkness) => $darkness >= $threshold ? '1' : '0')
-            ->implode('');
-    }
-
-    protected function extractAnswers($image, array $markers, BlankForm $blankForm, int $pageNumber): array
-    {
-        $questions = $this->testVariantService
-            ->questionsForVariant($blankForm->test, $blankForm->variant_number ?? 1)
-            ->values();
-        $startIndex = BlankScanLayout::questionStartIndexForPage($pageNumber);
-        $pageQuestions = $questions
-            ->slice($startIndex, BlankScanLayout::questionsPerPage())
-            ->values();
-
-        $questionAnswers = [];
-        $displayAnswers = [];
-        $warnings = [];
-        $letters = BlankScanLayout::answerLetters();
-
-        foreach ($pageQuestions as $index => $question) {
-            $cellMeasurements = [];
-            $variantAnswers = $this->testVariantService->orderedAnswersForQuestion($question, $blankForm->variant_number ?? 1);
-
-            for ($optionIndex = 0; $optionIndex < count($letters); $optionIndex++) {
-                if ($optionIndex >= $variantAnswers->count()) {
-                    continue;
-                }
-
-                $cell = BlankScanLayout::answerCellMm($pageQuestions->count(), $index, $optionIndex);
-
-                $darkRatio = $this->sampleDarkRatioMm(
-                    $image,
-                    $markers,
-                    $cell['left'] + 0.8,
-                    $cell['top'] + 0.8,
-                    $cell['size'] - 1.6,
-                    $cell['size'] - 1.6,
-                );
-
-                $darkness = $this->sampleDarknessMm(
-                    $image,
-                    $markers,
-                    $cell['left'] + 0.8,
-                    $cell['top'] + 0.8,
-                    $cell['size'] - 1.6,
-                    $cell['size'] - 1.6,
-                );
-
-                $cellMeasurements[] = [
-                    'option_index' => $optionIndex,
-                    'dark_ratio' => $darkRatio,
-                    'darkness' => $darkness,
-                    'score' => AnswerScanResolver::buildMarkScore([
-                        'dark_ratio' => $darkRatio,
-                        'darkness' => $darkness,
-                    ]),
-                ];
-            }
-
-            $resolved = AnswerScanResolver::resolve($question->type, $cellMeasurements);
-            $selectedIndexes = $resolved['selected_indexes'];
-            $questionNumber = $startIndex + $index + 1;
-
-            if ($question->type === 'single' && $resolved['ambiguous']) {
-                $warnings[] = 'В вопросе ' . $questionNumber . ' найдено несколько отметок для одиночного выбора.';
-            }
-
-            $selectedAnswerIds = collect($selectedIndexes)
-                ->map(fn ($optionIndex) => $variantAnswers[$optionIndex]->id ?? null)
-                ->filter()
-                ->values()
-                ->all();
-
-            $questionAnswers[$question->id] = $selectedAnswerIds;
-            $displayAnswers[] = [
-                'question_number' => $questionNumber,
-                'selected' => array_map(fn ($optionIndex) => $letters[$optionIndex], $selectedIndexes),
-                'type' => $question->type,
-                'page_number' => $pageNumber,
-            ];
-        }
-
-        return [
-            'question_answers' => $questionAnswers,
-            'display_answers' => $displayAnswers,
-            'warnings' => $warnings,
-            'question_range' => [
-                'start' => $startIndex + 1,
-                'end' => $startIndex + $pageQuestions->count(),
-            ],
-        ];
-    }
-
-    protected function sampleDarknessMm($image, array $markers, float $xMm, float $yMm, float $widthMm, float $heightMm): float
-    {
-        [$x1, $y1] = $this->projectMmToPixel($markers, $xMm, $yMm);
-        [$x2, $y2] = $this->projectMmToPixel($markers, $xMm + $widthMm, $yMm + $heightMm);
-
-        return $this->averageDarkness(
-            $image,
-            (int) floor(min($x1, $x2)),
-            (int) floor(min($y1, $y2)),
-            (int) max(1, abs($x2 - $x1)),
-            (int) max(1, abs($y2 - $y1)),
-        );
-    }
-
-    protected function sampleDarkRatioMm($image, array $markers, float $xMm, float $yMm, float $widthMm, float $heightMm): float
-    {
-        [$x1, $y1] = $this->projectMmToPixel($markers, $xMm, $yMm);
-        [$x2, $y2] = $this->projectMmToPixel($markers, $xMm + $widthMm, $yMm + $heightMm);
-
-        return $this->darkPixelRatio(
-            $image,
-            (int) floor(min($x1, $x2)),
-            (int) floor(min($y1, $y2)),
-            (int) max(1, abs($x2 - $x1)),
-            (int) max(1, abs($y2 - $y1)),
-        );
-    }
-
-    protected function averageDarkness($image, int $x, int $y, int $width, int $height): float
-    {
-        $width = max(1, $width);
-        $height = max(1, $height);
-        $total = 0.0;
-        $count = 0;
-        $stepX = max(1, (int) floor($width / 12));
-        $stepY = max(1, (int) floor($height / 12));
-
-        for ($yy = $y; $yy < $y + $height; $yy += $stepY) {
-            for ($xx = $x; $xx < $x + $width; $xx += $stepX) {
-                $count++;
-                $total += $this->pixelDarkness($image, $xx, $yy);
-            }
-        }
-
-        return $count > 0 ? $total / $count : 0.0;
-    }
-
-    protected function darkPixelRatio($image, int $x, int $y, int $width, int $height): float
-    {
-        $width = max(1, $width);
-        $height = max(1, $height);
-        $darkPixels = 0;
-        $count = 0;
-        $stepX = max(1, (int) floor($width / 16));
-        $stepY = max(1, (int) floor($height / 16));
-
-        for ($yy = $y; $yy < $y + $height; $yy += $stepY) {
-            for ($xx = $x; $xx < $x + $width; $xx += $stepX) {
-                $count++;
-
-                if ($this->pixelDarkness($image, $xx, $yy) > 0.32) {
-                    $darkPixels++;
-                }
-            }
-        }
-
-        return $count > 0 ? $darkPixels / $count : 0.0;
-    }
-
-    protected function pixelDarkness($image, int $x, int $y): float
-    {
-        $x = max(0, min(\imagesx($image) - 1, $x));
-        $y = max(0, min(\imagesy($image) - 1, $y));
-
-        $rgb = \imagecolorat($image, $x, $y);
-        $r = ($rgb >> 16) & 0xFF;
-        $g = ($rgb >> 8) & 0xFF;
-        $b = $rgb & 0xFF;
-        $gray = ($r * 0.299) + ($g * 0.587) + ($b * 0.114);
-
-        return (255 - $gray) / 255;
-    }
-
-    protected function refineMarkerCenter($image, array $point, int $window): array
-    {
-        $radius = (int) ceil($window * 0.9);
-        $minX = max(0, (int) floor($point['x'] - $radius));
-        $maxX = min(\imagesx($image) - 1, (int) ceil($point['x'] + $radius));
-        $minY = max(0, (int) floor($point['y'] - $radius));
-        $maxY = min(\imagesy($image) - 1, (int) ceil($point['y'] + $radius));
-
-        $darkMinX = null;
-        $darkMaxX = null;
-        $darkMinY = null;
-        $darkMaxY = null;
-        $darkPixels = 0;
-
-        for ($y = $minY; $y <= $maxY; $y++) {
-            for ($x = $minX; $x <= $maxX; $x++) {
-                if ($this->pixelDarkness($image, $x, $y) < 0.55) {
-                    continue;
-                }
-
-                $darkPixels++;
-                $darkMinX = $darkMinX === null ? $x : min($darkMinX, $x);
-                $darkMaxX = $darkMaxX === null ? $x : max($darkMaxX, $x);
-                $darkMinY = $darkMinY === null ? $y : min($darkMinY, $y);
-                $darkMaxY = $darkMaxY === null ? $y : max($darkMaxY, $y);
-            }
-        }
-
-        if ($darkPixels < 12 || $darkMinX === null || $darkMinY === null || $darkMaxX === null || $darkMaxY === null) {
-            return $point;
-        }
-
-        return [
-            'x' => ($darkMinX + $darkMaxX) / 2,
-            'y' => ($darkMinY + $darkMaxY) / 2,
-        ];
-    }
-
-    protected function projectMmToPixel(array $markers, float $xMm, float $yMm): array
-    {
-        $centers = BlankScanLayout::markerCentersMm();
-        $u = ($xMm - $centers['tl']['x']) / ($centers['tr']['x'] - $centers['tl']['x']);
-        $v = ($yMm - $centers['tl']['y']) / ($centers['bl']['y'] - $centers['tl']['y']);
-
-        $x = ((1 - $u) * (1 - $v) * $markers['tl']['x'])
-            + ($u * (1 - $v) * $markers['tr']['x'])
-            + ((1 - $u) * $v * $markers['bl']['x'])
-            + ($u * $v * $markers['br']['x']);
-
-        $y = ((1 - $u) * (1 - $v) * $markers['tl']['y'])
-            + ($u * (1 - $v) * $markers['tr']['y'])
-            + ((1 - $u) * $v * $markers['bl']['y'])
-            + ($u * $v * $markers['br']['y']);
-
-        return [$x, $y];
     }
 
     protected function isPdfFile(UploadedFile $file, ?string $mimeType): bool
@@ -698,7 +499,7 @@ class BlankScanService
                     return $image;
                 }
             } catch (\Throwable) {
-                // Fallback to CLI converters below.
+                // fallback
             }
         }
 
@@ -738,6 +539,17 @@ class BlankScanService
                     }
                 }
             }
+
+            $outputPath = $tempPrefix . '-python.png';
+            $generatedFiles[] = $outputPath;
+            $renderedPath = $this->pythonCellOcrService->renderPdfFirstPage($path, $outputPath);
+
+            if (is_file($renderedPath)) {
+                $image = \imagecreatefrompng($renderedPath);
+                if ($image !== false) {
+                    return $image;
+                }
+            }
         } finally {
             foreach ($generatedFiles as $generatedFile) {
                 if (is_file($generatedFile)) {
@@ -747,7 +559,7 @@ class BlankScanService
         }
 
         throw ValidationException::withMessages([
-            'scan' => 'PDF загружен, но на сервере нет конвертера листов в изображение. Нужен Imagick, pdftoppm или ImageMagick. Пока загрузите страницы как JPG, PNG или WEBP.',
+            'scan' => 'PDF was uploaded, but the first page could not be rendered. Install Imagick, pdftoppm, or keep the Python OCR environment available for PDF fallback.',
         ]);
     }
 
@@ -759,7 +571,7 @@ class BlankScanService
 
         if ($binary === false) {
             throw ValidationException::withMessages([
-                'scan' => 'Не удалось сохранить обработанный скан.',
+                'scan' => 'Could not save the normalized scan image.',
             ]);
         }
 
@@ -775,7 +587,7 @@ class BlankScanService
 
         if (!is_dir($directory) && !mkdir($directory, 0777, true) && !is_dir($directory)) {
             throw ValidationException::withMessages([
-                'scan' => 'Не удалось подготовить временную папку для обработки PDF.',
+                'scan' => 'Could not prepare a temporary directory for PDF processing.',
             ]);
         }
 

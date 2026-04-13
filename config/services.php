@@ -35,4 +35,17 @@ return [
         ],
     ],
 
+    'paddle_ocr' => [
+        'python' => env(
+            'PADDLE_OCR_PYTHON',
+            PHP_OS_FAMILY === 'Windows'
+                ? base_path('.venv\\Scripts\\python.exe')
+                : base_path('.venv/bin/python')
+        ),
+        'entrypoint' => env('PADDLE_OCR_ENTRYPOINT', base_path('ocr_paddle_module/blank_sheet_ocr/cli.py')),
+        'timeout' => env('PADDLE_OCR_TIMEOUT', 60),
+        'fill_threshold' => env('PADDLE_OCR_FILL_THRESHOLD', 0.38),
+        'uncertain_margin' => env('PADDLE_OCR_UNCERTAIN_MARGIN', 0.06),
+    ],
+
 ];

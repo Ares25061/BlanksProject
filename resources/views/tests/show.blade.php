@@ -40,17 +40,9 @@
                         <i class="fas fa-file-excel"></i>
                         Экспорт Excel
                     </button>
-                    <button onclick="openPrintMode('all')" class="bg-white border border-slate-200 text-slate-700 px-4 py-3 rounded-2xl hover:border-sky-300 hover:text-sky-700 transition flex items-center gap-2">
+                    <button onclick="openPrintPreview()" class="bg-white border border-slate-200 text-slate-700 px-4 py-3 rounded-2xl hover:border-sky-300 hover:text-sky-700 transition flex items-center gap-2">
                         <i class="fas fa-print"></i>
-                        Демо-комплект
-                    </button>
-                    <button onclick="openPrintMode('blank')" class="bg-white border border-slate-200 text-slate-700 px-4 py-3 rounded-2xl hover:border-sky-300 hover:text-sky-700 transition flex items-center gap-2">
-                        <i class="fas fa-table"></i>
-                        Только бланк
-                    </button>
-                    <button onclick="openPrintMode('questions')" class="bg-white border border-slate-200 text-slate-700 px-4 py-3 rounded-2xl hover:border-sky-300 hover:text-sky-700 transition flex items-center gap-2">
-                        <i class="fas fa-list"></i>
-                        Только задания
+                        Предпросмотр печати
                     </button>
                     <button onclick="window.location.href='/tests'" class="bg-slate-900 text-white px-4 py-3 rounded-2xl hover:bg-slate-800 transition">
                         Назад
@@ -173,14 +165,8 @@
                                 Сгенерировать бланки
                             </button>
                             <div id="printGeneratedActions" class="hidden flex flex-wrap gap-3">
-                                <button onclick="printGeneratedPack('all')" class="bg-slate-900 text-white px-5 py-3 rounded-2xl hover:bg-slate-800 transition font-medium">
-                                    Пачка: комплект
-                                </button>
-                                <button onclick="printGeneratedPack('blank')" class="bg-white border border-slate-200 text-slate-700 px-5 py-3 rounded-2xl hover:border-sky-300 hover:text-sky-700 transition font-medium">
-                                    Пачка: только бланки
-                                </button>
-                                <button onclick="printGeneratedPack('questions')" class="bg-white border border-slate-200 text-slate-700 px-5 py-3 rounded-2xl hover:border-sky-300 hover:text-sky-700 transition font-medium">
-                                    Пачка: только задания
+                                <button onclick="printGeneratedPack()" class="bg-slate-900 text-white px-5 py-3 rounded-2xl hover:bg-slate-800 transition font-medium">
+                                    Печать пачки
                                 </button>
                             </div>
                         </div>
@@ -317,7 +303,7 @@
 
         if (hasTooManyAnswers) {
             scanSupportNote.classList.remove('hidden');
-            scanSupportNote.textContent = 'В одном или нескольких вопросах больше 5 вариантов ответа. Текущий формат автосканирования поддерживает максимум 5.';
+            scanSupportNote.textContent = 'В одном или нескольких вопросах больше 4 вариантов ответа. Текущий формат автосканирования поддерживает максимум 4.';
             scanButton.disabled = true;
             scanButton.classList.add('opacity-50', 'cursor-not-allowed');
         } else if (answerSheetPageCount > 1) {
@@ -857,14 +843,8 @@
                     </div>
 
                     <div class="flex flex-wrap gap-2 mt-4">
-                        <button onclick="printBlankForm(${blankForm.id}, 'all')" class="bg-white border border-slate-200 text-slate-700 px-4 py-2 rounded-xl hover:border-sky-300 hover:text-sky-700 transition text-sm">
-                            Комплект
-                        </button>
-                        <button onclick="printBlankForm(${blankForm.id}, 'blank')" class="bg-white border border-slate-200 text-slate-700 px-4 py-2 rounded-xl hover:border-sky-300 hover:text-sky-700 transition text-sm">
-                            Бланк
-                        </button>
-                        <button onclick="printBlankForm(${blankForm.id}, 'questions')" class="bg-white border border-slate-200 text-slate-700 px-4 py-2 rounded-xl hover:border-sky-300 hover:text-sky-700 transition text-sm">
-                            Задания
+                        <button onclick="printBlankForm(${blankForm.id})" class="bg-white border border-slate-200 text-slate-700 px-4 py-2 rounded-xl hover:border-sky-300 hover:text-sky-700 transition text-sm">
+                            Печать
                         </button>
                         ${blankForm.status === 'checked' ? `
                             <button onclick="openResultsPage([${blankForm.id}])" class="bg-sky-600 text-white px-4 py-2 rounded-xl hover:bg-sky-500 transition text-sm">
@@ -949,8 +929,8 @@
         }
     }
 
-    function openPrintMode(mode = 'all') {
-        window.location.href = buildPrintUrl([], mode);
+    function openPrintPreview() {
+        window.location.href = buildPrintUrl([]);
     }
 
     async function downloadTestExport(format) {
@@ -980,28 +960,25 @@
         }
     }
 
-    function printGeneratedPack(mode = 'all') {
+    function printGeneratedPack() {
         if (!lastGeneratedBlankIds.length) {
             return;
         }
 
-        window.location.href = buildPrintUrl(lastGeneratedBlankIds, mode);
+        window.location.href = buildPrintUrl(lastGeneratedBlankIds);
     }
 
-    function printBlankForm(blankFormId, mode = 'all') {
-        window.location.href = buildPrintUrl([blankFormId], mode);
+    function printBlankForm(blankFormId) {
+        window.location.href = buildPrintUrl([blankFormId]);
     }
 
-    function buildPrintUrl(blankFormIds = [], mode = 'all') {
+    function buildPrintUrl(blankFormIds = []) {
         const params = new URLSearchParams();
         if (blankFormIds.length) {
             params.set('blank_form_ids', blankFormIds.join(','));
         }
         if (!blankFormIds.length && normalizeVariantCount() > 1) {
             params.set('variant_number', String(clampVariantNumber(sharedVariantNumber)));
-        }
-        if (mode && mode !== 'all') {
-            params.set('print_mode', mode);
         }
 
         const query = params.toString();

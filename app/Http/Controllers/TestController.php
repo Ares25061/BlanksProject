@@ -3,11 +3,11 @@ namespace App\Http\Controllers;
 
 use App\Models\BlankForm;
 use App\Models\Test;
+use App\Services\BlankSheetManifestService;
+use App\Services\BlankSheetQrCodeService;
 use App\Services\TestExportService;
 use App\Services\TestService;
 use App\Services\TestImportService;
-use App\Services\TestPrintLayoutService;
-use App\Services\TestVariantService;
 use App\Support\BlankScanLayout;
 use App\Http\Requests\TestRequest;
 use Illuminate\Http\Request;
@@ -21,22 +21,22 @@ class TestController extends Controller
     protected $testService;
     protected $testImportService;
     protected $testExportService;
-    protected $testPrintLayoutService;
-    protected $testVariantService;
+    protected $blankSheetManifestService;
+    protected $blankSheetQrCodeService;
 
     public function __construct(
         TestService $testService,
         TestImportService $testImportService,
         TestExportService $testExportService,
-        TestPrintLayoutService $testPrintLayoutService,
-        TestVariantService $testVariantService,
+        BlankSheetManifestService $blankSheetManifestService,
+        BlankSheetQrCodeService $blankSheetQrCodeService,
     )
     {
         $this->testService = $testService;
         $this->testImportService = $testImportService;
         $this->testExportService = $testExportService;
-        $this->testPrintLayoutService = $testPrintLayoutService;
-        $this->testVariantService = $testVariantService;
+        $this->blankSheetManifestService = $blankSheetManifestService;
+        $this->blankSheetQrCodeService = $blankSheetQrCodeService;
     }
 
     public function index(Request $request)
@@ -224,22 +224,24 @@ class TestController extends Controller
             ]);
         }
 
-        $printMode = $this->normalizePrintMode((string) $request->query('print_mode', 'all'));
-        $documentTitle = $this->buildPrintDocumentTitle($test, $blankForms, $printMode);
+        $documentTitle = $this->buildPrintDocumentTitle($test, $blankForms);
 
         $loadedTest = $test->load('questions.answers');
-        $answerSheetPagesByBlankForm = $blankForms->mapWithKeys(function (BlankForm $blankForm) use ($loadedTest) {
-            $variantNumber = $this->testVariantService->normalizeVariantNumber($loadedTest, $blankForm->variant_number ?? 1);
+        $sheetPagesByBlankForm = $blankForms->mapWithKeys(function (BlankForm $blankForm) {
+            $pages = (int) $blankForm->id > 0
+                ? $this->blankSheetManifestService->ensurePersisted($blankForm->fresh('test.questions.answers'))
+                : $this->blankSheetManifestService->buildPreview($blankForm->loadMissing('test.questions.answers'));
+
+            $pages = collect($pages)
+                ->map(function (array $page) {
+                    $page['qr_data_uri'] = $this->blankSheetQrCodeService->renderDataUri($page['qr_payload'] ?? []);
+
+                    return $page;
+                })
+                ->all();
 
             return [
-                (int) $blankForm->id => $this->testPrintLayoutService->paginateAnswerSheetQuestions($loadedTest, $variantNumber),
-            ];
-        })->all();
-        $questionPagesByBlankForm = $blankForms->mapWithKeys(function (BlankForm $blankForm) use ($loadedTest) {
-            $variantNumber = $this->testVariantService->normalizeVariantNumber($loadedTest, $blankForm->variant_number ?? 1);
-
-            return [
-                (int) $blankForm->id => $this->testPrintLayoutService->paginateQuestions($loadedTest, $variantNumber),
+                (int) $blankForm->id => $pages,
             ];
         })->all();
 
@@ -247,45 +249,30 @@ class TestController extends Controller
             'test' => $loadedTest,
             'blankForms' => $blankForms,
             'documentTitle' => $documentTitle,
-            'printMode' => $printMode,
-            'answerSheetPagesByBlankForm' => $answerSheetPagesByBlankForm,
-            'questionPagesByBlankForm' => $questionPagesByBlankForm,
+            'sheetPagesByBlankForm' => $sheetPagesByBlankForm,
         ]);
     }
 
-    private function buildPrintDocumentTitle(Test $test, $blankForms, string $printMode): string
+    private function buildPrintDocumentTitle(Test $test, $blankForms): string
     {
         $firstBlankForm = $blankForms->first();
         $studentLabel = trim(implode(' ', array_filter([
             $firstBlankForm?->last_name,
             $firstBlankForm?->first_name,
         ])));
-        $modeLabel = match ($printMode) {
-            'blank' => 'Бланк',
-            'questions' => 'Задания',
-            default => 'Комплект',
-        };
 
         if ($blankForms->count() === 1 && $studentLabel !== '') {
-            return $this->sanitizeDocumentTitle("{$modeLabel} {$studentLabel} {$test->title}");
+            return $this->sanitizeDocumentTitle("Бланк {$studentLabel} {$test->title}");
         }
 
         $groupLabel = trim((string) ($firstBlankForm?->group_name ?? ''));
-        $baseTitle = "{$modeLabel} {$test->title}";
+        $baseTitle = 'Бланки ' . $test->title;
 
         if ($groupLabel !== '') {
             $baseTitle .= " {$groupLabel}";
         }
 
         return $this->sanitizeDocumentTitle($baseTitle);
-    }
-
-    private function normalizePrintMode(string $value): string
-    {
-        return match (Str::lower(trim($value))) {
-            'blank', 'questions' => Str::lower(trim($value)),
-            default => 'all',
-        };
     }
 
     private function sanitizeDocumentTitle(string $value): string

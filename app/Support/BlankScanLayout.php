@@ -30,7 +30,7 @@ class BlankScanLayout
     public const ANSWER_FIELD_RIGHT_PADDING_MM = 1.4;
     public const ANSWER_OPTION_SIZE_MM = 3.2;
     public const ANSWER_OPTION_GAP_MM = 1.1;
-    public const ANSWER_OPTION_COUNT = 5;
+    public const ANSWER_OPTION_COUNT = 4;
     public const CODE_MASK = 0xA5;
 
     public static function maxQuestions(): int
@@ -187,7 +187,7 @@ class BlankScanLayout
 
     public static function answerLetters(): array
     {
-        return ['A', 'B', 'C', 'D', 'E'];
+        return ['A', 'B', 'C', 'D'];
     }
 
     public static function codeGridWidthMm(): float

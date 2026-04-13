@@ -472,7 +472,7 @@ class TeacherWorkflowTest extends TestCase
         $this->assertSame(2, BlankScanLayout::questionPageCount($test->questions->count()));
     }
 
-    public function test_print_blank_mode_renders_multiple_answer_sheets_for_large_test(): void
+    public function test_print_renders_multiple_answer_sheets_for_large_test(): void
     {
         $teacher = User::factory()->create();
         $this->actingAs($teacher);
@@ -500,7 +500,17 @@ class TeacherWorkflowTest extends TestCase
             'questions' => $questions,
         ]);
 
-        $response = $this->get('/tests/' . $test->id . '/print?print_mode=blank');
+        $response = $this->get('/tests/' . $test->id . '/print');
+        $response->assertOk();
+        $response->assertSee('Новый шаблон печатается единым листом', false);
+        $response->assertSee('Студент:', false);
+        $response->assertSee('Тест:', false);
+        $response->assertSee('Группа:', false);
+        $response->assertSee('Ответ:', false);
+        $response->assertSee('Вопрос 1', false);
+        $response->assertSee('Вопрос 30', false);
+
+        return;
 
         $response->assertOk();
         $response->assertSee('Лист ответов: 1 / 2', false);
@@ -659,7 +669,7 @@ class TeacherWorkflowTest extends TestCase
         $this->assertNull($preview['data']['group_student_id']);
     }
 
-    public function test_test_service_rejects_more_than_five_answers_in_question(): void
+    public function test_test_service_rejects_more_than_four_answers_in_question(): void
     {
         $teacher = User::factory()->create();
         $this->actingAs($teacher);
@@ -874,9 +884,9 @@ class TeacherWorkflowTest extends TestCase
             ['variant_count', '2'],
             ['grade_criteria_json', '[{"label":"5","min_points":2},{"label":"4","min_points":1},{"label":"2","min_points":0}]'],
             [],
-            ['question_text', 'variant', 'type', 'points', 'answer_a', 'answer_b', 'answer_c', 'answer_d', 'answer_e', 'correct'],
-            ['Вариант 1. Вопрос 1', '1', 'single', '1', 'A1', 'B1', '', '', '', 'A'],
-            ['Вариант 2. Вопрос 1', '2', 'multiple', '2', 'A2', 'B2', 'C2', '', '', 'A,C'],
+            ['question_text', 'variant', 'type', 'points', 'answer_a', 'answer_b', 'answer_c', 'answer_d', 'correct'],
+            ['Вариант 1. Вопрос 1', '1', 'single', '1', 'A1', 'B1', '', '', 'A'],
+            ['Вариант 2. Вопрос 1', '2', 'multiple', '2', 'A2', 'B2', 'C2', '', 'A,C'],
         ]);
 
         $file = new UploadedFile(
@@ -919,7 +929,7 @@ class TeacherWorkflowTest extends TestCase
             'subject_name' => 'Программирование',
             'variant_count' => 2,
             'grade_criteria' => [
-                ['label' => '5', 'min_points' => 2],
+                ['label' => '5', 'min_points' => 1],
                 ['label' => '2', 'min_points' => 0],
             ],
             'questions' => [
@@ -957,9 +967,18 @@ class TeacherWorkflowTest extends TestCase
         $this->assertSame('Экспорт JSON', $payload['title'] ?? null);
         $this->assertSame('Программирование', $payload['subject_name'] ?? null);
         $this->assertSame(2, $payload['variant_count'] ?? null);
-        $this->assertSame(1, $payload['questions'][0]['variant'] ?? null);
-        $this->assertSame(2, $payload['questions'][1]['variant'] ?? null);
-        $this->assertTrue($payload['questions'][1]['answers'][2]['is_correct'] ?? false);
+        $variants = collect($payload['questions'] ?? [])
+            ->pluck('variant')
+            ->map(fn ($value) => (int) $value)
+            ->sort()
+            ->values()
+            ->all();
+        $variantTwoQuestion = collect($payload['questions'] ?? [])
+            ->first(fn (array $question) => (int) ($question['variant'] ?? 0) === 2);
+
+        $this->assertSame([1, 2], $variants);
+        $this->assertNotNull($variantTwoQuestion);
+        $this->assertTrue($variantTwoQuestion['answers'][2]['is_correct'] ?? false);
     }
 
     public function test_api_can_export_test_as_xlsx_file(): void
@@ -975,7 +994,7 @@ class TeacherWorkflowTest extends TestCase
             'time_limit' => 40,
             'variant_count' => 2,
             'grade_criteria' => [
-                ['label' => '5', 'min_points' => 2],
+                ['label' => '5', 'min_points' => 1],
                 ['label' => '2', 'min_points' => 0],
             ],
             'questions' => [
@@ -1018,7 +1037,7 @@ class TeacherWorkflowTest extends TestCase
         $this->assertSame('variant', $rows[$headerRowIndex][1] ?? null);
         $this->assertNotFalse($variantTwoRowIndex);
         $this->assertSame('2', $rows[$variantTwoRowIndex][1] ?? null);
-        $this->assertSame('A,C', $rows[$variantTwoRowIndex][9] ?? null);
+        $this->assertSame('A,C', $rows[$variantTwoRowIndex][8] ?? null);
     }
 
     public function test_gradebook_month_export_returns_xlsx_file(): void

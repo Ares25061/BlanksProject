@@ -9,8 +9,9 @@
     ],
     "license": "MIT",
     "require": {
-        "ext-gd": "*",
         "php": "^8.2",
+        "ext-gd": "*",
+        "endroid/qr-code": "5.0",
         "laravel/framework": "^12.0",
         "laravel/sanctum": "^4.0",
         "laravel/tinker": "^2.10.1",

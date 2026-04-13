@@ -53,6 +53,9 @@ class TestExportService
     public function buildSpreadsheetPath(Test $test): string
     {
         $payload = $this->buildJsonPayload($test);
+        $answerColumns = collect(BlankScanLayout::answerLetters())
+            ->map(fn (string $letter) => 'answer_' . Str::lower($letter))
+            ->all();
         $rows = [
             ['title', (string) ($payload['title'] ?? '')],
             ['subject_name', (string) ($payload['subject_name'] ?? '')],
@@ -61,7 +64,7 @@ class TestExportService
             ['variant_count', (string) ($payload['variant_count'] ?? 1)],
             ['grade_criteria_json', $this->encodeGradeCriteria($payload['grade_criteria'] ?? [])],
             [],
-            ['question_text', 'variant', 'type', 'points', 'answer_a', 'answer_b', 'answer_c', 'answer_d', 'answer_e', 'correct'],
+            array_merge(['question_text', 'variant', 'type', 'points'], $answerColumns, ['correct']),
         ];
 
         foreach ($payload['questions'] ?? [] as $question) {
