@@ -1,8 +1,9 @@
 {
   "title": "Контрольная работа №1",
   "subject_name": "Программирование",
-  "description": "Пример файла для импорта вопросов в BlanksProject",
+  "description": "Пример файла для импорта вопросов в Провериум",
   "time_limit": 45,
+  "variant_count": 1,
   "grade_criteria": [
     {
       "label": "5 (Отлично)",
@@ -24,6 +25,7 @@
   "questions": [
     {
       "question_text": "Какой цикл выполнится минимум один раз?",
+      "variant": 1,
       "type": "single",
       "points": 1,
       "answers": [
@@ -43,6 +45,7 @@
     },
     {
       "question_text": "Выберите языки программирования",
+      "variant": 1,
       "type": "multiple",
       "points": 2,
       "answers": [
@@ -66,6 +69,7 @@
     },
     {
       "question_text": "Сколько будет 2 + 2?",
+      "variant": 1,
       "type": "single",
       "points": 1,
       "answers": [

@@ -2,33 +2,29 @@
     <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Вход | ТестСистема</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <meta name="csrf-token" content="{{ csrf_token() }}">
+    @include('layouts.head', ['title' => 'Вход'])
 </head>
-<body class="bg-gray-100 min-h-screen">
+<body class="min-h-screen bg-gray-100 dark:bg-slate-950 dark:text-slate-100">
 
 @include('layouts.nav')
 
 <div class="flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
     <div class="max-w-md w-full">
-        <form id="loginForm" class="mt-8 space-y-6 bg-white p-8 rounded-xl shadow-lg border border-gray-200">
-            <h2 class="text-3xl text-center font-bold text-gray-900">Вход в аккаунт</h2>
+        <form id="loginForm" class="mt-8 space-y-6 rounded-xl border border-gray-200 bg-white p-8 shadow-lg dark:border-slate-800 dark:bg-slate-900 dark:shadow-none">
+            <h2 class="text-3xl text-center font-bold text-gray-900 dark:text-white">Вход в аккаунт</h2>
 
             <div id="errorMessage" class="hidden bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded"></div>
             <div id="successMessage" class="hidden bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded"></div>
 
             <div class="space-y-4">
                 <div>
-                    <label for="email" class="block text-sm font-medium text-gray-700 mb-2">Email</label>
+                    <label for="email" class="mb-2 block text-sm font-medium text-gray-700 dark:text-slate-300">Email</label>
                     <input id="email" name="email" type="email" autocomplete="email" required
                            class="appearance-none relative block w-full px-3 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-200"
                            placeholder="Введите ваш email">
                 </div>
                 <div>
-                    <label for="password" class="block text-sm font-medium text-gray-700 mb-2">Пароль</label>
+                    <label for="password" class="mb-2 block text-sm font-medium text-gray-700 dark:text-slate-300">Пароль</label>
                     <input id="password" name="password" type="password" autocomplete="current-password" required
                            class="appearance-none relative block w-full px-3 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-200"
                            placeholder="Введите пароль">
@@ -51,7 +47,7 @@
             </div>
 
             <div class="text-center">
-                <p class="text-sm text-gray-600">
+                <p class="text-sm text-gray-600 dark:text-slate-400">
                     Нет аккаунта?
                     <a href="/user/register" class="font-medium text-blue-500 hover:text-blue-600 transition duration-200">
                         Зарегистрироваться

@@ -1,0 +1,46 @@
+- generic [active] [ref=e1]:
+  - navigation [ref=e2]:
+    - generic [ref=e4]:
+      - generic [ref=e5]:
+        - link "Логотип Провериум Провериум Платформа авто проверки работ" [ref=e6] [cursor=pointer]:
+          - /url: /
+          - img "Логотип Провериум" [ref=e7]
+          - generic [ref=e8]:
+            - generic [ref=e9]: Провериум
+            - generic [ref=e10]: Платформа авто проверки работ
+        - generic [ref=e11]:
+          - link "Тесты" [ref=e12] [cursor=pointer]:
+            - /url: /tests
+            - img [ref=e13]
+            - generic [ref=e15]: Тесты
+          - link "Группы" [ref=e16] [cursor=pointer]:
+            - /url: /groups
+            - img [ref=e17]
+            - generic [ref=e19]: Группы
+      - generic [ref=e20]:
+        - button "Тёмная" [ref=e21] [cursor=pointer]:
+          - img [ref=e23]
+          - generic [ref=e25]: Тёмная
+        - generic [ref=e26]:
+          - link "Вход" [ref=e27] [cursor=pointer]:
+            - /url: /user/login
+          - link "Регистрация" [ref=e28] [cursor=pointer]:
+            - /url: /user/register
+  - generic [ref=e31]:
+    - heading "Вход в аккаунт" [level=2] [ref=e32]
+    - generic [ref=e33]:
+      - generic [ref=e34]:
+        - generic [ref=e35]: Email
+        - textbox "Email" [ref=e36]:
+          - /placeholder: Введите ваш email
+      - generic [ref=e37]:
+        - generic [ref=e38]: Пароль
+        - textbox "Пароль" [ref=e39]:
+          - /placeholder: Введите пароль
+    - link "Забыли пароль?" [ref=e42] [cursor=pointer]:
+      - /url: "#"
+    - button "Войти" [ref=e44] [cursor=pointer]
+    - paragraph [ref=e46]:
+      - text: Нет аккаунта?
+      - link "Зарегистрироваться" [ref=e47] [cursor=pointer]:
+        - /url: /user/register

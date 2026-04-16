@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 220" fill="none">
+  <defs>
+    <linearGradient id="docGradient" x1="28" y1="20" x2="152" y2="186" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#7B74FF"/>
+      <stop offset="1" stop-color="#4D47C8"/>
+    </linearGradient>
+    <linearGradient id="foldGradient" x1="127" y1="12" x2="173" y2="57" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#B4AEFF"/>
+      <stop offset="1" stop-color="#6F69F3"/>
+    </linearGradient>
+    <linearGradient id="checkGradient" x1="12" y1="138" x2="181" y2="30" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#13B57A"/>
+      <stop offset="0.55" stop-color="#21D5A6"/>
+      <stop offset="1" stop-color="#0FB86F"/>
+    </linearGradient>
+    <filter id="shadow" x="0" y="8" width="196" height="188" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="10" stdDeviation="10" flood-color="#020617" flood-opacity="0.34"/>
+    </filter>
+  </defs>
+
+  <g filter="url(#shadow)">
+    <path d="M28 24C28 16.268 34.268 10 42 10H113.5L154 50.5V154C154 161.732 147.732 168 140 168H42C34.268 168 28 161.732 28 154V24Z" fill="url(#docGradient)"/>
+    <path d="M113.5 10L154 50.5H125C118.649 50.5 113.5 45.3513 113.5 39V10Z" fill="url(#foldGradient)"/>
+    <rect x="52" y="54" width="53" height="8.5" rx="4.25" fill="#A7AEFF" fill-opacity="0.72"/>
+    <rect x="52" y="76" width="72" height="8.5" rx="4.25" fill="#A7AEFF" fill-opacity="0.56"/>
+    <rect x="52" y="98" width="58" height="8.5" rx="4.25" fill="#A7AEFF" fill-opacity="0.44"/>
+  </g>
+
+  <path d="M16 139C36 110 51 100 67 100C79 100 90 107 101 124C119 88 141 65 181 39" stroke="#0A8A63" stroke-width="22" stroke-linecap="round" stroke-linejoin="round" opacity="0.18"/>
+  <path d="M16 134C37 106 52 98 68 98C81 98 92 105 102 121C120 85 141 63 181 36" stroke="url(#checkGradient)" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M157 36H181V60" stroke="url(#checkGradient)" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <text x="222" y="104" fill="#8088FF" font-family="'Segoe UI', 'DejaVu Sans', Arial, sans-serif" font-size="74" font-weight="700" letter-spacing="-1.2">Провериум</text>
+  <text x="224" y="152" fill="#CBD5E1" font-family="'Segoe UI', 'DejaVu Sans', Arial, sans-serif" font-size="34" font-weight="500">Платформа авто проверки работ</text>
+</svg>

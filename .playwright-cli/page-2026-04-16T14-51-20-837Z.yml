@@ -1,0 +1,118 @@
+- generic [active] [ref=e1]:
+  - navigation [ref=e2]:
+    - generic [ref=e4]:
+      - generic [ref=e5]:
+        - link "Логотип Провериум Провериум Платформа авто проверки работ" [ref=e6] [cursor=pointer]:
+          - /url: /
+          - img "Логотип Провериум" [ref=e7]
+          - generic [ref=e8]:
+            - generic [ref=e9]: Провериум
+            - generic [ref=e10]: Платформа авто проверки работ
+        - generic [ref=e11]:
+          - link "Тесты" [ref=e12] [cursor=pointer]:
+            - /url: /tests
+            - img [ref=e13]
+            - generic [ref=e15]: Тесты
+          - link "Группы" [ref=e16] [cursor=pointer]:
+            - /url: /groups
+            - img [ref=e17]
+            - generic [ref=e19]: Группы
+      - generic [ref=e20]:
+        - button "Тёмная" [ref=e21] [cursor=pointer]:
+          - img [ref=e23]
+          - generic [ref=e25]: Тёмная
+        - generic [ref=e26]:
+          - link "Вход" [ref=e27] [cursor=pointer]:
+            - /url: /user/login
+          - link "Регистрация" [ref=e28] [cursor=pointer]:
+            - /url: /user/register
+  - main [ref=e29]:
+    - generic [ref=e32]:
+      - generic [ref=e33]:
+        - generic [ref=e34]: OCR, бланки, журнал и проверка в одном рабочем контуре
+        - generic [ref=e36]:
+          - heading "Провериум собирает тест, печатает бланк и сам проверяет работу по скану." [level=1] [ref=e37]
+          - paragraph [ref=e38]: Платформа для преподавателя, где можно быстро выпустить персональные бланки, распознать ответы через OCR, разобрать даже чужой бланк по известному тесту и сразу сохранить результат в журнал группы.
+        - generic [ref=e39]:
+          - link "Начать работу" [ref=e40] [cursor=pointer]:
+            - /url: /user/register
+          - link "Войти в кабинет" [ref=e41] [cursor=pointer]:
+            - /url: /user/login
+          - link "Открыть тесты" [ref=e42] [cursor=pointer]:
+            - /url: /tests
+        - generic [ref=e43]:
+          - article [ref=e44]:
+            - generic [ref=e45]: A4
+            - paragraph [ref=e46]: Бланк размечен под печать и автосканирование без ручной правки макета.
+          - article [ref=e47]:
+            - generic [ref=e48]: OCR
+            - paragraph [ref=e49]: Paddle OCR распознаёт ответы, а система собирает итог по страницам.
+          - article [ref=e50]:
+            - generic [ref=e51]: XLSX
+            - paragraph [ref=e52]: Импорт и экспорт вопросов, а также выгрузка журнала по группе за месяц.
+      - generic [ref=e56]:
+        - img "Провериум" [ref=e58]
+        - generic [ref=e59]:
+          - article [ref=e60]:
+            - generic [ref=e61]: Поток работы
+            - generic [ref=e62]: Создание теста → печать → OCR → журнал
+            - paragraph [ref=e63]: Один маршрут без скачков между разными сервисами и таблицами.
+          - article [ref=e64]:
+            - generic [ref=e65]: Чужой бланк
+            - generic [ref=e66]: Проверка по тесту даже без локального ученика
+            - paragraph [ref=e67]: Если тест известен системе, результат можно разобрать без привязки к вашей группе.
+        - generic [ref=e68]:
+          - generic [ref=e69]: Варианты тестов
+          - generic [ref=e70]: Предпросмотр печати
+          - generic [ref=e71]: Автовыставление оценки
+    - generic [ref=e73]:
+      - article [ref=e74]:
+        - generic [ref=e75]: 1. Конструктор
+        - heading "Тесты, варианты и шкала оценивания" [level=2] [ref=e76]
+        - paragraph [ref=e77]: Создавайте тест с несколькими вариантами, импортируйте вопросы из JSON и XLSX, задавайте баллы и пороги оценок без дополнительной разметки вручную.
+      - article [ref=e78]:
+        - generic [ref=e79]: 2. Бланки
+        - heading "Персональная печать для группы" [level=2] [ref=e80]
+        - paragraph [ref=e81]: Выпускайте бланки на весь поток или только для выбранных учеников. Макет адаптирован под реальную печать на A4 и повторный скан.
+      - article [ref=e82]:
+        - generic [ref=e83]: 3. Проверка
+        - heading "OCR-разбор и журнал группы" [level=2] [ref=e84]
+        - paragraph [ref=e85]: Система распознаёт листы, собирает ответы по страницам и даёт результат, который можно сохранить в журнал и выгрузить в XLSX.
+    - generic [ref=e87]:
+      - generic [ref=e88]:
+        - generic [ref=e89]: Сильные стороны
+        - heading "Не просто генератор тестов, а полный цикл проверки." [level=2] [ref=e90]
+        - generic [ref=e91]:
+          - generic [ref=e92]:
+            - generic [ref=e93]: Разбор даже при неполной локальной базе
+            - paragraph [ref=e94]: Чужой бланк можно распознать и проверить по существующему тесту, даже если такого ученика или группы у вас нет.
+          - generic [ref=e95]:
+            - generic [ref=e96]: Структура под преподавателя
+            - paragraph [ref=e97]: Тесты, группы, печать, OCR и журнал лежат в одном интерфейсе, а не разбросаны по отдельным таблицам и сервисам.
+      - generic [ref=e98]:
+        - generic [ref=e99]:
+          - article [ref=e100]:
+            - generic [ref=e101]: "01"
+            - generic [ref=e102]: Соберите тест
+            - paragraph [ref=e103]: Добавьте вопросы, варианты, критерии оценивания и шаблон ответа.
+          - article [ref=e104]:
+            - generic [ref=e105]: "02"
+            - generic [ref=e106]: Распечатайте бланки
+            - paragraph [ref=e107]: Выпустите персональные листы для группы или конкретных учеников.
+          - article [ref=e108]:
+            - generic [ref=e109]: "03"
+            - generic [ref=e110]: Загрузите сканы
+            - paragraph [ref=e111]: Провериум разложит страницы, распознает ответы и подготовит результат.
+        - generic [ref=e112]:
+          - generic [ref=e113]: Итог
+          - generic [ref=e114]: Результат готов к просмотру, сравнению со сканом и записи в журнал группы.
+    - generic [ref=e118]:
+      - generic [ref=e119]:
+        - generic [ref=e120]: Старт
+        - heading "Запустите кабинет преподавателя и соберите первый тест в Провериуме." [level=2] [ref=e121]
+        - paragraph [ref=e122]: Регистрация занимает минуту, а дальше можно сразу перейти к созданию теста, выпуску бланков и загрузке сканов.
+      - generic [ref=e123]:
+        - link "Создать аккаунт" [ref=e124] [cursor=pointer]:
+          - /url: /user/register
+        - link "Войти" [ref=e125] [cursor=pointer]:
+          - /url: /user/login

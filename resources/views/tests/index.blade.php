@@ -1,14 +1,10 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Тесты | BlanksProject</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <meta name="csrf-token" content="{{ csrf_token() }}">
+    @include('layouts.head', ['title' => 'Тесты'])
+    <link rel='stylesheet' href='https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css'>
 </head>
-<body class="bg-slate-100 min-h-screen text-slate-900">
+<body class="bg-slate-100 min-h-screen text-slate-900 dark:bg-slate-950 dark:text-slate-100">
 
 @include('layouts.nav')
 
@@ -16,12 +12,12 @@
     <div class="flex flex-wrap justify-between items-center gap-4 mb-8">
         <div>
             <p class="text-sm uppercase tracking-[0.3em] text-sky-700 font-semibold">Рабочее место преподавателя</p>
-            <h1 class="text-3xl font-bold text-slate-900 mt-2">Мои тесты</h1>
-            <p class="text-slate-600 mt-2">Создавайте тесты, задавайте критерии оценивания, печатайте персональные бланки и проверяйте сканы.</p>
+            <h1 class="text-3xl font-bold text-slate-900 mt-2 dark:text-white">Мои тесты</h1>
+            <p class="text-slate-600 mt-2 dark:text-slate-400">Создавайте тесты, задавайте критерии оценивания, печатайте персональные бланки и проверяйте сканы.</p>
         </div>
 
         <div class="flex flex-wrap gap-3">
-            <button onclick="window.location.href='/groups'" class="bg-white text-slate-800 px-5 py-3 rounded-xl border border-slate-200 hover:border-sky-300 hover:shadow-sm transition flex items-center gap-2">
+            <button onclick="window.location.href='/groups'" class="bg-white text-slate-800 px-5 py-3 rounded-xl border border-slate-200 hover:border-sky-300 hover:shadow-sm transition flex items-center gap-2 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100 dark:hover:border-sky-400 dark:hover:shadow-none">
                 <i class="fas fa-users"></i>
                 Группы
             </button>
@@ -36,17 +32,17 @@
 
     <div id="loading" class="text-center py-12">
         <div class="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-sky-500"></div>
-        <p class="text-slate-600 mt-4">Загружаю тесты...</p>
+        <p class="text-slate-600 mt-4 dark:text-slate-300">Загружаю тесты...</p>
     </div>
 
     <div id="testsList" class="hidden grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"></div>
 
-    <div id="emptyList" class="hidden text-center py-16 bg-white rounded-2xl shadow-sm border border-slate-200">
-        <svg class="w-24 h-24 text-slate-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <div id="emptyList" class="hidden text-center py-16 bg-white rounded-2xl shadow-sm border border-slate-200 dark:bg-slate-900 dark:border-slate-800 dark:shadow-none">
+        <svg class="w-24 h-24 text-slate-300 mx-auto mb-4 dark:text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
         </svg>
-        <h3 class="text-xl font-semibold text-slate-700 mb-2">Тестов пока нет</h3>
-        <p class="text-slate-500 mb-6">Создайте первый тест и подготовьте персональные бланки для своих групп.</p>
+        <h3 class="text-xl font-semibold text-slate-700 mb-2 dark:text-white">Тестов пока нет</h3>
+        <p class="text-slate-500 mb-6 dark:text-slate-400">Создайте первый тест и подготовьте персональные бланки для своих групп.</p>
         <button onclick="createTest()" class="bg-sky-600 text-white px-6 py-3 rounded-xl hover:bg-sky-500 transition">
             Создать тест
         </button>
@@ -93,40 +89,40 @@
             const gradeCriteriaCount = (test.grade_criteria || []).length;
 
             return `
-                <article class="bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition overflow-hidden">
+                <article class="bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition overflow-hidden dark:bg-slate-900 dark:border-slate-800 dark:shadow-none dark:hover:shadow-none">
                     <div class="h-2 ${test.is_active ? 'bg-emerald-500' : 'bg-slate-300'}"></div>
                     <div class="p-6 space-y-4">
                         <div class="flex justify-between items-start gap-4">
                             <div>
-                                <h3 class="text-xl font-semibold text-slate-900">${escapeHtml(test.title || 'Без названия')}</h3>
-                                <p class="text-slate-500 mt-2">${escapeHtml(test.description || 'Описание не заполнено')}</p>
+                                <h3 class="text-xl font-semibold text-slate-900 dark:text-white">${escapeHtml(test.title || 'Без названия')}</h3>
+                                <p class="text-slate-500 mt-2 dark:text-slate-400">${escapeHtml(test.description || 'Описание не заполнено')}</p>
                             </div>
-                            <span class="px-3 py-1 text-xs rounded-full ${test.is_active ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600'}">
+                            <span class="px-3 py-1 text-xs rounded-full ${test.is_active ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300' : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300'}">
                                 ${test.is_active ? 'Активен' : 'Черновик'}
                             </span>
                         </div>
 
-                        <div class="grid grid-cols-2 gap-3 text-sm text-slate-600">
-                            <div class="bg-slate-50 rounded-xl px-4 py-3">
-                                <div class="text-xs uppercase tracking-wider text-slate-400">Вопросы</div>
-                                <div class="font-semibold text-slate-800 mt-1">${test.questions?.length || 0}</div>
+                        <div class="grid grid-cols-2 gap-3 text-sm text-slate-600 dark:text-slate-300">
+                            <div class="bg-slate-50 rounded-xl px-4 py-3 dark:bg-slate-950/70">
+                                <div class="text-xs uppercase tracking-wider text-slate-400 dark:text-slate-500">Вопросы</div>
+                                <div class="font-semibold text-slate-800 mt-1 dark:text-white">${test.questions?.length || 0}</div>
                             </div>
-                            <div class="bg-slate-50 rounded-xl px-4 py-3">
-                                <div class="text-xs uppercase tracking-wider text-slate-400">Макс. балл</div>
-                                <div class="font-semibold text-slate-800 mt-1">${totalPoints}</div>
+                            <div class="bg-slate-50 rounded-xl px-4 py-3 dark:bg-slate-950/70">
+                                <div class="text-xs uppercase tracking-wider text-slate-400 dark:text-slate-500">Макс. балл</div>
+                                <div class="font-semibold text-slate-800 mt-1 dark:text-white">${totalPoints}</div>
                             </div>
-                            <div class="bg-slate-50 rounded-xl px-4 py-3">
-                                <div class="text-xs uppercase tracking-wider text-slate-400">Оценки</div>
-                                <div class="font-semibold text-slate-800 mt-1">${gradeCriteriaCount}</div>
+                            <div class="bg-slate-50 rounded-xl px-4 py-3 dark:bg-slate-950/70">
+                                <div class="text-xs uppercase tracking-wider text-slate-400 dark:text-slate-500">Оценки</div>
+                                <div class="font-semibold text-slate-800 mt-1 dark:text-white">${gradeCriteriaCount}</div>
                             </div>
-                            <div class="bg-slate-50 rounded-xl px-4 py-3">
-                                <div class="text-xs uppercase tracking-wider text-slate-400">Время</div>
-                                <div class="font-semibold text-slate-800 mt-1">${test.time_limit ? `${test.time_limit} мин` : 'Без лимита'}</div>
+                            <div class="bg-slate-50 rounded-xl px-4 py-3 dark:bg-slate-950/70">
+                                <div class="text-xs uppercase tracking-wider text-slate-400 dark:text-slate-500">Время</div>
+                                <div class="font-semibold text-slate-800 mt-1 dark:text-white">${test.time_limit ? `${test.time_limit} мин` : 'Без лимита'}</div>
                             </div>
                         </div>
 
                         <div class="flex justify-between items-center">
-                            <span class="text-xs text-slate-400">
+                            <span class="text-xs text-slate-400 dark:text-slate-500">
                                 ${test.created_at ? new Date(test.created_at).toLocaleDateString('ru-RU') : ''}
                             </span>
                             <div class="flex items-center gap-2 text-lg">

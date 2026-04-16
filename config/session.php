@@ -2,6 +2,8 @@
 
 use Illuminate\Support\Str;
 
+$appSlug = env('APP_SLUG', Str::slug((string) env('APP_NAME', 'Провериум')) ?: 'proverium');
+
 return [
 
     /*
@@ -129,7 +131,7 @@ return [
 
     'cookie' => env(
         'SESSION_COOKIE',
-        Str::slug((string) env('APP_NAME', 'laravel')).'-session'
+        $appSlug.'-session'
     ),
 
     /*

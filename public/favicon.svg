@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" fill="none">
+  <defs>
+    <linearGradient id="docGradient" x1="20" y1="16" x2="92" y2="108" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#7B74FF"/>
+      <stop offset="1" stop-color="#4D47C8"/>
+    </linearGradient>
+    <linearGradient id="foldGradient" x1="77" y1="12" x2="104" y2="37" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#B4AEFF"/>
+      <stop offset="1" stop-color="#6F69F3"/>
+    </linearGradient>
+    <linearGradient id="checkGradient" x1="10" y1="86" x2="114" y2="22" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#13B57A"/>
+      <stop offset="0.55" stop-color="#21D5A6"/>
+      <stop offset="1" stop-color="#0FB86F"/>
+    </linearGradient>
+  </defs>
+
+  <path d="M22 18C22 12.477 26.477 8 32 8H78.5L102 31.5V100C102 105.523 97.523 110 92 110H32C26.477 110 22 105.523 22 100V18Z" fill="url(#docGradient)"/>
+  <path d="M78.5 8L102 31.5H85C81.41 31.5 78.5 28.59 78.5 25V8Z" fill="url(#foldGradient)"/>
+  <rect x="36" y="32" width="31" height="5.5" rx="2.75" fill="#9EA7FF" fill-opacity="0.72"/>
+  <rect x="36" y="46" width="42" height="5.5" rx="2.75" fill="#9EA7FF" fill-opacity="0.56"/>
+  <rect x="36" y="60" width="34" height="5.5" rx="2.75" fill="#9EA7FF" fill-opacity="0.44"/>
+  <path d="M11 83C24 66 34 60 43 60C51 60 58 64 64 74C76 51 89 37 112 20" stroke="url(#checkGradient)" stroke-width="13" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M98 20H112V34" stroke="url(#checkGradient)" stroke-width="13" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

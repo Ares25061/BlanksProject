@@ -1,11 +1,8 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Журнал группы | BlanksProject</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    @include('layouts.head', ['title' => 'Журнал группы'])
+    <link rel='stylesheet' href='https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css'>
 </head>
 <body class="bg-slate-100 min-h-screen text-slate-900">
 
@@ -86,7 +83,7 @@
                             <button onclick="addDateColumn()" class="bg-emerald-600 text-white px-4 py-3 rounded-2xl hover:bg-emerald-500 transition">
                                 Добавить
                             </button>
-                            <button onclick="addNextMonth()" class="bg-slate-900 text-white px-4 py-3 rounded-2xl hover:bg-slate-800 transition">
+                            <button onclick="addNextMonth()" class="bg-white border border-slate-200 text-slate-700 px-4 py-3 rounded-2xl hover:border-sky-300 hover:text-sky-700 transition">
                                 Добавить месяц
                             </button>
                         </div>
@@ -218,7 +215,7 @@
         } else {
             subjectChips.innerHTML = subjects.map((subject) => `
                 <button onclick="loadGradebook(decodeURIComponent('${encodeForInline(subject)}'))"
-                        class="px-3 py-2 rounded-full text-sm transition ${subject === selectedSubject ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}">
+                        class="px-3 py-2 rounded-full text-sm transition ${subject === selectedSubject ? 'bg-sky-600 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}">
                     ${escapeHtml(subject)}
                 </button>
             `).join('');

@@ -2,6 +2,8 @@
 
 use Illuminate\Support\Str;
 
+$appSlug = env('APP_SLUG', Str::slug((string) env('APP_NAME', 'Провериум')) ?: 'proverium');
+
 return [
 
     /*
@@ -112,6 +114,6 @@ return [
     |
     */
 
-    'prefix' => env('CACHE_PREFIX', Str::slug((string) env('APP_NAME', 'laravel')).'-cache-'),
+    'prefix' => env('CACHE_PREFIX', $appSlug.'-cache-'),
 
 ];

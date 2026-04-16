@@ -5,7 +5,7 @@ use App\Http\Controllers\WebPageController;
 use Illuminate\Support\Facades\Route;
 
 
-Route::redirect('/', '/user/register');
+Route::view('/', 'welcome')->name('home');
 Route::prefix('user')->group(function () {
     Route::view('/login', 'login')->name('login');
     Route::view('/register', 'register')->name('register');

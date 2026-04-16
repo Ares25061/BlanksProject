@@ -1,11 +1,13 @@
 {
     "$schema": "https://getcomposer.org/schema.json",
-    "name": "laravel/laravel",
+    "name": "proverium/platform",
     "type": "project",
-    "description": "The skeleton application for the Laravel framework.",
+    "description": "Platform for test authoring, answer sheet printing, OCR scan checking, and group gradebooks.",
     "keywords": [
-        "laravel",
-        "framework"
+        "education",
+        "ocr",
+        "testing",
+        "laravel"
     ],
     "license": "MIT",
     "require": {

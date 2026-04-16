@@ -2,13 +2,9 @@
     <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Профиль | ТестСистема</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <meta name="csrf-token" content="{{ csrf_token() }}">
+    @include('layouts.head', ['title' => 'Профиль'])
 </head>
-<body class="bg-gray-100 min-h-screen">
+<body class="bg-gray-100 min-h-screen dark:bg-slate-950 dark:text-slate-100">
 
 @include('layouts.nav')
 
@@ -16,7 +12,7 @@
     <!-- Индикатор загрузки -->
     <div id="loading" class="text-center py-8">
         <div class="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-        <p class="text-gray-600 mt-4">Загрузка данных профиля...</p>
+        <p class="text-gray-600 mt-4 dark:text-slate-300">Загрузка данных профиля...</p>
     </div>
 
     <!-- Основной контент -->
@@ -97,11 +93,11 @@
         const initials = user.name ? user.name.charAt(0).toUpperCase() : 'U';
 
         profileContent.innerHTML = `
-            <div class="bg-white rounded-xl shadow-lg overflow-hidden">
-                <div class="bg-gradient-to-r from-blue-500 to-purple-600 p-8 text-white">
+            <div class="bg-white rounded-xl shadow-lg overflow-hidden dark:bg-slate-900 dark:border dark:border-slate-800 dark:shadow-none">
+            <div class="bg-gradient-to-r from-indigo-500 via-indigo-600 to-sky-600 p-8 text-white dark:from-slate-900 dark:via-indigo-950 dark:to-slate-950">
                     <div class="flex flex-col md:flex-row items-center justify-between">
                         <div class="flex items-center space-x-4">
-                            <div class="w-24 h-24 rounded-full bg-white flex items-center justify-center text-3xl font-bold text-blue-600 shadow-lg">
+                <div class="w-24 h-24 rounded-full bg-white flex items-center justify-center text-3xl font-bold text-blue-600 shadow-lg dark:bg-slate-100 dark:text-indigo-700 dark:shadow-none">
                                 ${initials}
                             </div>
                             <div>
@@ -112,34 +108,34 @@
                                 </span>
                             </div>
                         </div>
-                        <button onclick="logout()" class="mt-4 md:mt-0 bg-white text-blue-600 px-4 py-2 rounded-lg font-bold shadow hover:bg-gray-100 transition">
+                        <button onclick="logout()" class="mt-4 md:mt-0 bg-white text-blue-600 px-4 py-2 rounded-lg font-bold shadow hover:bg-gray-100 transition dark:bg-slate-900 dark:text-slate-100 dark:border dark:border-slate-700 dark:hover:bg-slate-800 dark:shadow-none">
                             Выйти
                         </button>
                     </div>
                 </div>
 
                 <div class="p-6">
-                    <h2 class="text-xl font-bold text-gray-800 mb-6 border-b pb-2">Личная информация</h2>
+                    <h2 class="text-xl font-bold text-gray-800 mb-6 border-b pb-2 dark:text-white dark:border-slate-800">Личная информация</h2>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div class="space-y-4">
-                            <div class="border p-4 rounded-lg shadow-sm">
-                                <p class="text-xs text-gray-500 uppercase">Имя</p>
-                                <p class="text-lg font-semibold">${user.name}</p>
+                            <div class="border p-4 rounded-lg shadow-sm dark:border-slate-800 dark:bg-slate-950 dark:shadow-none">
+                                <p class="text-xs text-gray-500 uppercase dark:text-slate-500">Имя</p>
+                                <p class="text-lg font-semibold dark:text-slate-100">${user.name}</p>
                             </div>
-                            <div class="border p-4 rounded-lg shadow-sm">
-                                <p class="text-xs text-gray-500 uppercase">Email</p>
-                                <p class="text-lg font-semibold">${user.email}</p>
+                            <div class="border p-4 rounded-lg shadow-sm dark:border-slate-800 dark:bg-slate-950 dark:shadow-none">
+                                <p class="text-xs text-gray-500 uppercase dark:text-slate-500">Email</p>
+                                <p class="text-lg font-semibold dark:text-slate-100">${user.email}</p>
                             </div>
                         </div>
 
                         <div class="space-y-4">
-                            <div class="border p-4 rounded-lg shadow-sm">
-                                <p class="text-xs text-gray-500 uppercase">Дата регистрации</p>
-                                <p class="font-semibold">${formatDate(user.created_at)}</p>
+                            <div class="border p-4 rounded-lg shadow-sm dark:border-slate-800 dark:bg-slate-950 dark:shadow-none">
+                                <p class="text-xs text-gray-500 uppercase dark:text-slate-500">Дата регистрации</p>
+                                <p class="font-semibold dark:text-slate-100">${formatDate(user.created_at)}</p>
                             </div>
-                            <div class="border p-4 rounded-lg shadow-sm">
-                                <p class="text-xs text-gray-500 uppercase">Статус email</p>
+                            <div class="border p-4 rounded-lg shadow-sm dark:border-slate-800 dark:bg-slate-950 dark:shadow-none">
+                                <p class="text-xs text-gray-500 uppercase dark:text-slate-500">Статус email</p>
                                 <p class="font-bold ${user.email_verified_at ? 'text-green-600' : 'text-orange-600'}">
                                     ${user.email_verified_at ? 'Подтвержден' : 'Ожидает подтверждения'}
                                 </p>
@@ -147,7 +143,7 @@
                         </div>
                     </div>
 
-                    <div class="mt-8 pt-6 border-t flex flex-wrap gap-4 justify-center md:justify-start">
+                    <div class="mt-8 pt-6 border-t flex flex-wrap gap-4 justify-center md:justify-start dark:border-slate-800">
                         <a href="/user/edit" class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium">
                             Редактировать профиль
                         </a>
@@ -156,19 +152,19 @@
             </div>
 
             <div class="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div class="bg-white p-4 rounded-lg shadow border text-center">
-                    <h3 class="text-gray-500 text-sm">Дней в системе</h3>
+                <div class="bg-white p-4 rounded-lg shadow border text-center dark:bg-slate-900 dark:border-slate-800 dark:shadow-none">
+                    <h3 class="text-gray-500 text-sm dark:text-slate-400">Дней в системе</h3>
                     <p class="text-3xl font-bold text-blue-600">
                         ${Math.floor((new Date() - new Date(user.created_at)) / (1000 * 60 * 60 * 24))}
                     </p>
                 </div>
-                <div class="bg-white p-4 rounded-lg shadow border text-center">
-                    <h3 class="text-gray-500 text-sm">Тестов создано</h3>
+                <div class="bg-white p-4 rounded-lg shadow border text-center dark:bg-slate-900 dark:border-slate-800 dark:shadow-none">
+                    <h3 class="text-gray-500 text-sm dark:text-slate-400">Тестов создано</h3>
                     <p class="text-3xl font-bold text-green-600">0</p>
                 </div>
-                <div class="bg-white p-4 rounded-lg shadow border text-center">
-                    <h3 class="text-gray-500 text-sm">ID аккаунта</h3>
-                    <p class="text-xl font-bold text-gray-700">#${user.id}</p>
+                <div class="bg-white p-4 rounded-lg shadow border text-center dark:bg-slate-900 dark:border-slate-800 dark:shadow-none">
+                    <h3 class="text-gray-500 text-sm dark:text-slate-400">ID аккаунта</h3>
+                    <p class="text-xl font-bold text-gray-700 dark:text-slate-100">#${user.id}</p>
                 </div>
             </div>
         `;

@@ -1,37 +1,34 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Группы | BlanksProject</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    @include('layouts.head', ['title' => 'Группы'])
+    <link rel='stylesheet' href='https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css'>
 </head>
-<body class="bg-slate-100 min-h-screen text-slate-900">
+<body class="bg-slate-100 min-h-screen text-slate-900 dark:bg-slate-950 dark:text-slate-100">
 
 @include('layouts.nav')
 
 <div class="max-w-7xl mx-auto px-4 py-8">
     <div class="grid lg:grid-cols-[380px_1fr] gap-6 items-start">
-        <section class="bg-white border border-slate-200 shadow-sm rounded-3xl p-6 sticky top-28">
+        <section class="bg-white border border-slate-200 shadow-sm rounded-3xl p-6 sticky top-28 dark:bg-slate-900 dark:border-slate-800">
             <div class="mb-6">
                 <p class="text-sm uppercase tracking-[0.25em] text-sky-700 font-semibold">Учебные группы</p>
                 <h1 class="text-2xl font-bold mt-2" id="formTitle">Новая группа</h1>
-                <p class="text-slate-500 mt-2">Укажите название группы и список студентов: один ученик на строку, полное ФИО.</p>
+                <p class="text-slate-500 mt-2 dark:text-slate-400">Укажите название группы и список студентов: один ученик на строку, полное ФИО.</p>
             </div>
 
             <form id="groupForm" class="space-y-4">
                 <input type="hidden" id="groupId">
 
                 <div>
-                    <label for="groupName" class="block text-sm font-medium text-slate-700 mb-2">Название группы</label>
+                    <label for="groupName" class="block text-sm font-medium text-slate-700 mb-2 dark:text-slate-300">Название группы</label>
                     <input id="groupName" type="text" required
                            class="w-full px-4 py-3 rounded-2xl border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
                            placeholder="Например: 22ИС4-1">
                 </div>
 
                 <div>
-                    <label for="groupDescription" class="block text-sm font-medium text-slate-700 mb-2">Описание</label>
+                    <label for="groupDescription" class="block text-sm font-medium text-slate-700 mb-2 dark:text-slate-300">Описание</label>
                     <input id="groupDescription" type="text"
                            class="w-full px-4 py-3 rounded-2xl border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
                            placeholder="Классный руководитель, предмет или комментарий">
@@ -39,13 +36,13 @@
 
                 <div>
                     <div class="flex flex-wrap items-center justify-between gap-3 mb-2">
-                        <label for="studentsInput" class="block text-sm font-medium text-slate-700">Список студентов</label>
+                        <label for="studentsInput" class="block text-sm font-medium text-slate-700 dark:text-slate-300">Список студентов</label>
                         <div class="flex flex-wrap gap-2">
                             <input id="studentsImportInput" type="file" accept=".txt,.csv,.tsv" class="hidden">
-                            <button type="button" onclick="triggerStudentsImport()" class="bg-white border border-slate-200 text-slate-700 px-3 py-2 rounded-xl hover:border-sky-300 hover:text-sky-700 transition text-sm">
+                            <button type="button" onclick="triggerStudentsImport()" class="bg-white border border-slate-200 text-slate-700 px-3 py-2 rounded-xl hover:border-sky-300 hover:text-sky-700 transition text-sm dark:bg-slate-950 dark:border-slate-700 dark:text-slate-200 dark:hover:border-sky-400 dark:hover:text-sky-300">
                                 Импорт списка
                             </button>
-                            <button type="button" onclick="exportCurrentStudents()" class="bg-white border border-slate-200 text-slate-700 px-3 py-2 rounded-xl hover:border-sky-300 hover:text-sky-700 transition text-sm">
+                            <button type="button" onclick="exportCurrentStudents()" class="bg-white border border-slate-200 text-slate-700 px-3 py-2 rounded-xl hover:border-sky-300 hover:text-sky-700 transition text-sm dark:bg-slate-950 dark:border-slate-700 dark:text-slate-200 dark:hover:border-sky-400 dark:hover:text-sky-300">
                                 Экспорт из формы
                             </button>
                         </div>
@@ -53,14 +50,14 @@
                     <textarea id="studentsInput" rows="12" required
                               class="w-full px-4 py-3 rounded-2xl border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
                               placeholder="Дудина Софья Романовна&#10;Петров Иван Сергеевич&#10;..."></textarea>
-                    <p class="text-xs text-slate-500 mt-2">Поддерживаются списки в `.txt`, `.csv` и `.tsv`. Пустые строки будут проигнорированы.</p>
+                    <p class="text-xs text-slate-500 mt-2 dark:text-slate-400">Поддерживаются списки в `.txt`, `.csv` и `.tsv`. Пустые строки будут проигнорированы.</p>
                 </div>
 
                 <div class="flex flex-wrap gap-3 pt-2">
                     <button type="submit" class="bg-sky-600 text-white px-5 py-3 rounded-2xl hover:bg-sky-500 transition font-medium">
                         Сохранить группу
                     </button>
-                    <button type="button" onclick="resetForm()" class="bg-slate-100 text-slate-700 px-5 py-3 rounded-2xl hover:bg-slate-200 transition font-medium">
+                    <button type="button" onclick="resetForm()" class="bg-slate-100 text-slate-700 px-5 py-3 rounded-2xl hover:bg-slate-200 transition font-medium dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700">
                         Очистить
                     </button>
                 </div>
@@ -68,11 +65,11 @@
         </section>
 
         <section class="space-y-6">
-            <div class="bg-white border border-slate-200 shadow-sm rounded-3xl p-6">
+            <div class="bg-white border border-slate-200 shadow-sm rounded-3xl p-6 dark:bg-slate-900 dark:border-slate-800">
                 <div class="flex flex-wrap justify-between items-center gap-4">
                     <div>
-                        <h2 class="text-2xl font-bold">Список групп</h2>
-                        <p class="text-slate-500 mt-2">Эти группы используются для персональных бланков и привязки результатов сканирования.</p>
+                        <h2 class="text-2xl font-bold dark:text-white">Список групп</h2>
+                        <p class="text-slate-500 mt-2 dark:text-slate-400">Эти группы используются для персональных бланков и привязки результатов сканирования.</p>
                     </div>
                     <div class="w-full sm:w-80">
                         <input id="searchInput" type="text"
@@ -84,15 +81,15 @@
 
             <div id="loading" class="text-center py-12">
                 <div class="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-sky-500"></div>
-                <p class="text-slate-600 mt-4">Загружаю группы...</p>
+                <p class="text-slate-600 mt-4 dark:text-slate-300">Загружаю группы...</p>
             </div>
 
             <div id="groupsList" class="hidden grid xl:grid-cols-2 gap-6"></div>
 
-            <div id="emptyState" class="hidden bg-white border border-dashed border-slate-300 rounded-3xl p-12 text-center">
-                <i class="fas fa-users text-5xl text-slate-300 mb-4"></i>
-                <h3 class="text-xl font-semibold text-slate-700">Группы еще не добавлены</h3>
-                <p class="text-slate-500 mt-2">Создайте первую группу, чтобы выпускать персональные бланки сразу на весь класс.</p>
+            <div id="emptyState" class="hidden bg-white border border-dashed border-slate-300 rounded-3xl p-12 text-center dark:bg-slate-900 dark:border-slate-700">
+                <i class="fas fa-users text-5xl text-slate-300 mb-4 dark:text-slate-600"></i>
+                <h3 class="text-xl font-semibold text-slate-700 dark:text-white">Группы еще не добавлены</h3>
+                <p class="text-slate-500 mt-2 dark:text-slate-400">Создайте первую группу, чтобы выпускать персональные бланки сразу на весь класс.</p>
             </div>
         </section>
     </div>
@@ -137,16 +134,16 @@
         emptyState.classList.add('hidden');
         groupsList.classList.remove('hidden');
         groupsList.innerHTML = sourceGroups.map((group) => `
-            <article class="bg-white border border-slate-200 shadow-sm rounded-3xl p-6">
+            <article class="bg-white border border-slate-200 shadow-sm rounded-3xl p-6 dark:bg-slate-900 dark:border-slate-800">
                 <div class="flex justify-between items-start gap-4">
                     <div>
                         <div class="flex items-center gap-3 flex-wrap">
-                            <h3 class="text-xl font-semibold">${escapeHtml(group.name)}</h3>
+                            <h3 class="text-xl font-semibold dark:text-white">${escapeHtml(group.name)}</h3>
                             <span class="px-3 py-1 rounded-full text-xs bg-sky-100 text-sky-700">
                                 ${group.students?.length || 0} студентов
                             </span>
                         </div>
-                        <p class="text-slate-500 mt-2">${escapeHtml(group.description || 'Описание не указано')}</p>
+                        <p class="text-slate-500 mt-2 dark:text-slate-400">${escapeHtml(group.description || 'Описание не указано')}</p>
                     </div>
 
                     <div class="flex items-center gap-2 text-lg">
@@ -165,12 +162,12 @@
                     </div>
                 </div>
 
-                <div class="mt-5 bg-slate-50 rounded-2xl p-4 max-h-80 overflow-auto">
-                    <div class="text-xs uppercase tracking-[0.25em] text-slate-400 mb-3">Состав группы</div>
-                    <ol class="space-y-2 text-sm text-slate-700">
+                <div class="mt-5 bg-slate-50 rounded-2xl p-4 max-h-80 overflow-auto dark:bg-slate-950/70">
+                    <div class="text-xs uppercase tracking-[0.25em] text-slate-400 mb-3 dark:text-slate-500">Состав группы</div>
+                    <ol class="space-y-2 text-sm text-slate-700 dark:text-slate-200">
                         ${(group.students || []).map((student, index) => `
                             <li class="flex gap-3 items-start">
-                                <span class="text-slate-400 w-6 pt-0.5">${index + 1}.</span>
+                                <span class="text-slate-400 w-6 pt-0.5 dark:text-slate-500">${index + 1}.</span>
                                 <div class="min-w-0 flex-1">
                                     <div>${escapeHtml(student.full_name)}</div>
                                     <div class="flex flex-wrap gap-2 mt-2">
@@ -195,14 +192,14 @@
         const grades = student.gradebook_entries || [];
 
         if (!grades.length) {
-            return '<span class="text-xs text-slate-400">Оценок пока нет</span>';
+            return '<span class="text-xs text-slate-400 dark:text-slate-500">Оценок пока нет</span>';
         }
 
         return grades.slice(0, 4).map((entry) => `
-            <span class="inline-flex items-center gap-2 rounded-full bg-slate-200 text-slate-700 px-3 py-1 text-xs">
+            <span class="inline-flex items-center gap-2 rounded-full bg-slate-200 text-slate-700 px-3 py-1 text-xs dark:bg-slate-800 dark:text-slate-200">
                 <span>${formatDate(entry.grade_date)}</span>
                 <span class="font-semibold">${escapeHtml(entry.grade_value || '—')}</span>
-                <span class="text-slate-500">${escapeHtml(entry.subject_name || 'Предмет')}</span>
+                <span class="text-slate-500 dark:text-slate-400">${escapeHtml(entry.subject_name || 'Предмет')}</span>
             </span>
         `).join('');
     }

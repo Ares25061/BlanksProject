@@ -1,11 +1,8 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Создание теста | BlanksProject</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    @include('layouts.head', ['title' => 'Создание теста'])
+    <link rel='stylesheet' href='https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css'>
     <style>
         .error-border {
             border-color: #ef4444 !important;
@@ -13,7 +10,7 @@
         }
     </style>
 </head>
-<body class="bg-slate-100 min-h-screen text-slate-900">
+<body class="bg-slate-100 min-h-screen text-slate-900 dark:bg-slate-950 dark:text-slate-100">
 
 @include('layouts.nav')
 
@@ -21,35 +18,35 @@
     <div class="mb-8">
         <p class="text-sm uppercase tracking-[0.3em] text-sky-700 font-semibold">Новый тест</p>
         <h1 class="text-3xl font-bold mt-2">Создание теста</h1>
-        <p class="text-slate-600 mt-2">Соберите вопросы, укажите предмет, баллы и шкалу оценивания, по которой будут считаться результаты сканирования.</p>
+        <p class="text-slate-600 mt-2 dark:text-slate-400">Соберите вопросы, укажите предмет, баллы и шкалу оценивания, по которой будут считаться результаты сканирования.</p>
     </div>
 
     <form id="testForm" class="space-y-6">
-        <section class="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 space-y-4">
+        <section class="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 space-y-4 dark:bg-slate-900 dark:border-slate-800 dark:shadow-none">
             <div class="flex flex-wrap justify-between gap-4 items-center">
                 <h2 class="text-xl font-semibold">Основная информация</h2>
-                <div class="text-sm text-slate-500">
-                    Формат бланка: неограниченное число вопросов и до <span class="font-semibold text-slate-700">4 вариантов ответа</span> на вопрос
+                <div class="text-sm text-slate-500 dark:text-slate-400">
+                    Формат бланка: неограниченное число вопросов и до <span class="font-semibold text-slate-700 dark:text-slate-200">4 вариантов ответа</span> на вопрос
                 </div>
             </div>
 
             <div>
-                <label for="subject_name" class="block text-sm font-medium text-slate-700 mb-2">Предмет</label>
+                <label for="subject_name" class="block text-sm font-medium text-slate-700 mb-2 dark:text-slate-300">Предмет</label>
                 <input id="subject_name" type="text" required
                        class="w-full px-4 py-3 rounded-2xl border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
                        placeholder="Например: Информатика">
-                <p class="text-xs text-slate-500 mt-2">Один и тот же класс можно будет вести по нескольким предметам через отдельные журналы.</p>
+                <p class="text-xs text-slate-500 mt-2 dark:text-slate-400">Один и тот же класс можно будет вести по нескольким предметам через отдельные журналы.</p>
             </div>
 
             <div>
-                <label for="title" class="block text-sm font-medium text-slate-700 mb-2">Название теста</label>
+                <label for="title" class="block text-sm font-medium text-slate-700 mb-2 dark:text-slate-300">Название теста</label>
                 <input id="title" type="text" required
                        class="w-full px-4 py-3 rounded-2xl border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
                        placeholder="Например: Контрольная работа №3">
             </div>
 
             <div>
-                <label for="description" class="block text-sm font-medium text-slate-700 mb-2">Описание</label>
+                <label for="description" class="block text-sm font-medium text-slate-700 mb-2 dark:text-slate-300">Описание</label>
                 <textarea id="description" rows="3"
                           class="w-full px-4 py-3 rounded-2xl border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
                           placeholder="Кратко опишите тему, формат или особенности проведения"></textarea>
@@ -57,22 +54,22 @@
 
             <div class="grid md:grid-cols-3 gap-4">
                 <div>
-                    <label for="time_limit" class="block text-sm font-medium text-slate-700 mb-2">Время выполнения</label>
+                    <label for="time_limit" class="block text-sm font-medium text-slate-700 mb-2 dark:text-slate-300">Время выполнения</label>
                     <input id="time_limit" type="number" min="1"
                            class="w-full px-4 py-3 rounded-2xl border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
                            placeholder="Минуты">
                 </div>
 
                 <div>
-                    <label for="variant_count" class="block text-sm font-medium text-slate-700 mb-2">Количество вариантов</label>
+                    <label for="variant_count" class="block text-sm font-medium text-slate-700 mb-2 dark:text-slate-300">Количество вариантов</label>
                     <input id="variant_count" type="number" min="1" max="10" value="1"
                            class="w-full px-4 py-3 rounded-2xl border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
                            placeholder="От 1 до 10">
-                    <p class="text-xs text-slate-500 mt-2">До 10 вариантов. На печати можно будет выдать всем один вариант, распределить поровну или назначить вручную.</p>
+                    <p class="text-xs text-slate-500 mt-2 dark:text-slate-400">До 10 вариантов. На печати можно будет выдать всем один вариант, распределить поровну или назначить вручную.</p>
                 </div>
 
                 <div>
-                    <label for="is_active" class="block text-sm font-medium text-slate-700 mb-2">Статус</label>
+                    <label for="is_active" class="block text-sm font-medium text-slate-700 mb-2 dark:text-slate-300">Статус</label>
                     <select id="is_active" class="w-full px-4 py-3 rounded-2xl border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500">
                         <option value="1">Активен</option>
                         <option value="0">Черновик</option>
@@ -81,15 +78,15 @@
             </div>
         </section>
 
-        <section class="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 space-y-4">
+        <section class="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 space-y-4 dark:bg-slate-900 dark:border-slate-800 dark:shadow-none">
             <div class="flex flex-wrap justify-between items-start gap-4">
                 <div>
                     <h2 class="text-xl font-semibold">Импорт вопросов</h2>
-                    <p class="text-slate-500 mt-1">Можно загрузить готовый список вопросов из `JSON` или `XLSX` и дальше только подправить его вручную.</p>
+                    <p class="text-slate-500 mt-1 dark:text-slate-400">Можно загрузить готовый список вопросов из `JSON` или `XLSX` и дальше только подправить его вручную.</p>
                 </div>
                 <div class="flex flex-wrap gap-3">
                     <input id="questionsImportInput" type="file" accept=".json,.xlsx" class="hidden">
-                    <button type="button" onclick="document.getElementById('questionsImportInput').click()" class="bg-slate-900 text-white px-4 py-2 rounded-xl hover:bg-slate-800 transition flex items-center gap-2">
+                    <button type="button" onclick="document.getElementById('questionsImportInput').click()" class="bg-white border border-slate-200 text-slate-700 px-4 py-2 rounded-xl hover:border-sky-300 hover:text-sky-700 transition flex items-center gap-2 dark:bg-slate-950 dark:border-slate-700 dark:text-slate-200 dark:hover:border-sky-400 dark:hover:text-sky-300">
                         <i class="fas fa-file-import"></i>
                         Импортировать файл
                     </button>
@@ -97,27 +94,27 @@
             </div>
 
             <div class="grid lg:grid-cols-[1.15fr_0.85fr] gap-4">
-                <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
-                    <div class="font-semibold text-slate-900 mb-2">Поддерживаемый JSON</div>
+                <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700 dark:border-slate-700 dark:bg-slate-950/70 dark:text-slate-300">
+                    <div class="font-semibold text-slate-900 mb-2 dark:text-white">Поддерживаемый JSON</div>
                     <div>Можно загрузить либо старый формат без вариантов, либо новый формат с полем <code>variant</code> у каждого вопроса. Если поле <code>variant</code> не указано, вопрос попадет в вариант <code>1</code>.</div>
                 </div>
-                <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
-                    <div class="font-semibold text-slate-900 mb-2">Поддерживаемый XLSX</div>
+                <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700 dark:border-slate-700 dark:bg-slate-950/70 dark:text-slate-300">
+                    <div class="font-semibold text-slate-900 mb-2 dark:text-white">Поддерживаемый XLSX</div>
                     <div>Первая строка должна быть заголовком. Колонки: <code>question_text</code>, <code>variant</code>, <code>type</code>, <code>points</code>, <code>answer_a</code> ... <code>answer_d</code>, <code>correct</code>.</div>
                     <div class="mt-2">В колонке <code>correct</code> можно писать, например, <code>A</code>, <code>B,D</code> или <code>1 3</code>.</div>
                 </div>
             </div>
 
-            <div id="importStatus" class="hidden rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900"></div>
+            <div id="importStatus" class="hidden rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900 dark:border-emerald-900/50 dark:bg-emerald-950/30 dark:text-emerald-200"></div>
         </section>
 
-        <section class="bg-white rounded-3xl shadow-sm border border-slate-200 p-6">
+        <section class="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 dark:bg-slate-900 dark:border-slate-800 dark:shadow-none">
             <div class="flex flex-wrap justify-between items-center gap-3 mb-4">
                 <div>
                     <h2 class="text-xl font-semibold">Критерии оценивания</h2>
-                    <p class="text-slate-500 mt-1">Шкала используется при автопроверке после загрузки сканов.</p>
+                    <p class="text-slate-500 mt-1 dark:text-slate-400">Шкала используется при автопроверке после загрузки сканов.</p>
                 </div>
-                <button type="button" onclick="fillSuggestedCriteria()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-xl transition">
+                <button type="button" onclick="fillSuggestedCriteria()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-xl transition dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700">
                     Подставить рекомендуемые пороги
                 </button>
             </div>
@@ -129,17 +126,17 @@
                 Добавить уровень оценки
             </button>
 
-                <div class="mt-4 bg-sky-50 border border-sky-100 rounded-2xl p-4 text-sm text-sky-900">
+                <div class="mt-4 bg-sky-50 border border-sky-100 rounded-2xl p-4 text-sm text-sky-900 dark:border-sky-900/50 dark:bg-sky-950/30 dark:text-sky-200">
                     <span id="totalPointsLabel">Текущий максимальный балл по вопросам:</span>
                     <span id="totalPointsSummary" class="font-semibold">0</span>
                 </div>
             </section>
 
-        <section class="bg-white rounded-3xl shadow-sm border border-slate-200 p-6">
+        <section class="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 dark:bg-slate-900 dark:border-slate-800 dark:shadow-none">
             <div class="flex flex-wrap justify-between items-center gap-3 mb-4">
                 <div>
                     <h2 class="text-xl font-semibold">Вопросы</h2>
-                    <p class="text-slate-500 mt-1">Укажите текст, тип и баллы за каждый вопрос. Если вопросов будет много, бланк ответов сам перенесется на следующие листы.</p>
+                    <p class="text-slate-500 mt-1 dark:text-slate-400">Укажите текст, тип и баллы за каждый вопрос. Если вопросов будет много, бланк ответов сам перенесется на следующие листы.</p>
                 </div>
                 <button type="button" onclick="addQuestion()" class="bg-emerald-600 text-white px-4 py-2 rounded-xl hover:bg-emerald-500 transition flex items-center gap-2">
                     <i class="fas fa-plus"></i>
@@ -149,13 +146,13 @@
 
             <div id="questionsContainer" class="space-y-5"></div>
 
-            <div id="noQuestions" class="text-center py-10 border-2 border-dashed border-slate-300 rounded-2xl text-slate-500">
+            <div id="noQuestions" class="text-center py-10 border-2 border-dashed border-slate-300 rounded-2xl text-slate-500 dark:border-slate-700 dark:text-slate-400 dark:bg-slate-950/40">
                 Вопросов пока нет. Добавьте хотя бы один вопрос.
             </div>
         </section>
 
         <div class="flex flex-wrap justify-end gap-3">
-            <button type="button" onclick="window.location.href='/tests'" class="px-6 py-3 rounded-2xl border border-slate-300 text-slate-700 hover:bg-slate-50 transition">
+            <button type="button" onclick="window.location.href='/tests'" class="px-6 py-3 rounded-2xl border border-slate-300 text-slate-700 hover:bg-slate-50 transition dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-900">
                 Отмена
             </button>
             <button type="submit" class="px-6 py-3 rounded-2xl bg-sky-600 text-white hover:bg-sky-500 transition shadow-sm flex items-center gap-2">
@@ -167,9 +164,9 @@
 </div>
 
 <template id="questionTemplate">
-    <article class="question-item border border-slate-200 rounded-3xl p-5 bg-slate-50" data-id="">
+    <article class="question-item border border-slate-200 rounded-3xl p-5 bg-slate-50 dark:border-slate-700 dark:bg-slate-950/70" data-id="">
         <div class="flex justify-between items-start gap-3 mb-4">
-            <h3 class="text-lg font-semibold text-slate-800 question-title"></h3>
+            <h3 class="text-lg font-semibold text-slate-800 question-title dark:text-white"></h3>
             <button type="button" onclick="removeQuestion(this)" class="text-rose-600 hover:text-rose-800">
                 <i class="fas fa-trash"></i>
             </button>
@@ -177,14 +174,14 @@
 
         <div class="space-y-4">
             <div>
-                <label class="block text-sm font-medium text-slate-700 mb-2">Текст вопроса</label>
+                <label class="block text-sm font-medium text-slate-700 mb-2 dark:text-slate-300">Текст вопроса</label>
                 <input type="text" class="question-text w-full px-4 py-3 rounded-2xl border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
                        placeholder="Введите текст вопроса">
             </div>
 
             <div class="grid md:grid-cols-3 gap-4">
                 <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-2">Тип вопроса</label>
+                    <label class="block text-sm font-medium text-slate-700 mb-2 dark:text-slate-300">Тип вопроса</label>
                     <select class="question-type w-full px-4 py-3 rounded-2xl border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500">
                         <option value="single">Один правильный ответ</option>
                         <option value="multiple">Несколько правильных ответов</option>
@@ -192,20 +189,20 @@
                 </div>
 
                 <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-2">Баллы</label>
+                    <label class="block text-sm font-medium text-slate-700 mb-2 dark:text-slate-300">Баллы</label>
                     <input type="number" class="question-points w-full px-4 py-3 rounded-2xl border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500" min="1" value="1">
                 </div>
 
                 <div class="question-variant-wrapper hidden">
-                    <label class="block text-sm font-medium text-slate-700 mb-2">Вариант</label>
+                    <label class="block text-sm font-medium text-slate-700 mb-2 dark:text-slate-300">Вариант</label>
                     <select class="question-variant w-full px-4 py-3 rounded-2xl border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500"></select>
-                    <p class="question-variant-hint text-xs text-slate-500 mt-2">Этот вопрос попадет в выбранный вариант теста.</p>
+                    <p class="question-variant-hint text-xs text-slate-500 mt-2 dark:text-slate-400">Этот вопрос попадет в выбранный вариант теста.</p>
                 </div>
             </div>
 
             <div>
                 <div class="flex justify-between items-center gap-3 mb-2">
-                    <label class="block text-sm font-medium text-slate-700">Варианты ответов</label>
+                    <label class="block text-sm font-medium text-slate-700 dark:text-slate-300">Варианты ответов</label>
                     <button type="button" class="text-sky-600 hover:text-sky-800 text-sm font-medium add-answer-button">
                         <i class="fas fa-plus-circle"></i>
                         Добавить ответ
@@ -229,9 +226,9 @@
 </template>
 
 <template id="gradeCriterionTemplate">
-    <div class="grade-criterion bg-slate-50 border border-slate-200 rounded-2xl p-4">
+    <div class="grade-criterion bg-slate-50 border border-slate-200 rounded-2xl p-4 dark:border-slate-700 dark:bg-slate-950/70">
         <div class="flex justify-between items-center gap-3 mb-3">
-            <label class="text-sm font-medium text-slate-700">Оценка</label>
+            <label class="text-sm font-medium text-slate-700 dark:text-slate-300">Оценка</label>
             <button type="button" onclick="removeGradeCriterion(this)" class="text-rose-500 hover:text-rose-700">
                 <i class="fas fa-times"></i>
             </button>

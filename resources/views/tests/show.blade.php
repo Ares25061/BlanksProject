@@ -1,30 +1,27 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Тест | BlanksProject</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    @include('layouts.head', ['title' => 'Тест'])
+    <link rel='stylesheet' href='https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css'>
 </head>
-<body class="bg-slate-100 min-h-screen text-slate-900">
+<body class="bg-slate-100 min-h-screen text-slate-900 dark:bg-slate-950 dark:text-slate-100">
 
 @include('layouts.nav')
 
 <div class="container mx-auto px-4 py-8 max-w-7xl">
     <div id="loading" class="text-center py-12">
         <div class="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-sky-500"></div>
-        <p class="text-slate-600 mt-4">Загружаю тест...</p>
+        <p class="text-slate-600 mt-4 dark:text-slate-300">Загружаю тест...</p>
     </div>
 
     <div id="pageContent" class="hidden space-y-6">
-        <section class="bg-white rounded-3xl shadow-sm border border-slate-200 p-6">
+        <section class="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 dark:bg-slate-900 dark:border-slate-800">
             <div class="flex flex-wrap justify-between items-start gap-4">
                 <div>
                     <p class="text-sm uppercase tracking-[0.3em] text-sky-700 font-semibold">Карточка теста</p>
                     <h1 id="testTitle" class="text-3xl font-bold mt-2"></h1>
-                    <div id="testSubject" class="text-slate-500 mt-2 font-medium"></div>
-                    <p id="testDescription" class="text-slate-600 mt-3 max-w-3xl"></p>
+                    <div id="testSubject" class="text-slate-500 mt-2 font-medium dark:text-slate-400"></div>
+                    <p id="testDescription" class="text-slate-600 mt-3 max-w-3xl dark:text-slate-300"></p>
                 </div>
 
                 <div class="flex flex-wrap gap-3">
@@ -32,54 +29,54 @@
                         <i class="fas fa-pen"></i>
                         Редактировать
                     </button>
-                    <button onclick="downloadTestExport('json')" class="bg-white border border-slate-200 text-slate-700 px-4 py-3 rounded-2xl hover:border-sky-300 hover:text-sky-700 transition flex items-center gap-2">
+                    <button onclick="downloadTestExport('json')" class="bg-white border border-slate-200 text-slate-700 px-4 py-3 rounded-2xl hover:border-sky-300 hover:text-sky-700 transition flex items-center gap-2 dark:bg-slate-950 dark:border-slate-700 dark:text-slate-200 dark:hover:border-sky-400 dark:hover:text-sky-300">
                         <i class="fas fa-file-code"></i>
                         Экспорт JSON
                     </button>
-                    <button onclick="downloadTestExport('xlsx')" class="bg-white border border-slate-200 text-slate-700 px-4 py-3 rounded-2xl hover:border-sky-300 hover:text-sky-700 transition flex items-center gap-2">
+                    <button onclick="downloadTestExport('xlsx')" class="bg-white border border-slate-200 text-slate-700 px-4 py-3 rounded-2xl hover:border-sky-300 hover:text-sky-700 transition flex items-center gap-2 dark:bg-slate-950 dark:border-slate-700 dark:text-slate-200 dark:hover:border-sky-400 dark:hover:text-sky-300">
                         <i class="fas fa-file-excel"></i>
                         Экспорт Excel
                     </button>
-                    <button onclick="openPrintPreview()" class="bg-white border border-slate-200 text-slate-700 px-4 py-3 rounded-2xl hover:border-sky-300 hover:text-sky-700 transition flex items-center gap-2">
+                    <button onclick="openPrintPreview()" class="bg-white border border-slate-200 text-slate-700 px-4 py-3 rounded-2xl hover:border-sky-300 hover:text-sky-700 transition flex items-center gap-2 dark:bg-slate-950 dark:border-slate-700 dark:text-slate-200 dark:hover:border-sky-400 dark:hover:text-sky-300">
                         <i class="fas fa-print"></i>
                         Предпросмотр печати
                     </button>
-                    <button onclick="window.location.href='/tests'" class="bg-slate-900 text-white px-4 py-3 rounded-2xl hover:bg-slate-800 transition">
+                    <button onclick="window.location.href='/tests'" class="bg-white border border-slate-200 text-slate-700 px-4 py-3 rounded-2xl hover:border-sky-300 hover:text-sky-700 transition dark:bg-slate-950 dark:border-slate-700 dark:text-slate-200 dark:hover:border-sky-400 dark:hover:text-sky-300">
                         Назад
                     </button>
                 </div>
             </div>
 
             <div class="grid md:grid-cols-5 gap-4 mt-6">
-                <div class="bg-slate-50 rounded-2xl p-4">
-                    <div class="text-xs uppercase tracking-[0.25em] text-slate-400">Вопросы</div>
+                <div class="bg-slate-50 rounded-2xl p-4 dark:bg-slate-950/70">
+                    <div class="text-xs uppercase tracking-[0.25em] text-slate-400 dark:text-slate-500">Вопросы</div>
                     <div id="questionCount" class="text-2xl font-bold mt-2">0</div>
                 </div>
-                <div class="bg-slate-50 rounded-2xl p-4">
-                    <div class="text-xs uppercase tracking-[0.25em] text-slate-400">Макс. балл</div>
+                <div class="bg-slate-50 rounded-2xl p-4 dark:bg-slate-950/70">
+                    <div class="text-xs uppercase tracking-[0.25em] text-slate-400 dark:text-slate-500">Макс. балл</div>
                     <div id="maxPoints" class="text-2xl font-bold mt-2">0</div>
                 </div>
-                <div class="bg-slate-50 rounded-2xl p-4">
-                    <div class="text-xs uppercase tracking-[0.25em] text-slate-400">Время</div>
+                <div class="bg-slate-50 rounded-2xl p-4 dark:bg-slate-950/70">
+                    <div class="text-xs uppercase tracking-[0.25em] text-slate-400 dark:text-slate-500">Время</div>
                     <div id="timeLimit" class="text-2xl font-bold mt-2">Без лимита</div>
                 </div>
-                <div class="bg-slate-50 rounded-2xl p-4">
-                    <div class="text-xs uppercase tracking-[0.25em] text-slate-400">Статус</div>
+                <div class="bg-slate-50 rounded-2xl p-4 dark:bg-slate-950/70">
+                    <div class="text-xs uppercase tracking-[0.25em] text-slate-400 dark:text-slate-500">Статус</div>
                     <div id="testStatus" class="text-2xl font-bold mt-2">Черновик</div>
                 </div>
-                <div class="bg-slate-50 rounded-2xl p-4">
-                    <div class="text-xs uppercase tracking-[0.25em] text-slate-400">Варианты</div>
+                <div class="bg-slate-50 rounded-2xl p-4 dark:bg-slate-950/70">
+                    <div class="text-xs uppercase tracking-[0.25em] text-slate-400 dark:text-slate-500">Варианты</div>
                     <div id="variantCount" class="text-2xl font-bold mt-2">1</div>
                 </div>
             </div>
         </section>
 
         <section class="grid xl:grid-cols-[1.2fr_0.8fr] gap-6">
-            <div class="bg-white rounded-3xl shadow-sm border border-slate-200 p-6">
+            <div class="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 dark:bg-slate-900 dark:border-slate-800">
                 <div class="flex justify-between items-center gap-3 mb-4">
                     <div>
-                        <h2 class="text-xl font-semibold">Вопросы</h2>
-                        <p class="text-slate-500 mt-1">Вопросы и правильные ответы теста.</p>
+                        <h2 class="text-xl font-semibold dark:text-white">Вопросы</h2>
+                        <p class="text-slate-500 mt-1 dark:text-slate-400">Вопросы и правильные ответы теста.</p>
                     </div>
                 </div>
 
@@ -87,16 +84,16 @@
             </div>
 
             <div class="space-y-6">
-                <section class="bg-white rounded-3xl shadow-sm border border-slate-200 p-6">
+                <section class="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 dark:bg-slate-900 dark:border-slate-800">
                     <h2 class="text-xl font-semibold">Шкала оценивания</h2>
-                    <p class="text-slate-500 mt-1">Эти пороги применяются при автоматической проверке сканов.</p>
+                    <p class="text-slate-500 mt-1 dark:text-slate-400">Эти пороги применяются при автоматической проверке сканов.</p>
                     <div id="gradeCriteriaList" class="mt-4 space-y-3"></div>
                 </section>
 
-                <section class="bg-white rounded-3xl shadow-sm border border-slate-200 p-6">
+                <section class="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 dark:bg-slate-900 dark:border-slate-800">
                     <h2 class="text-xl font-semibold">Сканирование</h2>
-                    <div id="scanSupportNote" class="mt-3 text-sm rounded-2xl border border-amber-200 bg-amber-50 text-amber-800 p-4 hidden"></div>
-                    <div class="mt-4 text-sm text-slate-600">
+                    <div id="scanSupportNote" class="mt-3 text-sm rounded-2xl border border-amber-200 bg-amber-50 text-amber-800 p-4 hidden dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-200"></div>
+                    <div class="mt-4 text-sm text-slate-600 dark:text-slate-300">
                         Поддерживаются <span class="font-semibold">JPG / PNG / WEBP / PDF</span>. Если загружен PDF, браузер автоматически преобразует все его листы в изображения перед отправкой. Чужие бланки тоже можно распознать, но оценку им поставить нельзя.
                     </div>
                 </section>
@@ -105,11 +102,11 @@
 
         <section id="workflow" class="grid xl:grid-cols-[0.95fr_1.05fr] gap-6">
             <div class="space-y-6">
-                <section class="bg-white rounded-3xl shadow-sm border border-slate-200 p-6">
+                <section class="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 dark:bg-slate-900 dark:border-slate-800">
                     <div class="flex justify-between items-center gap-3">
                         <div>
                             <h2 class="text-xl font-semibold">Выпуск бланков</h2>
-                            <p class="text-slate-500 mt-1">Сгенерируйте персональные бланки для всей группы или только для отмеченных студентов.</p>
+                            <p class="text-slate-500 mt-1 dark:text-slate-400">Сгенерируйте персональные бланки для всей группы или только для отмеченных студентов.</p>
                         </div>
                         <button onclick="window.location.href='/groups'" class="text-sky-600 hover:text-sky-800 text-sm font-medium">
                             Открыть группы
@@ -118,41 +115,41 @@
 
                     <div class="mt-5 space-y-4">
                         <div>
-                            <label for="groupSelect" class="block text-sm font-medium text-slate-700 mb-2">Группа</label>
+                            <label for="groupSelect" class="block text-sm font-medium text-slate-700 mb-2 dark:text-slate-300">Группа</label>
                             <select id="groupSelect" onchange="handleGroupChange()" class="w-full px-4 py-3 rounded-2xl border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500"></select>
                         </div>
 
                         <div>
-                            <div class="block text-sm font-medium text-slate-700 mb-2">Кому выпускать бланки</div>
+                            <div class="block text-sm font-medium text-slate-700 mb-2 dark:text-slate-300">Кому выпускать бланки</div>
                             <div class="grid sm:grid-cols-2 gap-3">
-                                <button id="generateModeAllButton" type="button" onclick="setBlankGenerationMode('all')" class="rounded-2xl border border-slate-300 px-4 py-3 text-left transition hover:border-sky-300 hover:bg-white">
+                                <button id="generateModeAllButton" type="button" onclick="setBlankGenerationMode('all')" class="rounded-2xl border border-slate-300 px-4 py-3 text-left transition hover:border-sky-300 hover:bg-white dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:hover:border-sky-400 dark:hover:bg-slate-900">
                                     <div class="font-semibold">Вся группа</div>
                                     <div class="text-sm mt-1 opacity-80">Бланки будут созданы для каждого студента выбранной группы.</div>
                                 </button>
-                                <button id="generateModeSelectedButton" type="button" onclick="setBlankGenerationMode('selected')" class="rounded-2xl border border-slate-300 px-4 py-3 text-left transition hover:border-sky-300 hover:bg-white">
+                                <button id="generateModeSelectedButton" type="button" onclick="setBlankGenerationMode('selected')" class="rounded-2xl border border-slate-300 px-4 py-3 text-left transition hover:border-sky-300 hover:bg-white dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:hover:border-sky-400 dark:hover:bg-slate-900">
                                     <div class="font-semibold">Только выбранные</div>
                                     <div class="text-sm mt-1 opacity-80">Ниже можно отметить только тех студентов, кому нужны бланки сейчас.</div>
                                 </button>
                             </div>
                         </div>
 
-                        <div class="rounded-3xl border border-slate-200 bg-slate-50 p-4">
-                            <div class="text-sm uppercase tracking-[0.25em] text-slate-400">Варианты</div>
-                            <div id="variantAssignmentSummary" class="text-sm text-slate-600 mt-2">Для этого теста используется один вариант.</div>
+                        <div class="rounded-3xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-950/70">
+                            <div class="text-sm uppercase tracking-[0.25em] text-slate-400 dark:text-slate-500">Варианты</div>
+                            <div id="variantAssignmentSummary" class="text-sm text-slate-600 mt-2 dark:text-slate-400">Для этого теста используется один вариант.</div>
                             <div id="variantAssignmentSettings" class="mt-4 space-y-3"></div>
                         </div>
 
-                        <div class="rounded-3xl border border-slate-200 bg-slate-50 p-4">
+                        <div class="rounded-3xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-950/70">
                             <div class="flex flex-wrap justify-between items-start gap-3">
                                 <div>
-                                    <div class="text-sm uppercase tracking-[0.25em] text-slate-400">Состав группы</div>
-                                    <div id="studentSelectionSummary" class="text-sm text-slate-600 mt-2">Сначала выберите группу.</div>
+                                    <div class="text-sm uppercase tracking-[0.25em] text-slate-400 dark:text-slate-500">Состав группы</div>
+                                    <div id="studentSelectionSummary" class="text-sm text-slate-600 mt-2 dark:text-slate-400">Сначала выберите группу.</div>
                                 </div>
                                 <div class="flex flex-wrap gap-2">
-                                    <button id="selectAllStudentsButton" type="button" onclick="selectAllGroupStudents()" class="bg-white border border-slate-200 text-slate-700 px-3 py-2 rounded-xl hover:border-sky-300 hover:text-sky-700 transition text-sm">
+                                    <button id="selectAllStudentsButton" type="button" onclick="selectAllGroupStudents()" class="bg-white border border-slate-200 text-slate-700 px-3 py-2 rounded-xl hover:border-sky-300 hover:text-sky-700 transition text-sm dark:bg-slate-950 dark:border-slate-700 dark:text-slate-200 dark:hover:border-sky-400 dark:hover:text-sky-300">
                                         Отметить всех
                                     </button>
-                                    <button id="clearStudentsButton" type="button" onclick="clearSelectedGroupStudents()" class="bg-white border border-slate-200 text-slate-700 px-3 py-2 rounded-xl hover:border-sky-300 hover:text-sky-700 transition text-sm">
+                                    <button id="clearStudentsButton" type="button" onclick="clearSelectedGroupStudents()" class="bg-white border border-slate-200 text-slate-700 px-3 py-2 rounded-xl hover:border-sky-300 hover:text-sky-700 transition text-sm dark:bg-slate-950 dark:border-slate-700 dark:text-slate-200 dark:hover:border-sky-400 dark:hover:text-sky-300">
                                         Снять выбор
                                     </button>
                                 </div>
@@ -165,7 +162,7 @@
                                 Сгенерировать бланки
                             </button>
                             <div id="printGeneratedActions" class="hidden flex flex-wrap gap-3">
-                                <button onclick="printGeneratedPack()" class="bg-slate-900 text-white px-5 py-3 rounded-2xl hover:bg-slate-800 transition font-medium">
+                                <button onclick="printGeneratedPack()" class="bg-white border border-slate-200 text-slate-700 px-5 py-3 rounded-2xl hover:border-sky-300 hover:text-sky-700 transition font-medium dark:bg-slate-950 dark:border-slate-700 dark:text-slate-200 dark:hover:border-sky-400 dark:hover:text-sky-300">
                                     Печать пачки
                                 </button>
                             </div>
@@ -173,13 +170,13 @@
                     </div>
                 </section>
 
-                <section class="bg-white rounded-3xl shadow-sm border border-slate-200 p-6">
+                <section class="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 dark:bg-slate-900 dark:border-slate-800">
                     <h2 class="text-xl font-semibold">Загрузка сканов</h2>
-                    <p class="text-slate-500 mt-1">Загрузите отсканированные листы бланков, и система автоматически поставит баллы и оценку.</p>
+                    <p class="text-slate-500 mt-1 dark:text-slate-400">Загрузите отсканированные листы бланков, и система автоматически поставит баллы и оценку.</p>
 
                     <div class="mt-5 space-y-4">
                         <input id="scanFiles" type="file" multiple accept=".jpg,.jpeg,.png,.webp,.pdf"
-                               class="w-full px-4 py-3 rounded-2xl border border-dashed border-slate-300 bg-slate-50">
+                               class="w-full px-4 py-3 rounded-2xl border border-dashed border-slate-300 bg-slate-50 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200">
                         <button id="scanButton" onclick="uploadScans()" class="bg-sky-600 text-white px-5 py-3 rounded-2xl hover:bg-sky-500 transition font-medium">
                             Обработать сканы
                         </button>
@@ -189,11 +186,11 @@
                 </section>
             </div>
 
-            <section class="bg-white rounded-3xl shadow-sm border border-slate-200 p-6">
+            <section class="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 dark:bg-slate-900 dark:border-slate-800">
                 <div class="flex flex-wrap justify-between items-center gap-3 mb-4">
                     <div>
                         <h2 class="text-xl font-semibold">Персональные бланки</h2>
-                        <p class="text-slate-500 mt-1">Список уже выпущенных бланков и результатов проверки.</p>
+                        <p class="text-slate-500 mt-1 dark:text-slate-400">Список уже выпущенных бланков и результатов проверки.</p>
                     </div>
                     <button onclick="loadBlankForms()" class="text-sky-600 hover:text-sky-800 text-sm font-medium">
                         Обновить список
@@ -284,9 +281,9 @@
 
         const criteria = [...(currentTest.grade_criteria || [])].sort((a, b) => b.min_points - a.min_points);
         document.getElementById('gradeCriteriaList').innerHTML = criteria.map((criterion) => `
-            <div class="flex justify-between items-center bg-slate-50 rounded-2xl px-4 py-3">
-                <span class="font-medium text-slate-800">${escapeHtml(criterion.label)}</span>
-                <span class="text-slate-600">от <span class="font-semibold text-slate-900">${criterion.min_points}</span> балл.</span>
+            <div class="flex justify-between items-center bg-slate-50 rounded-2xl px-4 py-3 dark:bg-slate-950/70">
+                <span class="font-medium text-slate-800 dark:text-slate-100">${escapeHtml(criterion.label)}</span>
+                <span class="text-slate-600 dark:text-slate-400">от <span class="font-semibold text-slate-900 dark:text-white">${criterion.min_points}</span> балл.</span>
             </div>
         `).join('');
 
@@ -328,39 +325,39 @@
         return variantSummaries.map((summary) => `
             <section class="space-y-4">
                 ${normalizeVariantCount() > 1 ? `
-                    <div class="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600">
-                        <span class="font-semibold text-slate-900">Вариант ${summary.variantNumber}</span>
+                    <div class="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600 dark:bg-slate-950 dark:border-slate-700 dark:text-slate-300">
+                        <span class="font-semibold text-slate-900 dark:text-white">Вариант ${summary.variantNumber}</span>
                         <span class="ml-3">Вопросов: ${summary.questionCount}</span>
                         <span class="ml-3">Макс. балл: ${summary.score}</span>
                     </div>
                 ` : ''}
                 ${summary.questions.map((questionData) => `
-                    <article class="border border-slate-200 rounded-2xl p-4 ${questionData.question.type === 'multiple' ? 'bg-violet-50' : 'bg-slate-50'}">
+                    <article class="border border-slate-200 rounded-2xl p-4 dark:border-slate-700 ${questionData.question.type === 'multiple' ? 'bg-violet-50 dark:bg-violet-950/20' : 'bg-slate-50 dark:bg-slate-950/70'}">
                         <div class="flex justify-between items-start gap-3">
                             <div>
                                 <div class="flex flex-wrap items-center gap-2">
-                                    <h3 class="font-semibold text-slate-900">${questionData.number}. ${escapeHtml(questionData.question.question_text)}</h3>
+                                    <h3 class="font-semibold text-slate-900 dark:text-white">${questionData.number}. ${escapeHtml(questionData.question.question_text)}</h3>
                                     ${normalizeVariantCount() > 1 ? `
-                                        <span class="bg-white border border-slate-200 rounded-full px-3 py-1 text-xs font-semibold text-slate-700">
+                                        <span class="bg-white border border-slate-200 rounded-full px-3 py-1 text-xs font-semibold text-slate-700 dark:bg-slate-950 dark:border-slate-700 dark:text-slate-200">
                                             Вариант ${summary.variantNumber}
                                         </span>
                                     ` : ''}
                                 </div>
-                                <div class="text-sm text-slate-500 mt-2">
+                                <div class="text-sm text-slate-500 mt-2 dark:text-slate-400">
                                     ${questionData.question.type === 'single' ? 'Один правильный ответ' : 'Несколько правильных ответов'}
                                 </div>
                             </div>
-                            <span class="bg-white border border-slate-200 rounded-full px-3 py-1 text-sm font-semibold text-slate-700">
+                            <span class="bg-white border border-slate-200 rounded-full px-3 py-1 text-sm font-semibold text-slate-700 dark:bg-slate-950 dark:border-slate-700 dark:text-slate-200">
                                 ${questionData.question.points || 1} балл.
                             </span>
                         </div>
 
                         <div class="mt-4 grid gap-2">
                             ${(questionData.question.answers || []).map((answer, answerIndex) => `
-                                <div class="flex items-start gap-3 rounded-xl px-3 py-2 ${answer.is_correct ? 'bg-emerald-100 text-emerald-900' : 'bg-white'}">
+                                <div class="flex items-start gap-3 rounded-xl px-3 py-2 ${answer.is_correct ? 'bg-emerald-100 text-emerald-900 dark:bg-emerald-500/15 dark:text-emerald-100' : 'bg-white text-slate-800 dark:bg-slate-900 dark:text-slate-100'}">
                                     <span class="font-semibold">${String.fromCharCode(65 + answerIndex)}.</span>
                                     <span>${escapeHtml(answer.answer_text)}</span>
-                                    ${answer.is_correct ? '<i class="fas fa-check mt-1 text-emerald-700"></i>' : ''}
+                                    ${answer.is_correct ? '<i class="fas fa-check mt-1 text-emerald-700 dark:text-emerald-300"></i>' : ''}
                                 </div>
                             `).join('')}
                         </div>
@@ -422,7 +419,7 @@
         if (variantCount <= 1) {
             summary.textContent = 'Для этого теста используется один вариант.';
             container.innerHTML = `
-                <div class="rounded-2xl border border-dashed border-slate-300 bg-white px-4 py-4 text-sm text-slate-500">
+                <div class="rounded-2xl border border-dashed border-slate-300 bg-white px-4 py-4 text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-400">
                     Дополнительные настройки вариантов не нужны: у теста только один вариант.
                 </div>
             `;
@@ -459,8 +456,8 @@
                     <button type="button"
                             onclick="setVariantDistributionMode('${button.id}')"
                             class="${blankVariantDistributionMode === button.id
-                                ? 'rounded-2xl border border-slate-900 bg-slate-900 px-4 py-3 text-left transition text-white'
-                                : 'rounded-2xl border border-slate-300 px-4 py-3 text-left transition hover:border-sky-300 hover:bg-white'}">
+                                ? 'rounded-2xl border border-sky-600 bg-sky-600 px-4 py-3 text-left transition text-white'
+                                : 'rounded-2xl border border-slate-300 px-4 py-3 text-left transition hover:border-sky-300 hover:bg-white dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:hover:border-sky-400 dark:hover:bg-slate-900'}">
                         <div class="font-semibold">${button.title}</div>
                         <div class="text-sm mt-1 opacity-80">${button.description}</div>
                     </button>
@@ -468,7 +465,7 @@
             </div>
             ${blankVariantDistributionMode === 'same' ? `
                 <div>
-                    <label for="sharedVariantNumber" class="block text-sm font-medium text-slate-700 mb-2">Общий вариант для всех выбранных</label>
+                    <label for="sharedVariantNumber" class="block text-sm font-medium text-slate-700 mb-2 dark:text-slate-300">Общий вариант для всех выбранных</label>
                     <select id="sharedVariantNumber"
                             onchange="updateSharedVariantNumber(this.value)"
                             class="w-full md:max-w-xs px-4 py-3 rounded-2xl border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500">
@@ -639,11 +636,11 @@
         }
 
         allButton.className = isAllMode
-            ? 'rounded-2xl border border-slate-900 bg-slate-900 px-4 py-3 text-left transition text-white'
-            : 'rounded-2xl border border-slate-300 px-4 py-3 text-left transition hover:border-sky-300 hover:bg-white';
+            ? 'rounded-2xl border border-sky-600 bg-sky-600 px-4 py-3 text-left transition text-white'
+            : 'rounded-2xl border border-slate-300 px-4 py-3 text-left transition hover:border-sky-300 hover:bg-white dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:hover:border-sky-400 dark:hover:bg-slate-900';
         selectedButton.className = !isAllMode
-            ? 'rounded-2xl border border-slate-900 bg-slate-900 px-4 py-3 text-left transition text-white'
-            : 'rounded-2xl border border-slate-300 px-4 py-3 text-left transition hover:border-sky-300 hover:bg-white';
+            ? 'rounded-2xl border border-sky-600 bg-sky-600 px-4 py-3 text-left transition text-white'
+            : 'rounded-2xl border border-slate-300 px-4 py-3 text-left transition hover:border-sky-300 hover:bg-white dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:hover:border-sky-400 dark:hover:bg-slate-900';
     }
 
     function renderGroupStudents() {
@@ -664,7 +661,7 @@
         if (!group) {
             summary.textContent = 'Сначала выберите группу.';
             list.innerHTML = `
-                <div class="sm:col-span-2 rounded-2xl border border-dashed border-slate-300 bg-white px-4 py-6 text-center text-slate-500">
+                <div class="sm:col-span-2 rounded-2xl border border-dashed border-slate-300 bg-white px-4 py-6 text-center text-slate-500 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-400">
                     После выбора группы здесь появится список ее студентов.
                 </div>
             `;
@@ -675,7 +672,7 @@
         if (!students.length) {
             summary.textContent = 'В этой группе пока нет студентов.';
             list.innerHTML = `
-                <div class="sm:col-span-2 rounded-2xl border border-dashed border-slate-300 bg-white px-4 py-6 text-center text-slate-500">
+                <div class="sm:col-span-2 rounded-2xl border border-dashed border-slate-300 bg-white px-4 py-6 text-center text-slate-500 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-400">
                     Добавьте студентов в группу, и после этого можно будет выпускать для них бланки.
                 </div>
             `;
@@ -698,9 +695,9 @@
                 ? (blankVariantDistributionMode === 'custom'
                     ? `
                         <div class="mt-3">
-                            <label class="block text-xs uppercase tracking-[0.2em] text-slate-400 mb-2">Вариант</label>
+                            <label class="block text-xs uppercase tracking-[0.2em] text-slate-400 mb-2 dark:text-slate-500">Вариант</label>
                             <select onchange="updateCustomStudentVariant(${studentId}, this.value)"
-                                    class="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white focus:ring-2 focus:ring-sky-500 focus:border-sky-500 text-sm">
+                                    class="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white focus:ring-2 focus:ring-sky-500 focus:border-sky-500 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200">
                                 ${getAvailableVariantNumbers().map((variantNumber) => `
                                     <option value="${variantNumber}" ${variantNumber === assignedVariant ? 'selected' : ''}>
                                         Вариант ${variantNumber}
@@ -710,7 +707,7 @@
                         </div>
                     `
                     : `
-                        <div class="mt-3 inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
+                        <div class="mt-3 inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-200">
                             <i class="fas fa-layer-group"></i>
                             ${isChecked ? `Вариант ${assignedVariant}` : 'Не выбран для печати'}
                         </div>
@@ -718,13 +715,13 @@
                 : '';
 
             return `
-                <label class="flex items-start gap-3 rounded-2xl border px-4 py-3 cursor-pointer transition ${isChecked ? 'border-sky-300 bg-white shadow-sm' : 'border-slate-200 bg-white hover:border-slate-300'}">
+                <label class="flex items-start gap-3 rounded-2xl border px-4 py-3 cursor-pointer transition ${isChecked ? 'border-sky-300 bg-white shadow-sm dark:border-sky-500/60 dark:bg-slate-900 dark:shadow-none' : 'border-slate-200 bg-white hover:border-slate-300 dark:border-slate-700 dark:bg-slate-950 dark:hover:border-slate-600'}">
                     <input type="checkbox"
                            ${isChecked ? 'checked' : ''}
                            onchange="toggleGroupStudent(${studentId}, this.checked)"
                            class="mt-1 h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500">
                     <div class="min-w-0">
-                        <div class="font-medium text-slate-900">${escapeHtml(student.full_name || 'Без имени')}</div>
+                        <div class="font-medium text-slate-900 dark:text-white">${escapeHtml(student.full_name || 'Без имени')}</div>
                         ${variantBadge}
                     </div>
                 </label>
@@ -801,7 +798,7 @@
 
         if (!blankForms.length) {
             list.innerHTML = `
-                <div class="text-center py-10 rounded-2xl border border-dashed border-slate-300 text-slate-500">
+                <div class="text-center py-10 rounded-2xl border border-dashed border-slate-300 text-slate-500 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-400">
                     Для этого теста пока не выпущено ни одного персонального бланка.
                 </div>
             `;
@@ -810,12 +807,12 @@
 
         list.innerHTML = blankForms.map((blankForm) => {
             const statusMap = {
-                generated: ['Сгенерирован', 'bg-slate-100 text-slate-700'],
-                submitted: ['Загружен', 'bg-amber-100 text-amber-800'],
-                checked: ['Проверен', 'bg-emerald-100 text-emerald-800']
+                generated: ['Сгенерирован', 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200'],
+                submitted: ['Загружен', 'bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300'],
+                checked: ['Проверен', 'bg-emerald-100 text-emerald-800 dark:bg-emerald-500/15 dark:text-emerald-300']
             };
 
-            const [statusLabel, statusClass] = statusMap[blankForm.status] || ['Неизвестно', 'bg-slate-100 text-slate-600'];
+            const [statusLabel, statusClass] = statusMap[blankForm.status] || ['Неизвестно', 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300'];
             const studentName = [blankForm.last_name, blankForm.first_name, blankForm.patronymic].filter(Boolean).join(' ') || 'Без имени';
             const assignedGrade = blankForm.assigned_grade_value
                 ? `${escapeHtml(blankForm.assigned_grade_value)} • ${formatDate(blankForm.assigned_grade_date)}`
@@ -823,27 +820,27 @@
             const variantLabel = `Вариант ${blankForm.variant_number || 1}`;
 
             return `
-                <article class="border border-slate-200 rounded-2xl p-4">
+                <article class="border border-slate-200 rounded-2xl p-4 dark:border-slate-700 dark:bg-slate-950/70">
                     <div class="flex flex-wrap justify-between gap-3">
                         <div>
                             <div class="flex flex-wrap items-center gap-3">
-                                <h3 class="font-semibold text-slate-900">${escapeHtml(studentName)}</h3>
+                                <h3 class="font-semibold text-slate-900 dark:text-white">${escapeHtml(studentName)}</h3>
                                 <span class="px-3 py-1 rounded-full text-xs ${statusClass}">${statusLabel}</span>
-                                <span class="px-3 py-1 rounded-full text-xs bg-slate-100 text-slate-700">${escapeHtml(variantLabel)}</span>
+                                <span class="px-3 py-1 rounded-full text-xs bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200">${escapeHtml(variantLabel)}</span>
                             </div>
-                            <div class="text-sm text-slate-500 mt-2">${escapeHtml(blankForm.group_name || 'Группа не указана')}</div>
-                            <div class="text-xs text-slate-400 mt-2">${escapeHtml(blankForm.form_number || '')}</div>
+                            <div class="text-sm text-slate-500 mt-2 dark:text-slate-400">${escapeHtml(blankForm.group_name || 'Группа не указана')}</div>
+                            <div class="text-xs text-slate-400 mt-2 dark:text-slate-500">${escapeHtml(blankForm.form_number || '')}</div>
                         </div>
 
                         <div class="text-right">
-                            <div class="text-sm text-slate-500">Результат</div>
-                            <div class="font-semibold text-slate-900">${blankForm.total_score ?? '—'} ${blankForm.grade_label ? `• ${escapeHtml(blankForm.grade_label)}` : ''}</div>
-                            ${assignedGrade ? `<div class="text-xs text-slate-500 mt-2">Поставленная оценка: ${assignedGrade}</div>` : ''}
+                            <div class="text-sm text-slate-500 dark:text-slate-400">Результат</div>
+                            <div class="font-semibold text-slate-900 dark:text-white">${blankForm.total_score ?? '—'} ${blankForm.grade_label ? `• ${escapeHtml(blankForm.grade_label)}` : ''}</div>
+                            ${assignedGrade ? `<div class="text-xs text-slate-500 mt-2 dark:text-slate-400">Поставленная оценка: ${assignedGrade}</div>` : ''}
                         </div>
                     </div>
 
                     <div class="flex flex-wrap gap-2 mt-4">
-                        <button onclick="printBlankForm(${blankForm.id})" class="bg-white border border-slate-200 text-slate-700 px-4 py-2 rounded-xl hover:border-sky-300 hover:text-sky-700 transition text-sm">
+                        <button onclick="printBlankForm(${blankForm.id})" class="bg-white border border-slate-200 text-slate-700 px-4 py-2 rounded-xl hover:border-sky-300 hover:text-sky-700 transition text-sm dark:bg-slate-950 dark:border-slate-700 dark:text-slate-200 dark:hover:border-sky-400 dark:hover:text-sky-300">
                             Печать
                         </button>
                         ${blankForm.status === 'checked' ? `
@@ -1196,29 +1193,29 @@
         }
 
         container.innerHTML = results.map((result) => `
-            <article class="rounded-2xl border ${result.status === 'incomplete_scan' ? 'border-amber-200 bg-amber-50' : result.status === 'foreign_preview' ? 'border-slate-200 bg-slate-50' : 'border-emerald-200 bg-emerald-50'} p-4">
+            <article class="rounded-2xl border ${result.status === 'incomplete_scan' ? 'border-amber-200 bg-amber-50 dark:border-amber-900/50 dark:bg-amber-950/30' : result.status === 'foreign_preview' ? 'border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-950/70' : 'border-emerald-200 bg-emerald-50 dark:border-emerald-900/50 dark:bg-emerald-950/20'} p-4">
                 <div class="flex flex-wrap justify-between gap-3">
                     <div>
-                        <div class="font-semibold ${result.status === 'incomplete_scan' ? 'text-amber-900' : result.status === 'foreign_preview' ? 'text-slate-900' : 'text-emerald-900'}">${escapeHtml(result.student_name || 'Без имени')}</div>
-                        <div class="text-sm ${result.status === 'incomplete_scan' ? 'text-amber-800' : result.status === 'foreign_preview' ? 'text-slate-700' : 'text-emerald-800'} mt-1">${escapeHtml(result.file_name || '')}</div>
-                        <div class="text-xs mt-2 ${result.status === 'incomplete_scan' ? 'text-amber-700' : result.status === 'foreign_preview' ? 'text-slate-600' : 'text-emerald-700'}">
+                        <div class="font-semibold ${result.status === 'incomplete_scan' ? 'text-amber-900 dark:text-amber-100' : result.status === 'foreign_preview' ? 'text-slate-900 dark:text-white' : 'text-emerald-900 dark:text-emerald-200'}">${escapeHtml(result.student_name || 'Без имени')}</div>
+                        <div class="text-sm ${result.status === 'incomplete_scan' ? 'text-amber-800 dark:text-amber-200' : result.status === 'foreign_preview' ? 'text-slate-700 dark:text-slate-300' : 'text-emerald-800 dark:text-emerald-300'} mt-1">${escapeHtml(result.file_name || '')}</div>
+                        <div class="text-xs mt-2 ${result.status === 'incomplete_scan' ? 'text-amber-700 dark:text-amber-300' : result.status === 'foreign_preview' ? 'text-slate-600 dark:text-slate-400' : 'text-emerald-700 dark:text-emerald-300'}">
                             ${escapeHtml(result.variant_number ? `Вариант ${result.variant_number}` : '')}
                             ${result.expected_pages ? `${result.variant_number ? ' • ' : ''}Листы: ${(result.pages_processed || []).join(', ') || '—'} из ${result.expected_pages}` : ''}
                         </div>
                     </div>
                     <div class="text-right">
-                        <div class="font-semibold ${result.status === 'incomplete_scan' ? 'text-amber-900' : result.status === 'foreign_preview' ? 'text-slate-900' : 'text-emerald-900'}">${result.score ?? '—'} / ${result.max_score ?? '—'}</div>
-                        <div class="text-sm ${result.status === 'incomplete_scan' ? 'text-amber-800' : result.status === 'foreign_preview' ? 'text-slate-700' : 'text-emerald-800'}">${escapeHtml(result.grade || (result.status === 'incomplete_scan' ? 'Нужно загрузить все листы' : result.status === 'foreign_preview' ? 'Чужой бланк • без оценки' : ''))}</div>
+                        <div class="font-semibold ${result.status === 'incomplete_scan' ? 'text-amber-900 dark:text-amber-100' : result.status === 'foreign_preview' ? 'text-slate-900 dark:text-white' : 'text-emerald-900 dark:text-emerald-200'}">${result.score ?? '—'} / ${result.max_score ?? '—'}</div>
+                        <div class="text-sm ${result.status === 'incomplete_scan' ? 'text-amber-800 dark:text-amber-200' : result.status === 'foreign_preview' ? 'text-slate-700 dark:text-slate-300' : 'text-emerald-800 dark:text-emerald-300'}">${escapeHtml(result.grade || (result.status === 'incomplete_scan' ? 'Нужно загрузить все листы' : result.status === 'foreign_preview' ? 'Чужой бланк • без оценки' : ''))}</div>
                     </div>
                 </div>
                 ${result.warnings?.length ? `
-                    <div class="mt-3 text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-xl p-3">
+                    <div class="mt-3 text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-xl p-3 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-200">
                         ${result.warnings.map((warning) => escapeHtml(warning)).join('<br>')}
                     </div>
                 ` : ''}
                 ${result.preview_token ? `
                     <div class="mt-3 flex justify-end">
-                        <button onclick="openResultsPage([], ['${result.preview_token}'])" class="bg-slate-900 text-white px-4 py-2 rounded-xl hover:bg-slate-800 transition text-sm">
+                        <button onclick="openResultsPage([], ['${result.preview_token}'])" class="bg-sky-600 text-white px-4 py-2 rounded-xl hover:bg-sky-500 transition text-sm">
                             Открыть OCR-разбор
                         </button>
                     </div>

@@ -4,6 +4,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ $documentTitle ?? ('Печать ' . $test->title) }}</title>
+    <script>
+        (() => {
+            const storedTheme = localStorage.getItem('proverium-theme');
+            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            const resolvedTheme = storedTheme === 'dark' || storedTheme === 'light'
+                ? storedTheme
+                : (prefersDark ? 'dark' : 'light');
+
+            document.documentElement.classList.toggle('dark', resolvedTheme === 'dark');
+        })();
+    </script>
     <style>
         @page {
             size: A4 portrait;
@@ -70,6 +81,7 @@
             height: 297mm;
             margin: 0 auto 16px;
             background: #ffffff;
+            color: #111111;
             overflow: hidden;
             box-shadow: 0 18px 48px rgba(15, 23, 42, 0.12);
             page-break-after: always;
@@ -218,6 +230,33 @@
                 margin: 0;
                 box-shadow: none;
             }
+        }
+
+        html.dark body {
+            background: #020617;
+            color: #e2e8f0;
+        }
+
+        html.dark .screen-note {
+            border-color: #334155;
+            background: #0f172a;
+            color: #cbd5e1;
+        }
+
+        html.dark .toolbar .secondary {
+            background: #0f172a;
+            color: #e2e8f0;
+            box-shadow: 0 14px 28px rgba(2, 6, 23, 0.5);
+        }
+
+        html.dark .toolbar .primary {
+            background: #f8fafc;
+            color: #020617;
+            box-shadow: 0 14px 28px rgba(2, 6, 23, 0.5);
+        }
+
+        html.dark .sheet {
+            box-shadow: 0 22px 56px rgba(2, 6, 23, 0.58);
         }
     </style>
 </head>
