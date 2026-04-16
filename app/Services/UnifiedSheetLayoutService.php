@@ -151,6 +151,7 @@ class UnifiedSheetLayoutService
                     ],
                     'footer' => [
                         'text' => trim((string) (($identity['form_number'] ?? '') . ' | ' . $pageNumber . '/' . $pageCount)),
+                        ...UnifiedSheetLayout::footerTextPositionMm(),
                     ],
                     'questions' => array_values($pageQuestions),
                 ];

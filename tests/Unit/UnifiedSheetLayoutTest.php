@@ -14,8 +14,8 @@ class UnifiedSheetLayoutTest extends TestCase
         $this->assertSame(31.0, UnifiedSheetLayout::questionAreaTopMm());
         $this->assertSame(281.0, UnifiedSheetLayout::questionAreaBottomMm());
         $this->assertSame([
-            'x_mm' => 7.0,
-            'y_mm' => 7.0,
+            'x_mm' => 9.5,
+            'y_mm' => 7.5,
         ], UnifiedSheetLayout::markerCentersMm()['top_left']);
 
         $serviceZone = UnifiedSheetLayout::serviceZoneMm();
