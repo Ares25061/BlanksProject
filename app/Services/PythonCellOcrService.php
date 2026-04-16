@@ -7,6 +7,7 @@ use App\Support\Utf8Normalizer;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
+use Symfony\Component\Process\ExecutableFinder;
 use Symfony\Component\Process\Process;
 
 class PythonCellOcrService
@@ -206,30 +207,34 @@ class PythonCellOcrService
 
     protected function resolvePythonExecutable(): string
     {
-        $configured = trim((string) config('services.paddle_ocr.python', ''));
-        $projectVenv = base_path(DIRECTORY_SEPARATOR === '\\' ? '.venv\\Scripts\\python.exe' : '.venv/bin/python');
+        $configured = trim($this->configuredPythonCandidate());
+        $projectVenv = trim($this->projectVenvPythonCandidate());
 
-        if ($projectVenv !== '' && is_file($projectVenv)) {
-            if ($configured === '' || $configured === 'python' || $this->isWindowsStoreAlias($configured)) {
-                return $projectVenv;
+        if ($configured !== '' && $this->isWindowsStoreAlias($configured)) {
+            throw ValidationException::withMessages([
+                'scan' => 'PADDLE_OCR_PYTHON points to the Microsoft Store alias. Use a real interpreter path, for example: ' . $projectVenv,
+            ]);
+        }
+
+        $candidates = array_values(array_filter(array_unique(array_merge(
+            $configured !== '' ? [$configured] : [],
+            $projectVenv !== '' ? [$projectVenv] : [],
+            $this->fallbackPythonCandidates(),
+        ))));
+
+        foreach ($candidates as $candidate) {
+            $resolved = $this->resolvePythonCandidate($candidate);
+
+            if ($resolved !== null) {
+                return $resolved;
             }
         }
 
-        if ($configured !== '') {
-            if ($this->isWindowsStoreAlias($configured)) {
-                throw ValidationException::withMessages([
-                    'scan' => 'PADDLE_OCR_PYTHON points to the Microsoft Store alias. Use a real interpreter path, for example: ' . $projectVenv,
-                ]);
-            }
-
-            return $configured;
-        }
-
-        if ($projectVenv !== '' && is_file($projectVenv)) {
-            return $projectVenv;
-        }
-
-        return 'python';
+        throw ValidationException::withMessages([
+            'scan' => Utf8Normalizer::string(
+                'Python OCR interpreter was not found. Checked: ' . implode(', ', $candidates)
+            ),
+        ]);
     }
 
     protected function isWindowsStoreAlias(string $python): bool
@@ -237,5 +242,44 @@ class PythonCellOcrService
         $normalized = str_replace('/', '\\', strtolower(trim($python)));
 
         return str_contains($normalized, '\\appdata\\local\\microsoft\\windowsapps\\python.exe');
+    }
+
+    protected function configuredPythonCandidate(): string
+    {
+        return (string) config('services.paddle_ocr.python', '');
+    }
+
+    protected function projectVenvPythonCandidate(): string
+    {
+        return base_path(DIRECTORY_SEPARATOR === '\\' ? '.venv\\Scripts\\python.exe' : '.venv/bin/python');
+    }
+
+    protected function fallbackPythonCandidates(): array
+    {
+        return DIRECTORY_SEPARATOR === '\\'
+            ? ['py', 'python']
+            : ['/app/.venv/bin/python', '/mise/shims/python', '/usr/local/bin/python3', '/usr/bin/python3', 'python3', 'python'];
+    }
+
+    protected function resolvePythonCandidate(string $candidate): ?string
+    {
+        $candidate = trim($candidate);
+
+        if ($candidate === '' || $this->isWindowsStoreAlias($candidate)) {
+            return null;
+        }
+
+        if ($this->looksLikePath($candidate)) {
+            return is_file($candidate) ? $candidate : null;
+        }
+
+        return (new ExecutableFinder())->find($candidate) ?: null;
+    }
+
+    protected function looksLikePath(string $candidate): bool
+    {
+        return str_contains($candidate, '/')
+            || str_contains($candidate, '\\')
+            || preg_match('/^[A-Za-z]:/', $candidate) === 1;
     }
 }

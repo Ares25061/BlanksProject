@@ -1,0 +1,37 @@
+{
+  "$schema": "https://schema.railpack.com",
+  "buildAptPackages": [
+    "fonts-dejavu-core",
+    "libglib2.0-0",
+    "libgl1",
+    "libgomp1",
+    "libsm6",
+    "libxext6",
+    "libxrender1"
+  ],
+  "packages": {
+    "python": "3.12"
+  },
+  "steps": {
+    "build": {
+      "commands": [
+        "...",
+        "rm -rf .venv",
+        "python -m venv .venv",
+        ".venv/bin/python -m pip install --upgrade \"pip<26\" setuptools wheel",
+        ".venv/bin/pip install -r ocr_paddle_module/requirements.txt"
+      ]
+    }
+  },
+  "deploy": {
+    "aptPackages": [
+      "fonts-dejavu-core",
+      "libglib2.0-0",
+      "libgl1",
+      "libgomp1",
+      "libsm6",
+      "libxext6",
+      "libxrender1"
+    ]
+  }
+}

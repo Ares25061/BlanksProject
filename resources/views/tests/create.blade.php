@@ -477,6 +477,29 @@
         applyImportedTestData(payload.data || {});
     }
 
+    function getImportedRequiredVariantCount(imported) {
+        const metadataVariantCount = normalizeVariantCountValue(imported?.variant_count);
+        const questionVariants = (imported?.questions || []).map((question) => (
+            parseInt(question?.variant_number ?? question?.variant ?? 1, 10) || 1
+        ));
+        const highestQuestionVariant = questionVariants.length ? Math.max(...questionVariants) : DEFAULT_VARIANT_COUNT;
+
+        return Math.max(metadataVariantCount, highestQuestionVariant);
+    }
+
+    function syncVariantCountFromImportedData(imported, { replaceExisting = false } = {}) {
+        const currentVariantCount = normalizeVariantCountValue();
+        const requiredVariantCount = getImportedRequiredVariantCount(imported);
+        const nextVariantCount = replaceExisting ? requiredVariantCount : Math.max(currentVariantCount, requiredVariantCount);
+
+        if (nextVariantCount === currentVariantCount) {
+            return;
+        }
+
+        document.getElementById('variant_count').value = String(nextVariantCount);
+        refreshQuestionVariantOptions();
+    }
+
     function applyImportedTestData(imported) {
         const importedQuestions = imported.questions || [];
         if (!importedQuestions.length) {
@@ -492,6 +515,7 @@
             document.getElementById('noQuestions').classList.add('hidden');
         }
 
+        syncVariantCountFromImportedData(imported, { replaceExisting: shouldReplace });
         importedQuestions.forEach((question) => addQuestion(question));
         maybeApplyImportedMetadata(imported);
         renderImportStatus(importedQuestions.length, shouldReplace);
@@ -514,10 +538,7 @@
             document.getElementById('time_limit').value = imported.time_limit;
         }
 
-        if (imported.variant_count) {
-            document.getElementById('variant_count').value = imported.variant_count;
-            refreshQuestionVariantOptions();
-        }
+        syncVariantCountFromImportedData(imported);
 
         if ((imported.grade_criteria || []).length && confirm('В файле найдены критерии оценивания. Заменить текущую шкалу?')) {
             document.getElementById('gradeCriteriaContainer').innerHTML = '';

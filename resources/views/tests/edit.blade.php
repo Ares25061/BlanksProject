@@ -514,6 +514,29 @@
         applyImportedTestData(payload.data || {});
     }
 
+    function getImportedRequiredVariantCount(imported) {
+        const metadataVariantCount = normalizeVariantCountValue(imported?.variant_count);
+        const questionVariants = (imported?.questions || []).map((question) => (
+            parseInt(question?.variant_number ?? question?.variant ?? 1, 10) || 1
+        ));
+        const highestQuestionVariant = questionVariants.length ? Math.max(...questionVariants) : DEFAULT_VARIANT_COUNT;
+
+        return Math.max(metadataVariantCount, highestQuestionVariant);
+    }
+
+    function syncVariantCountFromImportedData(imported, { replaceExisting = false } = {}) {
+        const currentVariantCount = normalizeVariantCountValue();
+        const requiredVariantCount = getImportedRequiredVariantCount(imported);
+        const nextVariantCount = replaceExisting ? requiredVariantCount : Math.max(currentVariantCount, requiredVariantCount);
+
+        if (nextVariantCount === currentVariantCount) {
+            return;
+        }
+
+        document.getElementById('variant_count').value = String(nextVariantCount);
+        refreshQuestionVariantOptions();
+    }
+
     function applyImportedTestData(imported) {
         const importedQuestions = imported.questions || [];
         if (!importedQuestions.length) {
@@ -527,12 +550,15 @@
             document.getElementById('noQuestions').classList.add('hidden');
         }
 
+        syncVariantCountFromImportedData(imported, { replaceExisting: shouldReplace });
         importedQuestions.forEach((question) => addQuestion(question));
         maybeApplyImportedMetadata(imported);
         renderImportStatus(importedQuestions.length, shouldReplace);
     }
 
     function maybeApplyImportedMetadata(imported) {
+        syncVariantCountFromImportedData(imported);
+        delete imported.variant_count;
         if (imported.subject_name && confirm('В файле найден предмет. Подставить его в форму?')) {
             document.getElementById('subject_name').value = imported.subject_name;
         }
