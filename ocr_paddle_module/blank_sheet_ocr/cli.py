@@ -22,10 +22,10 @@ DEFAULT_QR_ZONE_MM = {
 }
 
 DEFAULT_MARKER_CENTERS_MM = {
-    "top_left": {"x_mm": 7.0, "y_mm": 7.0},
-    "top_right": {"x_mm": 203.0, "y_mm": 7.0},
-    "bottom_left": {"x_mm": 7.0, "y_mm": 290.0},
-    "bottom_right": {"x_mm": 203.0, "y_mm": 290.0},
+    "top_left": {"x_mm": 9.5, "y_mm": 7.5},
+    "top_right": {"x_mm": 200.5, "y_mm": 7.5},
+    "bottom_left": {"x_mm": 9.5, "y_mm": 287.5},
+    "bottom_right": {"x_mm": 200.5, "y_mm": 287.5},
 }
 
 
@@ -368,9 +368,14 @@ def recognize_questions(image: np.ndarray, manifest: dict[str, Any], threshold: 
 
 
 def handle_identify(image: np.ndarray, request: dict[str, Any]) -> dict[str, Any]:
-    aligned, alignment_debug = align_page(image)
     page_width_mm = float(request.get("page_width_mm", PAGE_WIDTH_MM))
     page_height_mm = float(request.get("page_height_mm", PAGE_HEIGHT_MM))
+    aligned, alignment_debug = align_page(
+        image,
+        request.get("marker_centers_mm") or DEFAULT_MARKER_CENTERS_MM,
+        page_width_mm,
+        page_height_mm,
+    )
     qr_zone = request.get("qr_zone") or DEFAULT_QR_ZONE_MM
     qr_payload = decode_qr_payload(aligned, qr_zone, page_width_mm, page_height_mm)
 
