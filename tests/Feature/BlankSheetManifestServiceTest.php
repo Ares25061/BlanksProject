@@ -68,7 +68,7 @@ class BlankSheetManifestServiceTest extends TestCase
         $blankForm = $blankForm->fresh();
 
         $this->assertCount(1, $pages);
-        $this->assertSame('unified-sheet-v10', data_get($blankForm->metadata, 'print_layout.version'));
+        $this->assertSame('unified-sheet-v11', data_get($blankForm->metadata, 'print_layout.version'));
         $this->assertSame(1, data_get($blankForm->metadata, 'print_layout.page_count'));
 
         $manifestPath = data_get($blankForm->metadata, 'print_layout.pages.0.manifest_path');

@@ -4,7 +4,7 @@ namespace App\Support;
 
 class UnifiedSheetLayout
 {
-    public const VERSION = 'unified-sheet-v10';
+    public const VERSION = 'unified-sheet-v11';
 
     public const PAGE_WIDTH_MM = 210.0;
     public const PAGE_HEIGHT_MM = 297.0;
@@ -18,12 +18,16 @@ class UnifiedSheetLayout
     public const SERVICE_ZONE_HEIGHT_MM = 18.0;
     public const SERVICE_ZONE_INSET_MM = 0.0;
     public const FOOTER_HEIGHT_MM = 4.0;
+    public const FOOTER_TEXT_RIGHT_MM = 17.0;
+    public const FOOTER_TEXT_BOTTOM_MM = 14.0;
     public const QR_SIZE_MM = 18.0;
     public const QR_TOP_OFFSET_MM = 0.0;
     public const QR_GAP_MM = 3.0;
 
     public const MARKER_SIZE_MM = 7.0;
-    public const MARKER_EDGE_OFFSET_MM = 3.5;
+    public const MARKER_SIDE_OFFSET_MM = 6.0;
+    public const MARKER_TOP_OFFSET_MM = 4.0;
+    public const MARKER_BOTTOM_OFFSET_MM = 6.0;
 
     public const QUESTION_GAP_MM = 2.5;
     public const QUESTION_INNER_PADDING_MM = 3.5;
@@ -73,30 +77,32 @@ class UnifiedSheetLayout
     public static function markerRectsMm(): array
     {
         $size = self::MARKER_SIZE_MM;
-        $offset = self::MARKER_EDGE_OFFSET_MM;
+        $sideOffset = self::MARKER_SIDE_OFFSET_MM;
+        $topOffset = self::MARKER_TOP_OFFSET_MM;
+        $bottomOffset = self::MARKER_BOTTOM_OFFSET_MM;
 
         return [
             'top_left' => [
-                'left_mm' => $offset,
-                'top_mm' => $offset,
+                'left_mm' => $sideOffset,
+                'top_mm' => $topOffset,
                 'width_mm' => $size,
                 'height_mm' => $size,
             ],
             'top_right' => [
-                'left_mm' => self::PAGE_WIDTH_MM - $offset - $size,
-                'top_mm' => $offset,
+                'left_mm' => self::PAGE_WIDTH_MM - $sideOffset - $size,
+                'top_mm' => $topOffset,
                 'width_mm' => $size,
                 'height_mm' => $size,
             ],
             'bottom_left' => [
-                'left_mm' => $offset,
-                'top_mm' => self::PAGE_HEIGHT_MM - $offset - $size,
+                'left_mm' => $sideOffset,
+                'top_mm' => self::PAGE_HEIGHT_MM - $bottomOffset - $size,
                 'width_mm' => $size,
                 'height_mm' => $size,
             ],
             'bottom_right' => [
-                'left_mm' => self::PAGE_WIDTH_MM - $offset - $size,
-                'top_mm' => self::PAGE_HEIGHT_MM - $offset - $size,
+                'left_mm' => self::PAGE_WIDTH_MM - $sideOffset - $size,
+                'top_mm' => self::PAGE_HEIGHT_MM - $bottomOffset - $size,
                 'width_mm' => $size,
                 'height_mm' => $size,
             ],
@@ -135,6 +141,14 @@ class UnifiedSheetLayout
             'top_mm' => self::SERVICE_ZONE_TOP_MM + self::QR_TOP_OFFSET_MM,
             'width_mm' => self::QR_SIZE_MM,
             'height_mm' => self::QR_SIZE_MM,
+        ];
+    }
+
+    public static function footerTextPositionMm(): array
+    {
+        return [
+            'right_mm' => self::FOOTER_TEXT_RIGHT_MM,
+            'bottom_mm' => self::FOOTER_TEXT_BOTTOM_MM,
         ];
     }
 

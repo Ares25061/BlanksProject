@@ -15,6 +15,7 @@ class PythonCellOcrService
         $payload = $this->runPython([
             'operation' => 'identify',
             'image_path' => $imagePath,
+            'marker_centers_mm' => UnifiedSheetLayout::markerCentersMm(),
             'qr_zone' => UnifiedSheetLayout::qrZoneMm(),
             'page_width_mm' => UnifiedSheetLayout::PAGE_WIDTH_MM,
             'page_height_mm' => UnifiedSheetLayout::PAGE_HEIGHT_MM,

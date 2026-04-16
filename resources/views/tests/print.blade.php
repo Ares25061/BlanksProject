@@ -199,8 +199,6 @@
 
         .footer-line {
             position: absolute;
-            right: 11mm;
-            bottom: 8.5mm;
             font-size: 3.05mm;
             line-height: 1;
         }
@@ -349,7 +347,13 @@
                 </article>
             @endforeach
 
-            <div class="footer-line">
+            <div
+                class="footer-line"
+                style="
+                    right: {{ $page['footer']['right_mm'] ?? 17 }}mm;
+                    bottom: {{ $page['footer']['bottom_mm'] ?? 14 }}mm;
+                "
+            >
                 {{ $page['footer']['text'] ?? '' }}
             </div>
         </section>
