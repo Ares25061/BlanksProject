@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Support\UnifiedSheetLayout;
 use App\Support\Utf8Normalizer;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\Process\Process;
 
@@ -114,12 +115,71 @@ class PythonCellOcrService
                 $timeoutSeconds
             );
 
-            $process->run();
+            try {
+                $process->run();
+            } catch (\Throwable $exception) {
+                Log::warning('Python OCR process failed to start.', [
+                    'operation' => $request['operation'] ?? null,
+                    'python' => $python,
+                    'entrypoint' => $entrypoint,
+                    'image_path' => $request['image_path'] ?? null,
+                    'output_path' => $request['output_path'] ?? null,
+                    'exception' => Utf8Normalizer::string($exception->getMessage()),
+                ]);
+
+                throw ValidationException::withMessages([
+                    'scan' => Utf8Normalizer::string(
+                        'Python OCR process failed to start: ' . ($exception->getMessage() ?: 'unknown error')
+                    ),
+                ]);
+            }
 
             if (!$process->isSuccessful()) {
-                $message = trim($process->getErrorOutput()) ?: trim($process->getOutput());
-                $message = Utf8Normalizer::string($message);
-                $message = $message !== '' ? $message : 'Python OCR failed.';
+                $stderr = trim($process->getErrorOutput());
+                $stdout = trim($process->getOutput());
+                $message = Utf8Normalizer::string($stderr !== '' ? $stderr : $stdout);
+
+                if ($message === '') {
+                    $details = [];
+                    $exitCode = $process->getExitCode();
+
+                    if ($exitCode !== null) {
+                        $details[] = 'exit code ' . $exitCode;
+                    }
+
+                    if (method_exists($process, 'hasBeenSignaled') && $process->hasBeenSignaled()) {
+                        $signal = $process->getTermSignal();
+
+                        if ($signal !== null) {
+                            $details[] = 'signal ' . $signal;
+                        }
+                    }
+
+                    $message = 'Python OCR failed';
+
+                    if (!empty($request['operation'])) {
+                        $message .= ' during ' . $request['operation'];
+                    }
+
+                    if ($details !== []) {
+                        $message .= ' (' . implode(', ', $details) . ')';
+                    }
+
+                    $message .= '. Check server logs for process stderr/stdout.';
+                }
+
+                Log::warning('Python OCR process exited unsuccessfully.', [
+                    'operation' => $request['operation'] ?? null,
+                    'python' => $python,
+                    'entrypoint' => $entrypoint,
+                    'image_path' => $request['image_path'] ?? null,
+                    'output_path' => $request['output_path'] ?? null,
+                    'exit_code' => $process->getExitCode(),
+                    'stderr' => Utf8Normalizer::string($stderr),
+                    'stdout' => Utf8Normalizer::string($stdout),
+                    'has_manifest' => array_key_exists('manifest', $request),
+                    'request_meta' => Arr::except($request, ['manifest']),
+                ]);
 
                 throw ValidationException::withMessages([
                     'scan' => Utf8Normalizer::string('Python OCR error: ' . $message),

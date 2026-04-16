@@ -8,12 +8,6 @@ from typing import Any
 
 import cv2
 import numpy as np
-import pypdfium2 as pdfium
-
-try:
-    import zxingcpp
-except Exception:  # pragma: no cover - optional runtime dependency
-    zxingcpp = None
 
 TARGET_WIDTH_PX = 2480
 TARGET_HEIGHT_PX = 3508
@@ -43,6 +37,15 @@ def parse_args() -> argparse.Namespace:
 
 def load_request(path: str | Path) -> dict[str, Any]:
     return json.loads(Path(path).read_text(encoding="utf-8-sig"))
+
+
+def load_zxingcpp() -> Any | None:
+    try:
+        import zxingcpp
+    except Exception:  # pragma: no cover - optional runtime dependency
+        return None
+
+    return zxingcpp
 
 
 def normalize_image(image: np.ndarray) -> np.ndarray:
@@ -224,18 +227,10 @@ def decode_qr_payload(
     page_height_mm: float = PAGE_HEIGHT_MM,
 ) -> dict[str, Any] | None:
     detector = cv2.QRCodeDetector()
+    zxingcpp_module: Any | None = None
 
     for region in qr_candidate_regions(image, qr_zone, page_width_mm, page_height_mm):
         for candidate in candidate_qr_images(region):
-            if zxingcpp is not None:
-                try:
-                    for barcode in zxingcpp.read_barcodes(candidate):
-                        parsed = try_parse_qr_text(getattr(barcode, "text", ""))
-                        if parsed:
-                            return parsed
-                except Exception:
-                    pass
-
             decoded_text, _, _ = detector.detectAndDecode(candidate)
             parsed = try_parse_qr_text(decoded_text)
             if parsed:
@@ -247,6 +242,20 @@ def decode_qr_payload(
                     parsed = try_parse_qr_text(text)
                     if parsed:
                         return parsed
+
+            if zxingcpp_module is None:
+                zxingcpp_module = load_zxingcpp()
+
+            if zxingcpp_module is None:
+                continue
+
+            try:
+                for barcode in zxingcpp_module.read_barcodes(candidate):
+                    parsed = try_parse_qr_text(getattr(barcode, "text", ""))
+                    if parsed:
+                        return parsed
+            except Exception:
+                pass
 
     return None
 
@@ -396,6 +405,11 @@ def handle_recognize(image: np.ndarray, request: dict[str, Any]) -> dict[str, An
 
 
 def render_pdf_first_page(pdf_path: Path, output_path: Path) -> dict[str, Any]:
+    try:
+        import pypdfium2 as pdfium
+    except Exception as exc:
+        raise RuntimeError(f"pypdfium2 is unavailable for PDF rendering: {exc}") from exc
+
     document = pdfium.PdfDocument(str(pdf_path))
     if len(document) == 0:
         raise ValueError(f"PDF has no pages: {pdf_path}")
