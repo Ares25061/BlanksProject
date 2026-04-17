@@ -495,13 +495,17 @@ class ElectronicTestService
         });
     }
 
-    public function appendAttemptLog(ElectronicTestAttempt $attempt, array $data): ElectronicTestLog
+    public function appendAttemptLog(ElectronicTestAttempt $attempt, array $data): ?ElectronicTestLog
     {
         $eventType = trim((string) ($data['event_type'] ?? ''));
         if ($eventType === '') {
             throw ValidationException::withMessages([
                 'event_type' => 'Не указан тип события журнала.',
             ]);
+        }
+
+        if (in_array((string) $attempt->status, ['submitted', 'reviewed'], true) && $eventType !== 'submit') {
+            return null;
         }
 
         return ElectronicTestLog::create([
@@ -624,9 +628,10 @@ class ElectronicTestService
     private function serializeAttemptForTeacher(ElectronicTestAttempt $attempt): array
     {
         $summary = $this->serializeAttemptSummaryForTeacher($attempt);
+        $visibleLogs = $this->visibleAttemptLogs($attempt);
 
         return array_merge($summary, [
-            'logs' => $attempt->logs->map(fn (ElectronicTestLog $log) => [
+            'logs' => $visibleLogs->map(fn (ElectronicTestLog $log) => [
                 'id' => $log->id,
                 'event_type' => $log->event_type,
                 'event_label' => $this->eventTypeLabel((string) $log->event_type),
@@ -658,7 +663,8 @@ class ElectronicTestService
 
     private function serializeAttemptSummaryForTeacher(ElectronicTestAttempt $attempt): array
     {
-        $logSummary = collect($attempt->logs)
+        $visibleLogs = $this->visibleAttemptLogs($attempt);
+        $logSummary = $visibleLogs
             ->groupBy('event_type')
             ->map(fn (Collection $items) => $items->count())
             ->all();
@@ -678,9 +684,39 @@ class ElectronicTestService
             'submitted_at' => optional($attempt->submitted_at)->toIso8601String(),
             'reviewed_at' => optional($attempt->reviewed_at)->toIso8601String(),
             'log_summary' => $logSummary,
-            'log_summary_items' => $this->buildLogSummaryItems(collect($attempt->logs)),
+            'log_summary_items' => $this->buildLogSummaryItems($visibleLogs),
             'review_url' => url('/electronic-attempts/' . $attempt->id),
         ];
+    }
+
+    private function visibleAttemptLogs(ElectronicTestAttempt $attempt): Collection
+    {
+        $logs = collect($attempt->logs)->values();
+        if (!$attempt->submitted_at) {
+            return $logs;
+        }
+
+        $submitLogId = optional($logs->first(fn (ElectronicTestLog $log) => (string) $log->event_type === 'submit'))->id;
+
+        return $logs
+            ->filter(function (ElectronicTestLog $log) use ($attempt, $submitLogId) {
+                if ((string) $log->event_type === 'submit') {
+                    return true;
+                }
+
+                if (!$log->occurred_at) {
+                    return false;
+                }
+
+                if ($log->occurred_at->lt($attempt->submitted_at)) {
+                    return true;
+                }
+
+                return $log->occurred_at->equalTo($attempt->submitted_at)
+                    && $submitLogId !== null
+                    && (int) $log->id < (int) $submitLogId;
+            })
+            ->values();
     }
 
     private function buildLogSummaryItems(Collection $logs): array

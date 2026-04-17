@@ -166,7 +166,8 @@ class ElectronicTestController extends Controller
         return response()->json([
             'status' => 'success',
             'data' => [
-                'id' => $log->id,
+                'id' => $log?->id,
+                'ignored' => $log === null,
             ],
         ]);
     }

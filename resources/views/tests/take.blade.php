@@ -116,6 +116,7 @@
     let currentAttempt = null;
     let antiCheatBound = false;
     let antiCheatActive = false;
+    let attemptSubmissionInProgress = false;
     let timerHandle = null;
 
     function setPageMessage(message = '', type = 'info') {
@@ -312,10 +313,13 @@
     function renderAttempt(attempt, sessionInfo = null) {
         currentAttempt = attempt;
         antiCheatActive = true;
+        attemptSubmissionInProgress = false;
         document.getElementById('lookupSection').classList.add('hidden');
         document.getElementById('sessionSection').classList.add('hidden');
         document.getElementById('finishSection').classList.add('hidden');
         document.getElementById('attemptSection').classList.remove('hidden');
+        document.getElementById('submitAttemptButton').disabled = false;
+        document.getElementById('submitAttemptButton').classList.remove('opacity-70', 'cursor-wait');
         document.getElementById('attemptStudentTitle').textContent = attempt.student_full_name || 'Ученик';
         document.getElementById('attemptIntro').textContent = [
             sessionInfo?.title || currentSession?.title,
@@ -371,13 +375,19 @@
     }
 
     async function submitAttempt() {
-        if (!currentAttempt?.token) {
+        if (!currentAttempt?.token || attemptSubmissionInProgress) {
             return;
         }
 
         if (!confirm('Отправить работу преподавателю? После этого изменить ответы уже нельзя.')) {
             return;
         }
+
+        const submitButton = document.getElementById('submitAttemptButton');
+        attemptSubmissionInProgress = true;
+        antiCheatActive = false;
+        submitButton.disabled = true;
+        submitButton.classList.add('opacity-70', 'cursor-wait');
 
         try {
             const response = await publicApiFetch(`/api/public/electronic-attempts/${currentAttempt.token}/submit`, {
@@ -390,15 +400,24 @@
                 }),
             });
             const data = await parseApiResponse(response);
-            antiCheatActive = false;
             finishAttempt(data);
         } catch (error) {
+            attemptSubmissionInProgress = false;
+            antiCheatActive = true;
+            submitButton.disabled = false;
+            submitButton.classList.remove('opacity-70', 'cursor-wait');
             setPageMessage(error.message, 'error');
         }
     }
 
     function finishAttempt(data) {
         antiCheatActive = false;
+        attemptSubmissionInProgress = false;
+        currentAttempt = {
+            ...(currentAttempt || {}),
+            status: 'submitted',
+            submitted_at: data.submitted_at || null,
+        };
         clearInterval(timerHandle);
         document.getElementById('attemptSection').classList.add('hidden');
         document.getElementById('finishSection').classList.remove('hidden');
