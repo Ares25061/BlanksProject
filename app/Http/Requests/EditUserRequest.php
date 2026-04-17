@@ -19,7 +19,7 @@ class EditUserRequest extends FormRequest
             'email' => [
                 'sometimes',
                 'email',
-                Rule::unique('users', 'email')->ignore($this->route('user'))
+                Rule::unique('users', 'email')->ignore($this->user()?->id)
             ],
         ];
     }

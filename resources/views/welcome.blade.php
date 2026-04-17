@@ -3,7 +3,7 @@
 <head>
     @include('layouts.head', ['title' => 'Платформа авто проверки работ'])
 </head>
-<body class="min-h-screen bg-slate-100 text-slate-900">
+<body class="min-h-screen bg-slate-100 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
 
 @include('layouts.nav')
 
@@ -13,7 +13,7 @@
     <section class="max-w-7xl mx-auto px-4 pt-10 pb-8 md:pt-16 md:pb-12">
         <div class="grid gap-8 lg:grid-cols-[1.02fr_0.98fr] lg:items-center">
             <div class="space-y-7">
-                <div class="inline-flex items-center gap-2 rounded-full border border-indigo-200 bg-white/80 px-4 py-2 text-sm font-medium text-indigo-700 shadow-sm dark:border-indigo-900 dark:bg-slate-900/80 dark:text-indigo-200">
+                <div class="inline-flex items-center gap-2 rounded-full border border-sky-200 bg-sky-50/90 px-4 py-2 text-sm font-medium text-sky-800 shadow-sm dark:border-indigo-900 dark:bg-slate-900/80 dark:text-indigo-200">
                     <span class="h-2.5 w-2.5 rounded-full bg-emerald-500"></span>
                     OCR, бланки, журнал и проверка в одном рабочем контуре
                 </div>
@@ -32,7 +32,7 @@
                     <a href="/user/register" class="inline-flex items-center justify-center rounded-2xl bg-indigo-600 px-6 py-3 text-sm font-semibold text-white shadow-halo transition hover:bg-indigo-500">
                         Начать работу
                     </a>
-                    <a href="/user/login" class="inline-flex items-center justify-center rounded-2xl border border-slate-200 bg-white px-6 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800">
+                    <a href="/user/login" class="inline-flex items-center justify-center rounded-2xl border border-slate-300 bg-white px-6 py-3 text-sm font-semibold text-slate-800 transition hover:border-slate-400 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800">
                         Войти в кабинет
                     </a>
                     <a href="/tests" class="nav-link inline-flex items-center justify-center rounded-2xl border border-indigo-200 bg-indigo-50 px-6 py-3 text-sm font-semibold text-indigo-700 transition hover:bg-indigo-100 dark:border-indigo-900 dark:bg-indigo-950/40 dark:text-indigo-200 dark:hover:bg-indigo-950/60">
@@ -66,8 +66,8 @@
                 <div class="absolute -left-8 top-10 hidden h-32 w-32 rounded-full bg-indigo-300/35 blur-3xl dark:bg-indigo-700/30 lg:block"></div>
                 <div class="absolute -right-10 bottom-10 hidden h-40 w-40 rounded-full bg-emerald-400/30 blur-3xl dark:bg-emerald-600/20 lg:block"></div>
 
-                <section class="proverium-panel relative rounded-[2rem] p-6 md:p-8">
-                    <div class="rounded-[1.75rem] bg-[linear-gradient(135deg,_rgba(99,102,241,0.12),_rgba(16,185,129,0.08))] p-5 dark:bg-[linear-gradient(135deg,_rgba(79,70,229,0.18),_rgba(16,185,129,0.12))]">
+                <section class="proverium-panel relative rounded-[2rem] border border-white/70 p-6 md:p-8 dark:border-slate-800/80">
+                    <div class="rounded-[1.75rem] bg-[linear-gradient(135deg,_rgba(99,102,241,0.14),_rgba(16,185,129,0.10))] p-5 dark:bg-[linear-gradient(135deg,_rgba(79,70,229,0.18),_rgba(16,185,129,0.12))]">
                         <img src="{{ asset('brand/proverium-logo-light.svg') }}"
                              alt="Провериум"
                              class="w-full dark:hidden">
@@ -77,14 +77,14 @@
                     </div>
 
                     <div class="mt-6 grid gap-4 sm:grid-cols-2">
-                        <article class="rounded-3xl border border-slate-200 bg-white/85 p-5 dark:border-slate-700 dark:bg-slate-900/85">
+                        <article class="rounded-3xl border border-indigo-100 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900/85 dark:shadow-none">
                             <div class="text-xs font-semibold uppercase tracking-[0.32em] text-slate-400 dark:text-slate-500">Поток работы</div>
                             <div class="mt-3 text-lg font-bold text-slate-900 dark:text-white">Создание теста → печать → OCR → журнал</div>
                             <p class="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
                                 Один маршрут без скачков между разными сервисами и таблицами.
                             </p>
                         </article>
-                        <article class="rounded-3xl border border-slate-200 bg-white/85 p-5 dark:border-slate-700 dark:bg-slate-900/85">
+                        <article class="rounded-3xl border border-emerald-100 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900/85 dark:shadow-none">
                             <div class="text-xs font-semibold uppercase tracking-[0.32em] text-slate-400 dark:text-slate-500">Чужой бланк</div>
                             <div class="mt-3 text-lg font-bold text-slate-900 dark:text-white">Проверка по тесту даже без локального ученика</div>
                             <p class="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
@@ -94,9 +94,9 @@
                     </div>
 
                     <div class="mt-6 flex flex-wrap gap-2">
-                        <span class="rounded-full bg-slate-900 px-4 py-2 text-xs font-semibold uppercase tracking-[0.28em] text-white dark:bg-white dark:text-slate-950">Варианты тестов</span>
-                        <span class="rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-semibold uppercase tracking-[0.28em] text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">Предпросмотр печати</span>
-                        <span class="rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-semibold uppercase tracking-[0.28em] text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">Автовыставление оценки</span>
+                        <span class="rounded-full border border-indigo-200 bg-indigo-50 px-4 py-2 text-xs font-semibold uppercase tracking-[0.28em] text-indigo-700 dark:bg-white dark:text-slate-950">Варианты тестов</span>
+                        <span class="rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-semibold uppercase tracking-[0.28em] text-slate-600 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:shadow-none">Предпросмотр печати</span>
+                        <span class="rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-semibold uppercase tracking-[0.28em] text-slate-600 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:shadow-none">Автовыставление оценки</span>
                     </div>
                 </section>
             </div>

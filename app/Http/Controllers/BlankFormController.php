@@ -223,6 +223,23 @@ class BlankFormController extends Controller
         ]);
     }
 
+    public function destroyIssuedForTest(Test $test)
+    {
+        $this->authorize('update', $test);
+
+        $deletedCount = $this->blankFormService->deleteIssuedBlankFormsForTest($test);
+
+        return response()->json([
+            'status' => 'success',
+            'message' => $deletedCount > 0
+                ? "Удалено выпущенных бланков: {$deletedCount}"
+                : 'Для этого теста нет выпущенных бланков, доступных для удаления.',
+            'data' => [
+                'deleted_count' => $deletedCount,
+            ],
+        ]);
+    }
+
     public function scanImage(Request $request, BlankForm $blankForm)
     {
         $this->authorize('view', $blankForm);

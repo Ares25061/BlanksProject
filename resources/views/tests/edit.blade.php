@@ -14,29 +14,27 @@
 
 @include('layouts.nav')
 
-<div class="container mx-auto px-4 py-8 max-w-5xl">
+<div class="container mx-auto px-4 py-8 max-w-7xl">
     <div id="loading" class="text-center py-12">
         <div class="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-sky-500"></div>
         <p class="text-slate-600 mt-4 dark:text-slate-300">Загружаю тест для редактирования...</p>
     </div>
 
     <div id="pageContent" class="hidden">
-            <div class="mb-8">
-                <p class="text-sm uppercase tracking-[0.3em] text-sky-700 font-semibold">Редактирование</p>
-                <h1 class="text-3xl font-bold mt-2">Настройка теста</h1>
-                <p class="text-slate-600 mt-2 dark:text-slate-400">Измените предмет, вопросы, баллы и критерии оценивания. Новые пороги будут использоваться при следующих проверках сканов.</p>
-            </div>
+        <div class="mb-8">
+            <p class="text-sm uppercase tracking-[0.3em] text-sky-700 font-semibold">Редактирование</p>
+            <h1 class="text-3xl font-bold mt-2">Настройка теста</h1>
+            <p class="text-slate-600 mt-2 dark:text-slate-400">Измените предмет, вопросы, баллы и критерии оценивания. Новые пороги будут использоваться при следующих проверках сканов.</p>
+        </div>
 
-        <form id="testForm" class="space-y-6">
-            <section class="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 space-y-4 dark:bg-slate-900 dark:border-slate-800 dark:shadow-none">
+        <form id="testForm" class="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
+            <div class="space-y-6">
+            <section id="detailsSection" class="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 space-y-4 dark:bg-slate-900 dark:border-slate-800 dark:shadow-none">
                 <div class="flex flex-wrap justify-between gap-4 items-center">
                     <h2 class="text-xl font-semibold">Основная информация</h2>
                     <div class="text-sm text-slate-500 dark:text-slate-400">
                         Формат бланка: неограниченное число вопросов и до <span class="font-semibold text-slate-700 dark:text-slate-200">4 вариантов ответа</span> на вопрос
                     </div>
-                    <button type="button" onclick="window.location.href=`/tests/${testId}`" class="text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white">
-                        Вернуться к тесту
-                    </button>
                 </div>
 
                 <div>
@@ -81,7 +79,7 @@
                 </div>
             </section>
 
-            <section class="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 space-y-4 dark:bg-slate-900 dark:border-slate-800 dark:shadow-none">
+            <section id="importSection" class="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 space-y-4 dark:bg-slate-900 dark:border-slate-800 dark:shadow-none">
                 <div class="flex flex-wrap justify-between items-start gap-4">
                     <div>
                         <h2 class="text-xl font-semibold">Импорт вопросов</h2>
@@ -89,7 +87,7 @@
                     </div>
                     <div class="flex flex-wrap gap-3">
                         <input id="questionsImportInput" type="file" accept=".json,.xlsx" class="hidden">
-                        <button type="button" onclick="document.getElementById('questionsImportInput').click()" class="bg-white border border-slate-200 text-slate-700 px-4 py-2 rounded-xl hover:border-sky-300 hover:text-sky-700 transition flex items-center gap-2 dark:bg-slate-950 dark:border-slate-700 dark:text-slate-200 dark:hover:border-sky-400 dark:hover:text-sky-300">
+                        <button type="button" onclick="document.getElementById('questionsImportInput').click()" class="bg-violet-600 text-white px-4 py-2 rounded-xl hover:bg-violet-500 transition flex items-center gap-2">
                             <i class="fas fa-file-import"></i>
                             Импортировать файл
                         </button>
@@ -99,18 +97,18 @@
                 <div class="grid lg:grid-cols-[1.15fr_0.85fr] gap-4">
                     <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700 dark:border-slate-700 dark:bg-slate-950/70 dark:text-slate-300">
                         <div class="font-semibold text-slate-900 mb-2 dark:text-white">JSON</div>
-                        <div>Поддерживаются старый формат без вариантов и новый формат с полем <code>variant</code> у каждого вопроса. Если <code>variant</code> нет, вопрос автоматически считается частью варианта <code>1</code>.</div>
+                        <div>Поддерживаются старый формат без вариантов и новый формат с полями <code>variant</code> и <code>order</code> у каждого вопроса. Если <code>variant</code> нет, вопрос автоматически считается частью варианта <code>1</code>.</div>
                     </div>
                     <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700 dark:border-slate-700 dark:bg-slate-950/70 dark:text-slate-300">
                         <div class="font-semibold text-slate-900 mb-2 dark:text-white">XLSX</div>
-                        <div>Первая строка должна содержать заголовки <code>question_text</code>, <code>variant</code>, <code>type</code>, <code>points</code>, <code>answer_a</code> ... <code>answer_d</code>, <code>correct</code>.</div>
+                        <div>Первая строка должна содержать заголовки <code>question_text</code>, <code>order</code>, <code>variant</code>, <code>type</code>, <code>points</code>, <code>answer_a</code> ... <code>answer_d</code>, <code>correct</code>.</div>
                     </div>
                 </div>
 
                 <div id="importStatus" class="hidden rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900 dark:border-emerald-900/50 dark:bg-emerald-950/30 dark:text-emerald-200"></div>
             </section>
 
-            <section class="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 dark:bg-slate-900 dark:border-slate-800 dark:shadow-none">
+            <section id="gradingSection" class="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 dark:bg-slate-900 dark:border-slate-800 dark:shadow-none">
                 <div class="flex flex-wrap justify-between items-center gap-3 mb-4">
                     <div>
                         <h2 class="text-xl font-semibold">Критерии оценивания</h2>
@@ -134,7 +132,7 @@
                 </div>
             </section>
 
-            <section class="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 dark:bg-slate-900 dark:border-slate-800 dark:shadow-none">
+            <section id="questionsSection" class="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 dark:bg-slate-900 dark:border-slate-800 dark:shadow-none">
                 <div class="flex flex-wrap justify-between items-center gap-3 mb-4">
                     <div>
                         <h2 class="text-xl font-semibold">Вопросы</h2>
@@ -151,16 +149,74 @@
                     В тесте не осталось вопросов.
                 </div>
             </section>
-
-            <div class="flex flex-wrap justify-end gap-3">
-                <button type="button" onclick="window.location.href=`/tests/${testId}`" class="px-6 py-3 rounded-2xl border border-slate-300 text-slate-700 hover:bg-slate-50 transition dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-900">
-                    Отмена
-                </button>
-                <button type="submit" class="px-6 py-3 rounded-2xl bg-sky-600 text-white hover:bg-sky-500 transition shadow-sm flex items-center gap-2">
-                    <i class="fas fa-save"></i>
-                    Сохранить изменения
-                </button>
             </div>
+
+            <aside class="space-y-4 xl:sticky xl:top-24">
+                <section class="proverium-panel rounded-3xl border border-slate-200 p-5 dark:border-slate-800">
+                    <div class="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500 dark:text-slate-400">Панель действий</div>
+                    <h2 class="mt-3 text-xl font-semibold text-slate-900 dark:text-white">Редактирование теста</h2>
+                    <p class="mt-2 text-sm text-slate-600 dark:text-slate-300">Основные действия вынесены в боковую панель, чтобы не листать страницу до самого низа.</p>
+
+                    <div class="mt-5 space-y-3">
+                        <button type="button" onclick="addQuestion()" class="flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-4 py-3 font-medium text-white transition hover:bg-emerald-500">
+                            <i class="fas fa-plus"></i>
+                            Добавить вопрос
+                        </button>
+                        <button type="button" onclick="document.getElementById('questionsImportInput').click()" class="flex w-full items-center justify-center gap-2 rounded-2xl bg-violet-600 px-4 py-3 font-medium text-white transition hover:bg-violet-500">
+                            <i class="fas fa-file-import"></i>
+                            Импортировать вопросы
+                        </button>
+                        <button type="submit" class="flex w-full items-center justify-center gap-2 rounded-2xl bg-sky-600 px-4 py-3 font-medium text-white transition hover:bg-sky-500">
+                            <i class="fas fa-save"></i>
+                            Сохранить изменения
+                        </button>
+                        <button type="button" onclick="window.location.href=`/tests/${testId}`" class="flex w-full items-center justify-center gap-2 rounded-2xl bg-slate-700 px-4 py-3 font-medium text-white transition hover:bg-slate-600 dark:bg-slate-800 dark:hover:bg-slate-700">
+                            <i class="fas fa-arrow-left"></i>
+                            Вернуться к тесту
+                        </button>
+                    </div>
+                </section>
+
+                <section class="bg-white rounded-3xl border border-slate-200 p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900 dark:shadow-none">
+                    <div class="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500 dark:text-slate-400">Сводка</div>
+                    <div class="mt-4 space-y-3">
+                        <div class="rounded-2xl bg-slate-50 px-4 py-3 dark:bg-slate-950/70">
+                            <div class="text-xs uppercase tracking-[0.25em] text-slate-400 dark:text-slate-500">Вопросов</div>
+                            <div id="sidebarQuestionCount" class="mt-2 text-2xl font-bold text-slate-900 dark:text-white">0</div>
+                        </div>
+                        <div class="rounded-2xl bg-slate-50 px-4 py-3 dark:bg-slate-950/70">
+                            <div class="text-xs uppercase tracking-[0.25em] text-slate-400 dark:text-slate-500">Варианты</div>
+                            <div id="sidebarVariantCount" class="mt-2 text-2xl font-bold text-slate-900 dark:text-white">1</div>
+                        </div>
+                        <div class="rounded-2xl bg-slate-50 px-4 py-3 dark:bg-slate-950/70">
+                            <div class="text-xs uppercase tracking-[0.25em] text-slate-400 dark:text-slate-500">Баллы</div>
+                            <div id="sidebarScoreSummary" class="mt-2 text-sm font-semibold text-slate-900 dark:text-white">0</div>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="bg-white rounded-3xl border border-slate-200 p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900 dark:shadow-none">
+                    <div class="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500 dark:text-slate-400">Навигация</div>
+                    <div class="mt-4 space-y-2">
+                        <button type="button" onclick="scrollToComposerSection('detailsSection')" class="flex w-full items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-3 text-left text-sm font-medium text-slate-700 transition hover:border-sky-300 hover:text-sky-700 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:hover:border-sky-400 dark:hover:text-sky-300">
+                            <span>Основная информация</span>
+                            <i class="fas fa-arrow-down"></i>
+                        </button>
+                        <button type="button" onclick="scrollToComposerSection('importSection')" class="flex w-full items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-3 text-left text-sm font-medium text-slate-700 transition hover:border-sky-300 hover:text-sky-700 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:hover:border-sky-400 dark:hover:text-sky-300">
+                            <span>Импорт</span>
+                            <i class="fas fa-arrow-down"></i>
+                        </button>
+                        <button type="button" onclick="scrollToComposerSection('gradingSection')" class="flex w-full items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-3 text-left text-sm font-medium text-slate-700 transition hover:border-sky-300 hover:text-sky-700 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:hover:border-sky-400 dark:hover:text-sky-300">
+                            <span>Шкала оценивания</span>
+                            <i class="fas fa-arrow-down"></i>
+                        </button>
+                        <button type="button" onclick="scrollToComposerSection('questionsSection')" class="flex w-full items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-3 text-left text-sm font-medium text-slate-700 transition hover:border-sky-300 hover:text-sky-700 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:hover:border-sky-400 dark:hover:text-sky-300">
+                            <span>Вопросы</span>
+                            <i class="fas fa-arrow-down"></i>
+                        </button>
+                    </div>
+                </section>
+            </aside>
         </form>
     </div>
 </div>
@@ -313,7 +369,7 @@
         document.getElementById('is_active').value = currentTest.is_active ? '1' : '0';
 
         document.getElementById('questionsContainer').innerHTML = '';
-        (currentTest.questions || []).forEach((question) => addQuestion(question));
+        (currentTest.questions || []).forEach((question) => addQuestion(question, { reveal: false }));
 
         document.getElementById('gradeCriteriaContainer').innerHTML = '';
         (currentTest.grade_criteria || []).forEach((criterion) => addGradeCriterion(criterion));
@@ -322,9 +378,10 @@
         }
 
         updateTotalPoints();
+        renderComposerSidebarState();
     }
 
-    function addQuestion(question = null) {
+    function addQuestion(question = null, { reveal = question === null } = {}) {
         const container = document.getElementById('questionsContainer');
         const noQuestions = document.getElementById('noQuestions');
 
@@ -357,6 +414,10 @@
         updateAnswerSelectors(insertedQuestion, insertedQuestion.querySelector('.question-type').value, questionId);
         updateQuestionsNumbering();
         updateTotalPoints();
+
+        if (reveal) {
+            insertedQuestion.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
     }
 
     function addAnswer(button, questionId, answer = null) {
@@ -409,6 +470,8 @@
         document.querySelectorAll('.question-item').forEach((item, index) => {
             item.querySelector('.question-title').textContent = `Вопрос ${index + 1}`;
         });
+
+        renderComposerSidebarState();
     }
 
     function addGradeCriterion(criterion = null) {
@@ -464,6 +527,7 @@
         if (variantCount <= 1) {
             label.textContent = 'Текущий максимальный балл:';
             summary.textContent = String(getTotalPoints());
+            renderComposerSidebarState();
             return;
         }
 
@@ -471,6 +535,40 @@
         summary.textContent = getVariantScoreTotals()
             .map((value, index) => `В${index + 1}: ${value}`)
             .join(' • ');
+        renderComposerSidebarState();
+    }
+
+    function renderComposerSidebarState() {
+        const questionCount = document.querySelectorAll('.question-item').length;
+        const variantCount = normalizeVariantCountValue();
+        const scoreSummary = variantCount <= 1
+            ? `${getTotalPoints()} балл.`
+            : getVariantScoreTotals()
+                .map((value, index) => `В${index + 1}: ${value}`)
+                .join(' • ');
+
+        const questionCountElement = document.getElementById('sidebarQuestionCount');
+        const variantCountElement = document.getElementById('sidebarVariantCount');
+        const scoreSummaryElement = document.getElementById('sidebarScoreSummary');
+
+        if (questionCountElement) {
+            questionCountElement.textContent = String(questionCount);
+        }
+
+        if (variantCountElement) {
+            variantCountElement.textContent = String(variantCount);
+        }
+
+        if (scoreSummaryElement) {
+            scoreSummaryElement.textContent = scoreSummary || '0';
+        }
+    }
+
+    function scrollToComposerSection(sectionId) {
+        document.getElementById(sectionId)?.scrollIntoView({
+            behavior: 'smooth',
+            block: 'start',
+        });
     }
 
     function fillSuggestedCriteria() {
@@ -548,14 +646,13 @@
         }
 
         syncVariantCountFromImportedData(imported, { replaceExisting: shouldReplace });
-        importedQuestions.forEach((question) => addQuestion(question));
+        importedQuestions.forEach((question) => addQuestion(question, { reveal: false }));
         maybeApplyImportedMetadata(imported);
         renderImportStatus(importedQuestions.length, shouldReplace);
     }
 
     function maybeApplyImportedMetadata(imported) {
         syncVariantCountFromImportedData(imported);
-        delete imported.variant_count;
         if (imported.subject_name && confirm('В файле найден предмет. Подставить его в форму?')) {
             document.getElementById('subject_name').value = imported.subject_name;
         }

@@ -29,19 +29,19 @@
                         <i class="fas fa-pen"></i>
                         Редактировать
                     </button>
-                    <button onclick="downloadTestExport('json')" class="bg-white border border-slate-200 text-slate-700 px-4 py-3 rounded-2xl hover:border-sky-300 hover:text-sky-700 transition flex items-center gap-2 dark:bg-slate-950 dark:border-slate-700 dark:text-slate-200 dark:hover:border-sky-400 dark:hover:text-sky-300">
+                    <button onclick="downloadTestExport('json')" class="bg-violet-600 text-white px-4 py-3 rounded-2xl hover:bg-violet-500 transition flex items-center gap-2">
                         <i class="fas fa-file-code"></i>
                         Экспорт JSON
                     </button>
-                    <button onclick="downloadTestExport('xlsx')" class="bg-white border border-slate-200 text-slate-700 px-4 py-3 rounded-2xl hover:border-sky-300 hover:text-sky-700 transition flex items-center gap-2 dark:bg-slate-950 dark:border-slate-700 dark:text-slate-200 dark:hover:border-sky-400 dark:hover:text-sky-300">
+                    <button onclick="downloadTestExport('xlsx')" class="bg-emerald-600 text-white px-4 py-3 rounded-2xl hover:bg-emerald-500 transition flex items-center gap-2">
                         <i class="fas fa-file-excel"></i>
                         Экспорт Excel
                     </button>
-                    <button onclick="openPrintPreview()" class="bg-white border border-slate-200 text-slate-700 px-4 py-3 rounded-2xl hover:border-sky-300 hover:text-sky-700 transition flex items-center gap-2 dark:bg-slate-950 dark:border-slate-700 dark:text-slate-200 dark:hover:border-sky-400 dark:hover:text-sky-300">
+                    <button onclick="openPrintPreview()" class="bg-sky-600 text-white px-4 py-3 rounded-2xl hover:bg-sky-500 transition flex items-center gap-2">
                         <i class="fas fa-print"></i>
                         Предпросмотр печати
                     </button>
-                    <button onclick="window.location.href='/tests'" class="bg-white border border-slate-200 text-slate-700 px-4 py-3 rounded-2xl hover:border-sky-300 hover:text-sky-700 transition dark:bg-slate-950 dark:border-slate-700 dark:text-slate-200 dark:hover:border-sky-400 dark:hover:text-sky-300">
+                    <button onclick="window.location.href='/tests'" class="bg-slate-700 text-white px-4 py-3 rounded-2xl hover:bg-slate-600 transition dark:bg-slate-800 dark:hover:bg-slate-700">
                         Назад
                     </button>
                 </div>
@@ -71,135 +71,171 @@
             </div>
         </section>
 
-        <section class="grid xl:grid-cols-[1.2fr_0.8fr] gap-6">
-            <div class="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 dark:bg-slate-900 dark:border-slate-800">
-                <div class="flex justify-between items-center gap-3 mb-4">
-                    <div>
-                        <h2 class="text-xl font-semibold dark:text-white">Вопросы</h2>
-                        <p class="text-slate-500 mt-1 dark:text-slate-400">Вопросы и правильные ответы теста.</p>
-                    </div>
-                </div>
-
-                <div id="questionsList" class="space-y-4"></div>
-            </div>
-
+        <div class="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_220px]">
             <div class="space-y-6">
-                <section class="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 dark:bg-slate-900 dark:border-slate-800">
-                    <h2 class="text-xl font-semibold">Шкала оценивания</h2>
-                    <p class="text-slate-500 mt-1 dark:text-slate-400">Эти пороги применяются при автоматической проверке сканов.</p>
-                    <div id="gradeCriteriaList" class="mt-4 space-y-3"></div>
-                </section>
-
-                <section class="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 dark:bg-slate-900 dark:border-slate-800">
-                    <h2 class="text-xl font-semibold">Сканирование</h2>
-                    <div id="scanSupportNote" class="mt-3 text-sm rounded-2xl border border-amber-200 bg-amber-50 text-amber-800 p-4 hidden dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-200"></div>
-                    <div class="mt-4 text-sm text-slate-600 dark:text-slate-300">
-                        Поддерживаются <span class="font-semibold">JPG / PNG / WEBP / PDF</span>. Если загружен PDF, браузер автоматически преобразует все его листы в изображения перед отправкой. Чужие бланки тоже можно распознать, но оценку им поставить нельзя.
-                    </div>
-                </section>
-            </div>
-        </section>
-
-        <section id="workflow" class="grid xl:grid-cols-[0.95fr_1.05fr] gap-6">
-            <div class="space-y-6">
-                <section class="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 dark:bg-slate-900 dark:border-slate-800">
-                    <div class="flex justify-between items-center gap-3">
-                        <div>
-                            <h2 class="text-xl font-semibold">Выпуск бланков</h2>
-                            <p class="text-slate-500 mt-1 dark:text-slate-400">Сгенерируйте персональные бланки для всей группы или только для отмеченных студентов.</p>
-                        </div>
-                        <button onclick="window.location.href='/groups'" class="text-sky-600 hover:text-sky-800 text-sm font-medium">
-                            Открыть группы
-                        </button>
-                    </div>
-
-                    <div class="mt-5 space-y-4">
-                        <div>
-                            <label for="groupSelect" class="block text-sm font-medium text-slate-700 mb-2 dark:text-slate-300">Группа</label>
-                            <select id="groupSelect" onchange="handleGroupChange()" class="w-full px-4 py-3 rounded-2xl border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500"></select>
-                        </div>
-
-                        <div>
-                            <div class="block text-sm font-medium text-slate-700 mb-2 dark:text-slate-300">Кому выпускать бланки</div>
-                            <div class="grid sm:grid-cols-2 gap-3">
-                                <button id="generateModeAllButton" type="button" onclick="setBlankGenerationMode('all')" class="rounded-2xl border border-slate-300 px-4 py-3 text-left transition hover:border-sky-300 hover:bg-white dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:hover:border-sky-400 dark:hover:bg-slate-900">
-                                    <div class="font-semibold">Вся группа</div>
-                                    <div class="text-sm mt-1 opacity-80">Бланки будут созданы для каждого студента выбранной группы.</div>
-                                </button>
-                                <button id="generateModeSelectedButton" type="button" onclick="setBlankGenerationMode('selected')" class="rounded-2xl border border-slate-300 px-4 py-3 text-left transition hover:border-sky-300 hover:bg-white dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:hover:border-sky-400 dark:hover:bg-slate-900">
-                                    <div class="font-semibold">Только выбранные</div>
-                                    <div class="text-sm mt-1 opacity-80">Ниже можно отметить только тех студентов, кому нужны бланки сейчас.</div>
-                                </button>
+                <section id="questionsOverviewSection" class="grid xl:grid-cols-[1.2fr_0.8fr] gap-6">
+                    <div id="questionsSection" class="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 dark:bg-slate-900 dark:border-slate-800">
+                        <div class="flex justify-between items-center gap-3 mb-4">
+                            <div>
+                                <h2 class="text-xl font-semibold dark:text-white">Вопросы</h2>
+                                <p class="text-slate-500 mt-1 dark:text-slate-400">Вопросы и правильные ответы теста.</p>
                             </div>
                         </div>
 
-                        <div class="rounded-3xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-950/70">
-                            <div class="text-sm uppercase tracking-[0.25em] text-slate-400 dark:text-slate-500">Варианты</div>
-                            <div id="variantAssignmentSummary" class="text-sm text-slate-600 mt-2 dark:text-slate-400">Для этого теста используется один вариант.</div>
-                            <div id="variantAssignmentSettings" class="mt-4 space-y-3"></div>
-                        </div>
+                        <div id="questionsList" class="space-y-4"></div>
+                    </div>
 
-                        <div class="rounded-3xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-950/70">
-                            <div class="flex flex-wrap justify-between items-start gap-3">
+                    <div class="space-y-6">
+                        <section id="gradingSection" class="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 dark:bg-slate-900 dark:border-slate-800">
+                            <h2 class="text-xl font-semibold">Шкала оценивания</h2>
+                            <p class="text-slate-500 mt-1 dark:text-slate-400">Эти пороги применяются при автоматической проверке сканов.</p>
+                            <div id="gradeCriteriaList" class="mt-4 space-y-3"></div>
+                        </section>
+
+                        <section id="scanInfoSection" class="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 dark:bg-slate-900 dark:border-slate-800">
+                            <h2 class="text-xl font-semibold">Сканирование</h2>
+                            <div id="scanSupportNote" class="mt-3 text-sm rounded-2xl border border-amber-200 bg-amber-50 text-amber-800 p-4 hidden dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-200"></div>
+                            <div class="mt-4 text-sm text-slate-600 dark:text-slate-300">
+                                Поддерживаются <span class="font-semibold">JPG / PNG / WEBP / PDF</span>. Если загружен PDF, браузер автоматически преобразует все его листы в изображения перед отправкой. Чужие бланки тоже можно распознать, но оценку им поставить нельзя.
+                            </div>
+                        </section>
+                    </div>
+                </section>
+
+                <section id="workflow" class="grid xl:grid-cols-[0.95fr_1.05fr] gap-6">
+                    <div class="space-y-6">
+                        <section id="blankGenerationSection" class="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 dark:bg-slate-900 dark:border-slate-800">
+                            <div class="flex justify-between items-center gap-3">
                                 <div>
-                                    <div class="text-sm uppercase tracking-[0.25em] text-slate-400 dark:text-slate-500">Состав группы</div>
-                                    <div id="studentSelectionSummary" class="text-sm text-slate-600 mt-2 dark:text-slate-400">Сначала выберите группу.</div>
+                                    <h2 class="text-xl font-semibold">Выпуск бланков</h2>
+                                    <p class="text-slate-500 mt-1 dark:text-slate-400">Сгенерируйте персональные бланки для всей группы или только для отмеченных студентов.</p>
                                 </div>
-                                <div class="flex flex-wrap gap-2">
-                                    <button id="selectAllStudentsButton" type="button" onclick="selectAllGroupStudents()" class="bg-white border border-slate-200 text-slate-700 px-3 py-2 rounded-xl hover:border-sky-300 hover:text-sky-700 transition text-sm dark:bg-slate-950 dark:border-slate-700 dark:text-slate-200 dark:hover:border-sky-400 dark:hover:text-sky-300">
-                                        Отметить всех
-                                    </button>
-                                    <button id="clearStudentsButton" type="button" onclick="clearSelectedGroupStudents()" class="bg-white border border-slate-200 text-slate-700 px-3 py-2 rounded-xl hover:border-sky-300 hover:text-sky-700 transition text-sm dark:bg-slate-950 dark:border-slate-700 dark:text-slate-200 dark:hover:border-sky-400 dark:hover:text-sky-300">
-                                        Снять выбор
-                                    </button>
-                                </div>
-                            </div>
-                            <div id="groupStudentsList" class="mt-4 grid sm:grid-cols-2 gap-3"></div>
-                        </div>
-
-                        <div class="flex flex-wrap gap-3">
-                            <button onclick="generateBlankForms()" class="bg-emerald-600 text-white px-5 py-3 rounded-2xl hover:bg-emerald-500 transition font-medium">
-                                Сгенерировать бланки
-                            </button>
-                            <div id="printGeneratedActions" class="hidden flex flex-wrap gap-3">
-                                <button onclick="printGeneratedPack()" class="bg-white border border-slate-200 text-slate-700 px-5 py-3 rounded-2xl hover:border-sky-300 hover:text-sky-700 transition font-medium dark:bg-slate-950 dark:border-slate-700 dark:text-slate-200 dark:hover:border-sky-400 dark:hover:text-sky-300">
-                                    Печать пачки
+                                <button onclick="window.location.href='/groups'" class="text-sky-600 hover:text-sky-800 text-sm font-medium">
+                                    Открыть группы
                                 </button>
                             </div>
+
+                            <div class="mt-5 space-y-4">
+                                <div>
+                                    <label for="groupSelect" class="block text-sm font-medium text-slate-700 mb-2 dark:text-slate-300">Группа</label>
+                                    <select id="groupSelect" onchange="handleGroupChange()" class="w-full px-4 py-3 rounded-2xl border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500"></select>
+                                </div>
+
+                                <div>
+                                    <div class="block text-sm font-medium text-slate-700 mb-2 dark:text-slate-300">Кому выпускать бланки</div>
+                                    <div class="grid sm:grid-cols-2 gap-3">
+                                        <button id="generateModeAllButton" type="button" onclick="setBlankGenerationMode('all')" class="rounded-2xl border border-slate-300 px-4 py-3 text-left transition hover:border-sky-300 hover:bg-white dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:hover:border-sky-400 dark:hover:bg-slate-900">
+                                            <div class="font-semibold">Вся группа</div>
+                                            <div class="text-sm mt-1 opacity-80">Бланки будут созданы для каждого студента выбранной группы.</div>
+                                        </button>
+                                        <button id="generateModeSelectedButton" type="button" onclick="setBlankGenerationMode('selected')" class="rounded-2xl border border-slate-300 px-4 py-3 text-left transition hover:border-sky-300 hover:bg-white dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:hover:border-sky-400 dark:hover:bg-slate-900">
+                                            <div class="font-semibold">Только выбранные</div>
+                                            <div class="text-sm mt-1 opacity-80">Ниже можно отметить только тех студентов, кому нужны бланки сейчас.</div>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div class="rounded-3xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-950/70">
+                                    <div class="text-sm uppercase tracking-[0.25em] text-slate-400 dark:text-slate-500">Варианты</div>
+                                    <div id="variantAssignmentSummary" class="text-sm text-slate-600 mt-2 dark:text-slate-400">Для этого теста используется один вариант.</div>
+                                    <div id="variantAssignmentSettings" class="mt-4 space-y-3"></div>
+                                </div>
+
+                                <div class="rounded-3xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-950/70">
+                                    <div class="flex flex-wrap justify-between items-start gap-3">
+                                        <div>
+                                            <div class="text-sm uppercase tracking-[0.25em] text-slate-400 dark:text-slate-500">Состав группы</div>
+                                            <div id="studentSelectionSummary" class="text-sm text-slate-600 mt-2 dark:text-slate-400">Сначала выберите группу.</div>
+                                        </div>
+                                        <div class="flex flex-wrap gap-2">
+                                            <button id="selectAllStudentsButton" type="button" onclick="selectAllGroupStudents()" class="bg-white border border-slate-200 text-slate-700 px-3 py-2 rounded-xl hover:border-sky-300 hover:text-sky-700 transition text-sm dark:bg-slate-950 dark:border-slate-700 dark:text-slate-200 dark:hover:border-sky-400 dark:hover:text-sky-300">
+                                                Отметить всех
+                                            </button>
+                                            <button id="clearStudentsButton" type="button" onclick="clearSelectedGroupStudents()" class="bg-white border border-slate-200 text-slate-700 px-3 py-2 rounded-xl hover:border-sky-300 hover:text-sky-700 transition text-sm dark:bg-slate-950 dark:border-slate-700 dark:text-slate-200 dark:hover:border-sky-400 dark:hover:text-sky-300">
+                                                Снять выбор
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div id="groupStudentsList" class="mt-4 grid sm:grid-cols-2 gap-3"></div>
+                                </div>
+
+                                <div class="flex flex-wrap gap-3">
+                                    <button onclick="generateBlankForms()" class="bg-emerald-600 text-white px-5 py-3 rounded-2xl hover:bg-emerald-500 transition font-medium">
+                                        Сгенерировать бланки
+                                    </button>
+                                    <div id="printGeneratedActions" class="hidden flex flex-wrap gap-3">
+                                        <button onclick="printGeneratedPack()" class="bg-white border border-slate-200 text-slate-700 px-5 py-3 rounded-2xl hover:border-sky-300 hover:text-sky-700 transition font-medium dark:bg-slate-950 dark:border-slate-700 dark:text-slate-200 dark:hover:border-sky-400 dark:hover:text-sky-300">
+                                            Печать пачки
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+
+                        <section id="scanUploadSection" class="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 dark:bg-slate-900 dark:border-slate-800">
+                            <h2 class="text-xl font-semibold">Загрузка сканов</h2>
+                            <p class="text-slate-500 mt-1 dark:text-slate-400">Загрузите отсканированные листы бланков, и система автоматически поставит баллы и оценку.</p>
+
+                            <div class="mt-5 space-y-4">
+                                <input id="scanFiles" type="file" multiple accept=".jpg,.jpeg,.png,.webp,.pdf"
+                                       class="w-full px-4 py-3 rounded-2xl border border-dashed border-slate-300 bg-slate-50 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200">
+                                <button id="scanButton" onclick="uploadScans()" class="bg-sky-600 text-white px-5 py-3 rounded-2xl hover:bg-sky-500 transition font-medium">
+                                    Обработать сканы
+                                </button>
+                            </div>
+
+                            <div id="scanResults" class="mt-5 space-y-3"></div>
+                        </section>
+                    </div>
+
+                    <section id="blankFormsSection" class="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 dark:bg-slate-900 dark:border-slate-800">
+                        <div class="flex flex-wrap justify-between items-center gap-3 mb-4">
+                            <div>
+                                <h2 class="text-xl font-semibold">Персональные бланки</h2>
+                                <p class="text-slate-500 mt-1 dark:text-slate-400">Список уже выпущенных бланков и результатов проверки.</p>
+                            </div>
+                            <button id="bulkDeleteBlankFormsButton" onclick="deleteIssuedBlankForms()" class="hidden bg-rose-600 text-white px-4 py-2 rounded-xl hover:bg-rose-500 transition text-sm">
+                                Удалить все выпущенные
+                            </button>
                         </div>
-                    </div>
-                </section>
 
-                <section class="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 dark:bg-slate-900 dark:border-slate-800">
-                    <h2 class="text-xl font-semibold">Загрузка сканов</h2>
-                    <p class="text-slate-500 mt-1 dark:text-slate-400">Загрузите отсканированные листы бланков, и система автоматически поставит баллы и оценку.</p>
-
-                    <div class="mt-5 space-y-4">
-                        <input id="scanFiles" type="file" multiple accept=".jpg,.jpeg,.png,.webp,.pdf"
-                               class="w-full px-4 py-3 rounded-2xl border border-dashed border-slate-300 bg-slate-50 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200">
-                        <button id="scanButton" onclick="uploadScans()" class="bg-sky-600 text-white px-5 py-3 rounded-2xl hover:bg-sky-500 transition font-medium">
-                            Обработать сканы
-                        </button>
-                    </div>
-
-                    <div id="scanResults" class="mt-5 space-y-3"></div>
+                        <div id="blankFormsList" class="space-y-3"></div>
+                    </section>
                 </section>
             </div>
 
-            <section class="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 dark:bg-slate-900 dark:border-slate-800">
-                <div class="flex flex-wrap justify-between items-center gap-3 mb-4">
-                    <div>
-                        <h2 class="text-xl font-semibold">Персональные бланки</h2>
-                        <p class="text-slate-500 mt-1 dark:text-slate-400">Список уже выпущенных бланков и результатов проверки.</p>
+            <aside class="hidden xl:block xl:sticky xl:top-24">
+                <section class="proverium-panel rounded-3xl border border-slate-200 p-4 dark:border-slate-800">
+                    <div class="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500 dark:text-slate-400">Навигация</div>
+                    <div class="mt-4 space-y-2">
+                        <button type="button" onclick="scrollToTestSection('pageContent')" class="flex w-full items-center justify-between rounded-2xl border border-slate-200 bg-white px-3 py-3 text-left text-sm font-medium text-slate-700 transition hover:border-sky-300 hover:text-sky-700 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:hover:border-sky-400 dark:hover:text-sky-300">
+                            <span>Карточка теста</span>
+                            <i class="fas fa-arrow-down"></i>
+                        </button>
+                        <button type="button" onclick="scrollToTestSection('questionsSection')" class="flex w-full items-center justify-between rounded-2xl border border-slate-200 bg-white px-3 py-3 text-left text-sm font-medium text-slate-700 transition hover:border-sky-300 hover:text-sky-700 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:hover:border-sky-400 dark:hover:text-sky-300">
+                            <span>Вопросы</span>
+                            <i class="fas fa-arrow-down"></i>
+                        </button>
+                        <button type="button" onclick="scrollToTestSection('gradingSection')" class="flex w-full items-center justify-between rounded-2xl border border-slate-200 bg-white px-3 py-3 text-left text-sm font-medium text-slate-700 transition hover:border-sky-300 hover:text-sky-700 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:hover:border-sky-400 dark:hover:text-sky-300">
+                            <span>Шкала</span>
+                            <i class="fas fa-arrow-down"></i>
+                        </button>
+                        <button type="button" onclick="scrollToTestSection('blankGenerationSection')" class="flex w-full items-center justify-between rounded-2xl border border-slate-200 bg-white px-3 py-3 text-left text-sm font-medium text-slate-700 transition hover:border-sky-300 hover:text-sky-700 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:hover:border-sky-400 dark:hover:text-sky-300">
+                            <span>Выпуск бланков</span>
+                            <i class="fas fa-arrow-down"></i>
+                        </button>
+                        <button type="button" onclick="scrollToTestSection('scanUploadSection')" class="flex w-full items-center justify-between rounded-2xl border border-slate-200 bg-white px-3 py-3 text-left text-sm font-medium text-slate-700 transition hover:border-sky-300 hover:text-sky-700 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:hover:border-sky-400 dark:hover:text-sky-300">
+                            <span>Загрузка сканов</span>
+                            <i class="fas fa-arrow-down"></i>
+                        </button>
+                        <button type="button" onclick="scrollToTestSection('blankFormsSection')" class="flex w-full items-center justify-between rounded-2xl border border-slate-200 bg-white px-3 py-3 text-left text-sm font-medium text-slate-700 transition hover:border-sky-300 hover:text-sky-700 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:hover:border-sky-400 dark:hover:text-sky-300">
+                            <span>Персональные бланки</span>
+                            <i class="fas fa-arrow-down"></i>
+                        </button>
                     </div>
-                    <button onclick="loadBlankForms()" class="text-sky-600 hover:text-sky-800 text-sm font-medium">
-                        Обновить список
-                    </button>
-                </div>
-
-                <div id="blankFormsList" class="space-y-3"></div>
-            </section>
-        </section>
+                </section>
+            </aside>
+        </div>
     </div>
 </div>
 
@@ -795,6 +831,15 @@
 
     function renderBlankForms() {
         const list = document.getElementById('blankFormsList');
+        const bulkDeleteButton = document.getElementById('bulkDeleteBlankFormsButton');
+        const deletableCount = blankForms.filter((blankForm) => ['generated', 'checked'].includes(blankForm.status)).length;
+
+        if (bulkDeleteButton) {
+            bulkDeleteButton.classList.toggle('hidden', deletableCount === 0);
+            bulkDeleteButton.textContent = deletableCount > 0
+                ? `Удалить все выпущенные (${deletableCount})`
+                : 'Удалить все выпущенные';
+        }
 
         if (!blankForms.length) {
             list.innerHTML = `
@@ -857,6 +902,36 @@
                 </article>
             `;
         }).join('');
+    }
+
+    async function deleteIssuedBlankForms() {
+        const deletableCount = blankForms.filter((blankForm) => ['generated', 'checked'].includes(blankForm.status)).length;
+
+        if (!deletableCount) {
+            alert('Для этого теста нет выпущенных бланков, доступных для удаления.');
+            return;
+        }
+
+        if (!confirm(`Удалить все выпущенные бланки (${deletableCount})? Это действие нельзя отменить.`)) {
+            return;
+        }
+
+        try {
+            const response = await apiFetch(`/api/tests/${testId}/blank-forms`, {
+                method: 'DELETE'
+            });
+
+            if (!response.ok) {
+                const error = await response.json().catch(() => ({}));
+                throw new Error(error.message || 'Не удалось удалить выпущенные бланки');
+            }
+
+            lastGeneratedBlankIds = [];
+            document.getElementById('printGeneratedActions').classList.add('hidden');
+            await loadBlankForms();
+        } catch (error) {
+            alert(error.message || 'Ошибка удаления');
+        }
     }
 
     async function generateBlankForms() {
@@ -1027,6 +1102,13 @@
         }
 
         window.location.href = `/blank-forms/results?${params.toString()}`;
+    }
+
+    function scrollToTestSection(sectionId) {
+        document.getElementById(sectionId)?.scrollIntoView({
+            behavior: 'smooth',
+            block: 'start',
+        });
     }
 
     async function uploadScans() {

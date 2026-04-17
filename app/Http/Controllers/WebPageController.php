@@ -11,6 +11,11 @@ class WebPageController extends Controller
         return view('profile', ['user' => $request->id ?? $request->user()]);
     }
 
+    public function profileEdit(Request $request)
+    {
+        return view('profile-edit', ['user' => $request->id ?? $request->user()]);
+    }
+
     public function testsShow($id)
     {
         return view('tests.show', ['id' => $id]);

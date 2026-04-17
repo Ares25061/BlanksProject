@@ -4,57 +4,57 @@
     @include('layouts.head', ['title' => 'Журнал группы'])
     <link rel='stylesheet' href='https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css'>
 </head>
-<body class="bg-slate-100 min-h-screen text-slate-900">
+<body class="bg-slate-100 min-h-screen text-slate-900 dark:bg-slate-950 dark:text-slate-100">
 
 @include('layouts.nav')
 
 <div class="max-w-[96rem] mx-auto px-4 py-8">
     <div id="loading" class="text-center py-16">
         <div class="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-sky-500"></div>
-        <p class="text-slate-600 mt-4">Загружаю журнал группы...</p>
+        <p class="text-slate-600 mt-4 dark:text-slate-300">Загружаю журнал группы...</p>
     </div>
 
     <div id="pageContent" class="hidden space-y-6">
-        <section class="bg-white border border-slate-200 rounded-3xl shadow-sm p-6">
+        <section class="bg-white border border-slate-200 rounded-3xl shadow-sm p-6 dark:bg-slate-900 dark:border-slate-800 dark:shadow-none">
             <div class="flex flex-wrap justify-between items-start gap-4">
                 <div>
                     <p class="text-sm uppercase tracking-[0.3em] text-sky-700 font-semibold">Журнал группы</p>
                     <h1 id="groupTitle" class="text-3xl font-bold mt-2"></h1>
-                    <p id="groupDescription" class="text-slate-600 mt-3 max-w-4xl"></p>
+                    <p id="groupDescription" class="text-slate-600 mt-3 max-w-4xl dark:text-slate-300"></p>
                 </div>
                 <div class="flex flex-wrap gap-3">
-                    <button onclick="window.location.href='/groups'" class="bg-white border border-slate-200 text-slate-700 px-4 py-3 rounded-2xl hover:border-sky-300 hover:text-sky-700 transition">
+                    <button onclick="window.location.href='/groups'" class="bg-white border border-slate-200 text-slate-700 px-4 py-3 rounded-2xl hover:border-sky-300 hover:text-sky-700 transition dark:bg-slate-950 dark:border-slate-700 dark:text-slate-200 dark:hover:border-sky-400 dark:hover:text-sky-300">
                         Все группы
                     </button>
                 </div>
             </div>
 
             <div class="grid sm:grid-cols-3 gap-4 mt-6">
-                <div class="bg-slate-50 rounded-2xl p-4">
-                    <div class="text-xs uppercase tracking-[0.25em] text-slate-400">Студентов</div>
+                <div class="bg-slate-50 rounded-2xl p-4 dark:bg-slate-950/70">
+                    <div class="text-xs uppercase tracking-[0.25em] text-slate-400 dark:text-slate-500">Студентов</div>
                     <div id="studentsCount" class="text-2xl font-bold mt-2">0</div>
                 </div>
-                <div class="bg-slate-50 rounded-2xl p-4">
-                    <div class="text-xs uppercase tracking-[0.25em] text-slate-400">Показано дат</div>
+                <div class="bg-slate-50 rounded-2xl p-4 dark:bg-slate-950/70">
+                    <div class="text-xs uppercase tracking-[0.25em] text-slate-400 dark:text-slate-500">Показано дат</div>
                     <div id="datesCount" class="text-2xl font-bold mt-2">0</div>
                 </div>
-                <div class="bg-slate-50 rounded-2xl p-4">
-                    <div class="text-xs uppercase tracking-[0.25em] text-slate-400">Текущий предмет</div>
+                <div class="bg-slate-50 rounded-2xl p-4 dark:bg-slate-950/70">
+                    <div class="text-xs uppercase tracking-[0.25em] text-slate-400 dark:text-slate-500">Текущий предмет</div>
                     <div id="currentSubjectLabel" class="text-2xl font-bold mt-2">Не выбран</div>
                 </div>
             </div>
         </section>
 
-        <section class="bg-white border border-slate-200 rounded-3xl shadow-sm p-6">
+        <section class="bg-white border border-slate-200 rounded-3xl shadow-sm p-6 dark:bg-slate-900 dark:border-slate-800 dark:shadow-none">
             <div class="grid xl:grid-cols-[380px_minmax(0,1fr)] gap-6 items-start">
                 <div class="space-y-5">
                     <div>
                         <h2 class="text-xl font-semibold">Настройка журнала</h2>
-                        <p class="text-slate-500 mt-2">У одной группы можно вести несколько предметов. Переключайте предмет, добавляйте даты и ставьте оценки прямо в ячейках таблицы.</p>
+                        <p class="text-slate-500 mt-2 dark:text-slate-400">У одной группы можно вести несколько предметов. Переключайте предмет, добавляйте даты и ставьте оценки прямо в ячейках таблицы.</p>
                     </div>
 
                     <div>
-                        <label for="subjectSelect" class="block text-sm font-medium text-slate-700 mb-2">Предмет из существующих</label>
+                        <label for="subjectSelect" class="block text-sm font-medium text-slate-700 mb-2 dark:text-slate-300">Предмет из существующих</label>
                         <div class="flex gap-3">
                             <select id="subjectSelect" class="flex-1 px-4 py-3 rounded-2xl border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500"></select>
                             <button onclick="openSelectedSubject()" class="bg-sky-600 text-white px-4 py-3 rounded-2xl hover:bg-sky-500 transition">
@@ -64,33 +64,33 @@
                     </div>
 
                     <div>
-                        <label for="newSubjectInput" class="block text-sm font-medium text-slate-700 mb-2">Новый предмет</label>
+                        <label for="newSubjectInput" class="block text-sm font-medium text-slate-700 mb-2 dark:text-slate-300">Новый предмет</label>
                         <div class="flex gap-3">
                             <input id="newSubjectInput" type="text"
                                    class="flex-1 px-4 py-3 rounded-2xl border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
                                    placeholder="Например: Программирование">
-                            <button onclick="openTypedSubject()" class="bg-white border border-slate-200 text-slate-700 px-4 py-3 rounded-2xl hover:border-sky-300 hover:text-sky-700 transition">
+                            <button onclick="openTypedSubject()" class="bg-white border border-slate-200 text-slate-700 px-4 py-3 rounded-2xl hover:border-sky-300 hover:text-sky-700 transition dark:bg-slate-950 dark:border-slate-700 dark:text-slate-200 dark:hover:border-sky-400 dark:hover:text-sky-300">
                                 Новый журнал
                             </button>
                         </div>
                     </div>
 
                     <div>
-                        <label for="newDateInput" class="block text-sm font-medium text-slate-700 mb-2">Добавить дату в таблицу</label>
+                        <label for="newDateInput" class="block text-sm font-medium text-slate-700 mb-2 dark:text-slate-300">Добавить дату в таблицу</label>
                         <div class="flex flex-wrap gap-3">
                             <input id="newDateInput" type="date"
                                    class="flex-1 min-w-[220px] px-4 py-3 rounded-2xl border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500">
                             <button onclick="addDateColumn()" class="bg-emerald-600 text-white px-4 py-3 rounded-2xl hover:bg-emerald-500 transition">
                                 Добавить
                             </button>
-                            <button onclick="addNextMonth()" class="bg-white border border-slate-200 text-slate-700 px-4 py-3 rounded-2xl hover:border-sky-300 hover:text-sky-700 transition">
+                            <button onclick="addNextMonth()" class="bg-white border border-slate-200 text-slate-700 px-4 py-3 rounded-2xl hover:border-sky-300 hover:text-sky-700 transition dark:bg-slate-950 dark:border-slate-700 dark:text-slate-200 dark:hover:border-sky-400 dark:hover:text-sky-300">
                                 Добавить месяц
                             </button>
                         </div>
                     </div>
 
                     <div>
-                        <label for="exportMonthInput" class="block text-sm font-medium text-slate-700 mb-2">Экспорт журнала за месяц</label>
+                        <label for="exportMonthInput" class="block text-sm font-medium text-slate-700 mb-2 dark:text-slate-300">Экспорт журнала за месяц</label>
                         <div class="flex flex-wrap gap-3">
                             <input id="exportMonthInput" type="month"
                                    class="flex-1 min-w-[220px] px-4 py-3 rounded-2xl border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500">
@@ -102,29 +102,29 @@
 
                     <div id="subjectChips" class="flex flex-wrap gap-2"></div>
 
-                    <div id="saveHint" class="rounded-3xl border border-slate-200 bg-slate-50 p-5 text-sm text-slate-600">
-                        Пустая ячейка означает, что оценки нет. Введите оценку и нажмите <span class="font-semibold text-slate-900">Enter</span> или просто уйдите из поля, чтобы сохранить запись на выбранную дату.
+                    <div id="saveHint" class="rounded-3xl border border-slate-200 bg-slate-50 p-5 text-sm text-slate-600 dark:border-slate-800 dark:bg-slate-950/70 dark:text-slate-300">
+                        Пустая ячейка означает, что оценки нет. Введите оценку и нажмите <span class="font-semibold text-slate-900 dark:text-white">Enter</span> или просто уйдите из поля, чтобы сохранить запись на выбранную дату.
                     </div>
                 </div>
 
                 <div class="min-w-0">
                     <div class="flex flex-col gap-3 mb-4 lg:flex-row lg:items-center lg:justify-between">
-                        <div class="text-sm text-slate-500">
+                        <div class="text-sm text-slate-500 dark:text-slate-400">
                             Показываю неделю:
-                            <span id="currentWeekLabel" class="font-semibold text-slate-900"></span>
+                            <span id="currentWeekLabel" class="font-semibold text-slate-900 dark:text-white"></span>
                         </div>
                         <div class="flex flex-wrap gap-3 w-full lg:w-auto">
-                            <button onclick="shiftWeek(-1)" class="bg-white border border-slate-200 text-slate-700 px-4 py-2 rounded-2xl hover:border-sky-300 hover:text-sky-700 transition w-full sm:w-auto">
+                            <button onclick="shiftWeek(-1)" class="bg-white border border-slate-200 text-slate-700 px-4 py-2 rounded-2xl hover:border-sky-300 hover:text-sky-700 transition w-full sm:w-auto dark:bg-slate-950 dark:border-slate-700 dark:text-slate-200 dark:hover:border-sky-400 dark:hover:text-sky-300">
                                 <i class="fas fa-arrow-left mr-2"></i>
                                 Прошлая неделя
                             </button>
-                            <button onclick="shiftWeek(1)" class="bg-white border border-slate-200 text-slate-700 px-4 py-2 rounded-2xl hover:border-sky-300 hover:text-sky-700 transition w-full sm:w-auto">
+                            <button onclick="shiftWeek(1)" class="bg-white border border-slate-200 text-slate-700 px-4 py-2 rounded-2xl hover:border-sky-300 hover:text-sky-700 transition w-full sm:w-auto dark:bg-slate-950 dark:border-slate-700 dark:text-slate-200 dark:hover:border-sky-400 dark:hover:text-sky-300">
                                 Следующая неделя
                                 <i class="fas fa-arrow-right ml-2"></i>
                             </button>
                         </div>
                     </div>
-                    <div class="rounded-3xl border border-slate-200 overflow-hidden bg-white min-w-0">
+                    <div class="rounded-3xl border border-slate-200 overflow-hidden bg-white min-w-0 dark:border-slate-800 dark:bg-slate-900">
                         <div class="overflow-auto max-w-full">
                             <div id="gradebookTable"></div>
                         </div>
@@ -211,11 +211,11 @@
 
         const subjectChips = document.getElementById('subjectChips');
         if (!subjects.length) {
-            subjectChips.innerHTML = '<span class="text-sm text-slate-400">Предметы еще не добавлены</span>';
+            subjectChips.innerHTML = '<span class="text-sm text-slate-400 dark:text-slate-500">Предметы еще не добавлены</span>';
         } else {
             subjectChips.innerHTML = subjects.map((subject) => `
                 <button onclick="loadGradebook(decodeURIComponent('${encodeForInline(subject)}'))"
-                        class="px-3 py-2 rounded-full text-sm transition ${subject === selectedSubject ? 'bg-sky-600 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}">
+                        class="px-3 py-2 rounded-full text-sm transition ${subject === selectedSubject ? 'bg-sky-600 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700'}">
                     ${escapeHtml(subject)}
                 </button>
             `).join('');
@@ -231,7 +231,7 @@
 
         if (!students.length) {
             container.innerHTML = `
-                <div class="p-12 text-center text-slate-500">
+                <div class="p-12 text-center text-slate-500 dark:text-slate-400">
                     В этой группе пока нет студентов.
                 </div>
             `;
@@ -239,16 +239,16 @@
         }
 
         const headColumns = dates.map((date) => `
-            <th data-date-column="true" title="${formatLongDate(date)}" class="sticky top-0 z-20 bg-slate-900 text-white min-w-[132px] px-4 py-4 border-l border-slate-700 text-center">
+            <th data-date-column="true" title="${formatLongDate(date)}" class="sticky top-0 z-20 min-w-[132px] border-l border-slate-200 bg-slate-100 px-4 py-4 text-center text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-white">
                 <div class="font-semibold">${formatShortDate(date)}</div>
-                <div class="text-xs text-slate-300 mt-1">${formatWeekday(date)}</div>
+                <div class="mt-1 text-xs text-slate-500 dark:text-slate-300">${formatWeekday(date)}</div>
             </th>
         `).join('');
 
         const bodyRows = students.map((student) => `
-            <tr class="even:bg-slate-50/60">
-                <th class="sticky left-0 z-10 bg-white min-w-[280px] max-w-[280px] px-4 py-4 text-left border-r border-b border-slate-200 align-top">
-                    <div class="font-semibold text-slate-900">${escapeHtml(student.full_name)}</div>
+            <tr class="even:bg-slate-50/60 dark:even:bg-slate-950/60">
+                <th class="sticky left-0 z-10 min-w-[280px] max-w-[280px] border-r border-b border-slate-200 bg-white px-4 py-4 text-left align-top dark:border-slate-800 dark:bg-slate-900">
+                    <div class="font-semibold text-slate-900 dark:text-white">${escapeHtml(student.full_name)}</div>
                 </th>
                 ${dates.map((date) => renderGradeCell(student, date)).join('')}
             </tr>
@@ -258,11 +258,11 @@
             <table class="min-w-full border-separate border-spacing-0">
                 <thead>
                     <tr>
-                        <th class="sticky top-0 left-0 z-30 bg-slate-900 text-white min-w-[280px] px-4 py-4 text-left border-r border-slate-700">
+                        <th class="sticky top-0 left-0 z-30 min-w-[280px] border-r border-slate-200 bg-slate-100 px-4 py-4 text-left text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-white">
                             Студенты
                         </th>
                         ${headColumns || `
-                            <th class="sticky top-0 z-20 bg-slate-900 text-white px-4 py-4 text-left">
+                            <th class="sticky top-0 z-20 bg-slate-100 px-4 py-4 text-left text-slate-700 dark:bg-slate-900 dark:text-white">
                                 Добавьте первую дату, чтобы начать ставить оценки
                             </th>
                         `}
@@ -280,7 +280,7 @@
         const value = entry?.grade_value || '';
         const linkedHint = entry?.blank_form_id
             ? '<div class="text-[10px] text-sky-600 mt-1">по проверенной работе</div>'
-            : '<div class="text-[10px] text-slate-300 mt-1">ручная запись</div>';
+            : '<div class="mt-1 text-[10px] text-slate-400 dark:text-slate-500">ручная запись</div>';
 
         return `
             <td class="min-w-[132px] px-3 py-3 border-b border-l border-slate-200 align-top">

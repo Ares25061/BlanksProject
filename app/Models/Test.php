@@ -34,7 +34,9 @@ class Test extends Model
 
     public function questions()
     {
-        return $this->hasMany(Question::class)->orderBy('order');
+        return $this->hasMany(Question::class)
+            ->orderBy('order')
+            ->orderBy('id');
     }
 
     public function blankForms()

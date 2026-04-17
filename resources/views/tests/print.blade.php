@@ -3,16 +3,31 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="only light">
+    <meta name="theme-color" content="#eef1f4">
     <title>{{ $documentTitle ?? ('Печать ' . $test->title) }}</title>
     <script>
         (() => {
-            const storedTheme = localStorage.getItem('proverium-theme');
-            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-            const resolvedTheme = storedTheme === 'dark' || storedTheme === 'light'
-                ? storedTheme
-                : (prefersDark ? 'dark' : 'light');
+            const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+            const root = document.documentElement;
+            const themeColorMeta = document.querySelector('meta[name="theme-color"]');
+            const colorSchemeMeta = document.querySelector('meta[name="color-scheme"]');
+            const resolvedTheme = mediaQuery.matches ? 'dark' : 'light';
 
-            document.documentElement.classList.toggle('dark', resolvedTheme === 'dark');
+            root.classList.toggle('dark', resolvedTheme === 'dark');
+            root.dataset.theme = resolvedTheme;
+            root.dataset.themeMode = 'system';
+            root.style.colorScheme = resolvedTheme === 'dark' ? 'dark' : 'only light';
+            root.style.backgroundColor = resolvedTheme === 'dark' ? '#0b1115' : '#eef1f4';
+            root.style.color = resolvedTheme === 'dark' ? '#e2e8f0' : '#111111';
+
+            if (themeColorMeta) {
+                themeColorMeta.setAttribute('content', resolvedTheme === 'dark' ? '#0b1115' : '#eef1f4');
+            }
+
+            if (colorSchemeMeta) {
+                colorSchemeMeta.setAttribute('content', resolvedTheme === 'dark' ? 'dark' : 'only light');
+            }
         })();
     </script>
     <style>
@@ -25,6 +40,37 @@
             box-sizing: border-box;
             -webkit-print-color-adjust: exact;
             print-color-adjust: exact;
+        }
+
+        html[data-theme="light"] {
+            background: #eef1f4;
+            color: #111111;
+            color-scheme: only light;
+            forced-color-adjust: none;
+        }
+
+        html[data-theme="light"] body {
+            background: #eef1f4;
+            color: #111111;
+            color-scheme: only light;
+            forced-color-adjust: none;
+        }
+
+        html.dark,
+        html.dark body,
+        html.dark button {
+            color-scheme: dark;
+        }
+
+        html.dark {
+            background: #0b1115;
+            color: #e2e8f0;
+            forced-color-adjust: none;
+        }
+
+        html.dark body {
+            background: #0b1115;
+            color: #e2e8f0;
         }
 
         body {

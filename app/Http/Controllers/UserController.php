@@ -51,7 +51,11 @@ class UserController extends Controller
      */
     public function show(int $id)
     {
-        $user = User::find($id);
+        $user = User::withCount([
+            'createdTests as tests_count',
+            'studentGroups as groups_count',
+        ])->find($id);
+
         if (is_null($user)) {
             return response()->json(['error' => 'User not found'], 404);
         }

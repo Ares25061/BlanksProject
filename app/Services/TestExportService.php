@@ -28,10 +28,14 @@ class TestExportService
                 ->map(function ($question) use ($includeQuestionVariant) {
                     $payload = [
                         'question_text' => $question->question_text,
+                        'order' => (int) ($question->order ?? 0),
                         'type' => $question->type,
                         'points' => (int) ($question->points ?? 1),
                         'answers' => $question->answers
-                            ->sortBy('order')
+                            ->sortBy([
+                                fn ($answer) => (int) ($answer->order ?? 0),
+                                fn ($answer) => (int) $answer->id,
+                            ])
                             ->values()
                             ->map(fn ($answer) => [
                                 'answer_text' => $answer->answer_text,
@@ -64,7 +68,7 @@ class TestExportService
             ['variant_count', (string) ($payload['variant_count'] ?? 1)],
             ['grade_criteria_json', $this->encodeGradeCriteria($payload['grade_criteria'] ?? [])],
             [],
-            array_merge(['question_text', 'variant', 'type', 'points'], $answerColumns, ['correct']),
+            array_merge(['question_text', 'order', 'variant', 'type', 'points'], $answerColumns, ['correct']),
         ];
 
         foreach ($payload['questions'] ?? [] as $question) {
@@ -85,6 +89,7 @@ class TestExportService
             $answerTexts = BlankScanLayout::answerLetters();
             $row = [
                 (string) ($question['question_text'] ?? ''),
+                (string) ($question['order'] ?? ''),
                 array_key_exists('variant', $question) ? (string) ($question['variant'] ?? '') : '',
                 (string) ($question['type'] ?? 'single'),
                 (string) ($question['points'] ?? 1),
@@ -119,7 +124,6 @@ class TestExportService
     {
         return $test->questions
             ->sortBy([
-                fn ($question) => (int) ($question->variant_number ?? 1),
                 fn ($question) => (int) ($question->order ?? 0),
                 fn ($question) => (int) $question->id,
             ])

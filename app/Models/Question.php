@@ -31,7 +31,9 @@ class Question extends Model
 
     public function answers()
     {
-        return $this->hasMany(Answer::class)->orderBy('order');
+        return $this->hasMany(Answer::class)
+            ->orderBy('order')
+            ->orderBy('id');
     }
 
     public function studentAnswers()

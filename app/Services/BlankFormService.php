@@ -238,6 +238,19 @@ class BlankFormService
         });
     }
 
+    public function deleteIssuedBlankFormsForTest(Test $test): int
+    {
+        $blankForms = BlankForm::where('test_id', $test->id)
+            ->whereIn('status', ['generated', 'checked'])
+            ->get();
+
+        foreach ($blankForms as $blankForm) {
+            $this->deleteBlankForm($blankForm);
+        }
+
+        return $blankForms->count();
+    }
+
     protected function extractScanPaths(BlankForm $blankForm): array
     {
         $paths = array_filter([

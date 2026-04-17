@@ -27,6 +27,7 @@ Route::middleware('auth:api')->group(function () {
     Route::get('blank-forms', [BlankFormController::class, 'index']);
     Route::post('tests/{test}/generate-blank-forms', [BlankFormController::class, 'generateForTest']);
     Route::post('tests/{test}/scan-blank-forms', [BlankFormController::class, 'scanForTest']);
+    Route::delete('tests/{test}/blank-forms', [BlankFormController::class, 'destroyIssuedForTest']);
     Route::get('blank-forms/{blank_form}', [BlankFormController::class, 'show']);
     Route::patch('blank-forms/{blank_form}/assign-grade', [BlankFormController::class, 'assignGrade']);
     Route::delete('blank-forms/{blank_form}', [BlankFormController::class, 'destroy']);

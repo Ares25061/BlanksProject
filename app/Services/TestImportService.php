@@ -101,6 +101,8 @@ class TestImportService
             $questions[] = $this->normalizeQuestionFromSpreadsheet($rowData, count($questions));
         }
 
+        $questions = $this->resequenceQuestions($questions);
+
         if ($questions === []) {
             throw ValidationException::withMessages([
                 'questions' => 'В XLSX-файле не найдено заполненных строк с вопросами.',
@@ -134,7 +136,7 @@ class TestImportService
             $normalized[] = $this->normalizeQuestion($question, $index, $variantCount);
         }
 
-        return $normalized;
+        return $this->resequenceQuestions($normalized);
     }
 
     private function normalizeQuestion(array $question, int $index, int $variantCount = 1): array
@@ -175,7 +177,7 @@ class TestImportService
             'question_text' => $questionText,
             'type' => $this->normalizeType($question['type'] ?? null, $correctCount),
             'points' => max(1, $this->nullableInt($question['points'] ?? $question['score'] ?? 1) ?? 1),
-            'order' => $index,
+            'order' => $this->normalizeQuestionOrder($question['order'] ?? $question['position'] ?? null, $index),
             'variant_number' => $this->normalizeQuestionVariant($question['variant_number'] ?? $question['variant'] ?? null, $variantCount),
             'answers' => $answers,
         ];
@@ -231,7 +233,7 @@ class TestImportService
             'question_text' => $questionText,
             'type' => $this->normalizeType($rowData['type'] ?? null, collect($answers)->where('is_correct', true)->count()),
             'points' => max(1, $this->nullableInt($rowData['points'] ?? 1) ?? 1),
-            'order' => $index,
+            'order' => $this->normalizeQuestionOrder($rowData['order'] ?? null, $index),
             'variant_number' => $this->normalizeQuestionVariant($rowData['variant'] ?? null, 10),
             'answers' => $answers,
         ];
@@ -348,6 +350,7 @@ class TestImportService
 
             return match ($normalized) {
                 'question', 'question_text', 'text', 'vopros', 'tekst_voprosa' => 'question_text',
+                'order', 'position', 'index', 'poryadok' => 'order',
                 'variant', 'variant_number', 'вариант' => 'variant',
                 'type', 'tip' => 'type',
                 'points', 'point', 'score', 'ball', 'bally' => 'points',
@@ -558,5 +561,37 @@ class TestImportService
         }
 
         return $this->testVariantService->normalizeVariantCount($variantNumber);
+    }
+
+    private function normalizeQuestionOrder(mixed $value, int $fallback): int
+    {
+        if ($value === null || $value === '') {
+            return $fallback;
+        }
+
+        return max(0, (int) $value);
+    }
+
+    private function resequenceQuestions(array $questions): array
+    {
+        return collect($questions)
+            ->values()
+            ->map(function (array $question, int $sourceIndex) {
+                $question['_source_index'] = $sourceIndex;
+
+                return $question;
+            })
+            ->sortBy([
+                fn (array $question) => (int) ($question['order'] ?? 0),
+                fn (array $question) => (int) ($question['_source_index'] ?? 0),
+            ])
+            ->values()
+            ->map(function (array $question, int $index) {
+                unset($question['_source_index']);
+                $question['order'] = $index;
+
+                return $question;
+            })
+            ->all();
     }
 }

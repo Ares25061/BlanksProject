@@ -11,6 +11,7 @@ Route::prefix('user')->group(function () {
     Route::view('/register', 'register')->name('register');
 });
 Route::get('/user/profile', [WebPageController::class, 'profile'])->name('profile');
+Route::get('/user/edit', [WebPageController::class, 'profileEdit'])->name('profile.edit');
 
 Route::view('/tests', 'tests.index')->name('tests.index');
 Route::view('/tests/create', 'tests.create')->name('tests.create');
