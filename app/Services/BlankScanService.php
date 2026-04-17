@@ -49,7 +49,7 @@ class BlankScanService
 
             if (!$pagePayload) {
                 throw ValidationException::withMessages([
-                    'scan' => 'Could not recognize the page QR code. Make sure the page markers and the top QR are visible.',
+                    'scan' => 'Не удалось распознать QR-код страницы. Убедитесь, что маркеры листа и верхний QR-код хорошо видны.',
                 ]);
             }
 
@@ -63,7 +63,7 @@ class BlankScanService
 
             if (!$manifest) {
                 throw ValidationException::withMessages([
-                    'scan' => 'Could not load the page manifest for cell recognition.',
+                    'scan' => 'Не удалось загрузить разметку страницы для распознавания ячеек.',
                 ]);
             }
 
@@ -72,15 +72,15 @@ class BlankScanService
             $isCurrentTestForm = (int) $blankForm->test_id === (int) $test->id;
 
             if (!$isCurrentTestForm) {
-                $warnings[] = 'This scan belongs to another test. Saved only as a temporary OCR preview without grading.';
+                $warnings[] = 'Этот скан относится к другому тесту. Он сохранён только как временный OCR-предпросмотр без выставления оценки.';
             }
 
             if (($pagePayload['form_number'] ?? '') !== '' && (string) $pagePayload['form_number'] !== (string) $blankForm->form_number) {
-                $warnings[] = 'The QR code points to a different form number. Using the form found by ID.';
+                $warnings[] = 'QR-код указывает на другой номер бланка. Использую бланк, найденный по ID.';
             }
 
             if ((int) $pagePayload['page_count'] !== $expectedPageCount) {
-                $warnings[] = 'The QR page count differs from the saved manifest. Using the saved manifest.';
+                $warnings[] = 'Количество страниц в QR-коде не совпадает с сохранённой разметкой. Использую сохранённую разметку.';
             }
 
             return [
@@ -149,13 +149,13 @@ class BlankScanService
             }
 
             if ($questionType === 'single' && count($selectedAnswerIds) > 1) {
-                $warnings[] = 'A single-choice question has multiple marked cells.';
+                $warnings[] = 'В вопросе с одним правильным ответом отмечено несколько ячеек.';
             }
 
             if ($borderlineUnselectedLetters !== []) {
-                $warnings[] = 'Question ' . $questionNumber . ' has weak borderline marks that stayed below the threshold: ' . implode(', ', $borderlineUnselectedLetters) . '.';
+                $warnings[] = 'В вопросе ' . $questionNumber . ' есть слабые пограничные отметки, оставшиеся ниже порога: ' . implode(', ', $borderlineUnselectedLetters) . '.';
             } elseif ($borderlineSelectedLetters !== [] && count($borderlineSelectedLetters) === count($selectedLetters)) {
-                $warnings[] = 'Question ' . $questionNumber . ' was recognized from weak borderline marks: ' . implode(', ', $borderlineSelectedLetters) . '.';
+                $warnings[] = 'Вопрос ' . $questionNumber . ' распознан по слабым пограничным отметкам: ' . implode(', ', $borderlineSelectedLetters) . '.';
             }
 
             $displayAnswers[] = [
@@ -194,7 +194,7 @@ class BlankScanService
             $pageNumber = (int) $pageScan['page_number'];
 
             if (isset($pagesByNumber[$pageNumber])) {
-                $warnings[] = 'The same page was uploaded more than once. Using the last uploaded copy.';
+                $warnings[] = 'Одна и та же страница была загружена несколько раз. Использую последнюю загруженную копию.';
             }
 
             $pagesByNumber[$pageNumber] = $pageScan;
@@ -210,7 +210,7 @@ class BlankScanService
         }
 
         if ($missingPages !== []) {
-            $warnings[] = 'Not all pages of the form were uploaded. Missing pages: ' . implode(', ', $missingPages) . '.';
+            $warnings[] = 'Загружены не все страницы бланка. Отсутствуют страницы: ' . implode(', ', $missingPages) . '.';
 
             return [
                 'file_name' => $this->summarizeFileNames($pagesByNumber),
@@ -302,7 +302,7 @@ class BlankScanService
             $pageNumber = (int) $pageScan['page_number'];
 
             if (isset($pagesByNumber[$pageNumber])) {
-                $warnings[] = 'The same page was uploaded more than once. Using the last uploaded copy.';
+                $warnings[] = 'Одна и та же страница была загружена несколько раз. Использую последнюю загруженную копию.';
             }
 
             $pagesByNumber[$pageNumber] = $pageScan;
@@ -318,7 +318,7 @@ class BlankScanService
         }
 
         if ($missingPages !== []) {
-            $warnings[] = 'Not all pages of the form were uploaded. Missing pages: ' . implode(', ', $missingPages) . '.';
+            $warnings[] = 'Загружены не все страницы бланка. Отсутствуют страницы: ' . implode(', ', $missingPages) . '.';
 
             return [
                 'file_name' => $this->summarizeFileNames($pagesByNumber),
@@ -439,7 +439,7 @@ class BlankScanService
 
         if (!function_exists('imagecreatefromjpeg') || !function_exists('imagecreatefrompng') || !function_exists('imagejpeg') || !function_exists('imagecreatefromstring')) {
             throw ValidationException::withMessages([
-                'scan' => 'GD image extension is not enabled on the server.',
+                'scan' => 'На сервере не включено расширение GD для работы с изображениями.',
             ]);
         }
 
@@ -448,7 +448,7 @@ class BlankScanService
         } else {
             if ($mimeType === 'image/webp' && !function_exists('imagecreatefromwebp')) {
                 throw ValidationException::withMessages([
-                    'scan' => 'WEBP support is not enabled in GD on the server.',
+                    'scan' => 'На сервере не включена поддержка WEBP в GD.',
                 ]);
             }
 
@@ -461,7 +461,7 @@ class BlankScanService
 
         if (!$image) {
             throw ValidationException::withMessages([
-                'scan' => 'Could not open the uploaded scan image.',
+                'scan' => 'Не удалось открыть загруженное изображение скана.',
             ]);
         }
 
@@ -559,7 +559,7 @@ class BlankScanService
         }
 
         throw ValidationException::withMessages([
-            'scan' => 'PDF was uploaded, but the first page could not be rendered. Install Imagick, pdftoppm, or keep the Python OCR environment available for PDF fallback.',
+            'scan' => 'Загружен PDF, но не удалось отрисовать его первую страницу. Установите Imagick, pdftoppm или оставьте доступным Python OCR для резервной обработки PDF.',
         ]);
     }
 
@@ -571,7 +571,7 @@ class BlankScanService
 
         if ($binary === false) {
             throw ValidationException::withMessages([
-                'scan' => 'Could not save the normalized scan image.',
+                'scan' => 'Не удалось сохранить нормализованное изображение скана.',
             ]);
         }
 
@@ -587,7 +587,7 @@ class BlankScanService
 
         if (!is_dir($directory) && !mkdir($directory, 0777, true) && !is_dir($directory)) {
             throw ValidationException::withMessages([
-                'scan' => 'Could not prepare a temporary directory for PDF processing.',
+                'scan' => 'Не удалось подготовить временную папку для обработки PDF.',
             ]);
         }
 

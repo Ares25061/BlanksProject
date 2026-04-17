@@ -87,19 +87,28 @@
         testsList.innerHTML = tests.map((test) => {
             const totalPoints = (test.questions || []).reduce((sum, question) => sum + (question.points || 0), 0);
             const gradeCriteriaCount = (test.grade_criteria || []).length;
+            const deliveryModeLabel = getDeliveryModeLabel(test.delivery_mode);
+            const testStatus = getTestStatusValue(test);
+            const testStatusLabel = getTestStatusLabel(test);
+            const canClose = testStatus !== 'closed';
 
             return `
                 <article class="bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition overflow-hidden dark:bg-slate-900 dark:border-slate-800 dark:shadow-none dark:hover:shadow-none">
-                    <div class="h-2 ${test.is_active ? 'bg-emerald-500' : 'bg-slate-300'}"></div>
+                    <div class="h-2 ${getStatusAccentClass(testStatus)}"></div>
                     <div class="p-6 space-y-4">
                         <div class="flex justify-between items-start gap-4">
                             <div>
                                 <h3 class="text-xl font-semibold text-slate-900 dark:text-white">${escapeHtml(test.title || 'Без названия')}</h3>
                                 <p class="text-slate-500 mt-2 dark:text-slate-400">${escapeHtml(test.description || 'Описание не заполнено')}</p>
                             </div>
-                            <span class="px-3 py-1 text-xs rounded-full ${test.is_active ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300' : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300'}">
-                                ${test.is_active ? 'Активен' : 'Черновик'}
-                            </span>
+                            <div class="flex flex-col items-end gap-2">
+                                <span class="px-3 py-1 text-xs rounded-full ${getStatusBadgeClass(testStatus)}">
+                                    ${testStatusLabel}
+                                </span>
+                                <span class="px-3 py-1 text-xs rounded-full bg-indigo-100 text-indigo-700 dark:bg-indigo-500/15 dark:text-indigo-300">
+                                    ${deliveryModeLabel}
+                                </span>
+                            </div>
                         </div>
 
                         <div class="grid grid-cols-2 gap-3 text-sm text-slate-600 dark:text-slate-300">
@@ -132,6 +141,11 @@
                                 <button onclick="manageWorkflow(${test.id})" class="text-emerald-600 hover:text-emerald-800" title="Бланки и сканирование">
                                     <i class="fas fa-layer-group"></i>
                                 </button>
+                                ${canClose ? `
+                                    <button onclick="closeTest(${test.id})" class="text-amber-500 hover:text-amber-700" title="Завершить тест">
+                                        <i class="fas fa-lock"></i>
+                                    </button>
+                                ` : ''}
                                 <button onclick="deleteTest(${test.id})" class="text-rose-600 hover:text-rose-800" title="Удалить">
                                     <i class="fas fa-trash"></i>
                                 </button>
@@ -151,6 +165,54 @@
 
     function createTest() {
         window.location.href = '/tests/create';
+    }
+
+    function getTestStatusValue(test) {
+        return test?.test_status || (test?.is_active ? 'active' : 'draft');
+    }
+
+    function getTestStatusLabel(test) {
+        return test?.test_status_label || (
+            getTestStatusValue(test) === 'closed'
+                ? 'Закрыт'
+                : getTestStatusValue(test) === 'draft'
+                    ? 'Черновик'
+                    : 'Активен'
+        );
+    }
+
+    function getDeliveryModeLabel(mode) {
+        if (mode === 'electronic') {
+            return 'Электронный';
+        }
+
+        if (mode === 'hybrid') {
+            return 'Совмещённый';
+        }
+
+        return 'Бланки';
+    }
+
+    function getStatusAccentClass(status) {
+        switch (status) {
+            case 'closed':
+                return 'bg-rose-500';
+            case 'draft':
+                return 'bg-slate-300';
+            default:
+                return 'bg-emerald-500';
+        }
+    }
+
+    function getStatusBadgeClass(status) {
+        switch (status) {
+            case 'closed':
+                return 'bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300';
+            case 'draft':
+                return 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300';
+            default:
+                return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300';
+        }
     }
 
     function viewTest(id) {
@@ -179,6 +241,30 @@
             loadTests();
         } catch (error) {
             alert(error.message || 'Ошибка соединения с сервером');
+        }
+    }
+
+    async function closeTest(id) {
+        if (!confirm('Завершить тест? После этого его нельзя будет проходить и выпускать для него новые бланки.')) {
+            return;
+        }
+
+        try {
+            const response = await apiFetch(`/api/tests/${id}/close`, {
+                method: 'PATCH'
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                const message = errorData.errors ? Object.values(errorData.errors).flat().join(', ') : errorData.message;
+                throw new Error(message || 'Не удалось завершить тест');
+            }
+
+            document.getElementById('testsList').classList.add('hidden');
+            document.getElementById('loading').classList.remove('hidden');
+            await loadTests();
+        } catch (error) {
+            alert(error.message || 'Ошибка завершения теста');
         }
     }
 

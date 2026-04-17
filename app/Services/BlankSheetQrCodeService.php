@@ -56,7 +56,12 @@ class BlankSheetQrCodeService
 
     public function renderDataUri(array $payload, int $sizePx = 360): string
     {
-        $qrCode = QrCode::create($this->encodePayload($payload))
+        return $this->renderTextDataUri($this->encodePayload($payload), $sizePx);
+    }
+
+    public function renderTextDataUri(string $text, int $sizePx = 360): string
+    {
+        $qrCode = QrCode::create($text)
             ->setEncoding(new Encoding('UTF-8'))
             ->setErrorCorrectionLevel(ErrorCorrectionLevel::High)
             ->setSize(max(180, $sizePx))

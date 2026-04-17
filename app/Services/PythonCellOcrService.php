@@ -25,7 +25,7 @@ class PythonCellOcrService
 
         if (!is_array($payload) || !array_key_exists('qr_payload', $payload)) {
             throw ValidationException::withMessages([
-                'scan' => 'Python OCR did not return a page QR identifier.',
+                'scan' => 'Python OCR не вернул идентификатор QR-кода страницы.',
             ]);
         }
 
@@ -49,7 +49,7 @@ class PythonCellOcrService
 
         if (!is_array($payload) || !isset($payload['question_results'])) {
             throw ValidationException::withMessages([
-                'scan' => 'Python OCR returned an unexpected response.',
+                'scan' => 'Python OCR вернул неожиданный ответ.',
             ]);
         }
 
@@ -74,7 +74,7 @@ class PythonCellOcrService
 
         if ($renderedPath === '') {
             throw ValidationException::withMessages([
-                'scan' => 'Python PDF renderer did not return an output path.',
+                'scan' => 'Python-рендерер PDF не вернул путь к выходному файлу.',
             ]);
         }
 
@@ -89,7 +89,7 @@ class PythonCellOcrService
 
         if ($entrypoint === '') {
             throw ValidationException::withMessages([
-                'scan' => 'Python OCR entrypoint is not configured.',
+                'scan' => 'Не настроен entrypoint для Python OCR.',
             ]);
         }
 
@@ -97,7 +97,7 @@ class PythonCellOcrService
 
         if ($requestPath === false) {
             throw ValidationException::withMessages([
-                'scan' => 'Failed to create a temporary file for Python OCR.',
+                'scan' => 'Не удалось создать временный файл для Python OCR.',
             ]);
         }
 
@@ -131,7 +131,7 @@ class PythonCellOcrService
 
                 throw ValidationException::withMessages([
                     'scan' => Utf8Normalizer::string(
-                        'Python OCR process failed to start: ' . ($exception->getMessage() ?: 'unknown error')
+                        'Не удалось запустить процесс Python OCR: ' . ($exception->getMessage() ?: 'неизвестная ошибка')
                     ),
                 ]);
             }
@@ -157,17 +157,17 @@ class PythonCellOcrService
                         }
                     }
 
-                    $message = 'Python OCR failed';
+                    $message = 'Сбой Python OCR';
 
                     if (!empty($request['operation'])) {
-                        $message .= ' during ' . $request['operation'];
+                        $message .= ' во время операции ' . $request['operation'];
                     }
 
                     if ($details !== []) {
                         $message .= ' (' . implode(', ', $details) . ')';
                     }
 
-                    $message .= '. Check server logs for process stderr/stdout.';
+                    $message .= '. Подробности смотрите в логах сервера (stderr/stdout процесса).';
                 }
 
                 Log::warning('Python OCR process exited unsuccessfully.', [
@@ -184,7 +184,7 @@ class PythonCellOcrService
                 ]);
 
                 throw ValidationException::withMessages([
-                    'scan' => Utf8Normalizer::string('Python OCR error: ' . $message),
+                    'scan' => Utf8Normalizer::string('Ошибка Python OCR: ' . $message),
                 ]);
             }
 
@@ -193,7 +193,7 @@ class PythonCellOcrService
 
             if (!is_array($payload)) {
                 throw ValidationException::withMessages([
-                    'scan' => 'Python OCR returned invalid JSON.',
+                    'scan' => 'Python OCR вернул некорректный JSON.',
                 ]);
             }
 
@@ -212,7 +212,7 @@ class PythonCellOcrService
 
         if ($configured !== '' && $this->isWindowsStoreAlias($configured)) {
             throw ValidationException::withMessages([
-                'scan' => 'PADDLE_OCR_PYTHON points to the Microsoft Store alias. Use a real interpreter path, for example: ' . $projectVenv,
+                'scan' => 'PADDLE_OCR_PYTHON указывает на алиас Microsoft Store. Укажите путь к реальному интерпретатору, например: ' . $projectVenv,
             ]);
         }
 
@@ -232,7 +232,7 @@ class PythonCellOcrService
 
         throw ValidationException::withMessages([
             'scan' => Utf8Normalizer::string(
-                'Python OCR interpreter was not found. Checked: ' . implode(', ', $candidates)
+                'Интерпретатор Python для OCR не найден. Проверены пути: ' . implode(', ', $candidates)
             ),
         ]);
     }

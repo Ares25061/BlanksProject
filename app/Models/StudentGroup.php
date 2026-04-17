@@ -35,6 +35,16 @@ class StudentGroup extends Model
         return $this->hasMany(StudentGrade::class);
     }
 
+    public function electronicSessions()
+    {
+        return $this->hasMany(ElectronicTestSession::class);
+    }
+
+    public function electronicAttempts()
+    {
+        return $this->hasMany(ElectronicTestAttempt::class);
+    }
+
     public function subjects()
     {
         return $this->hasMany(GroupSubject::class)->orderBy('subject_name');

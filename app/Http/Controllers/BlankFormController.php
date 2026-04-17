@@ -38,6 +38,10 @@ class BlankFormController extends Controller
     {
         $this->authorize('generateBlankForms', $test);
 
+        if ((string) $test->test_status === 'closed') {
+            abort(422, 'Тест закрыт. Для него больше нельзя выпускать новые бланки.');
+        }
+
         $validated = $request->validate([
             'count' => 'nullable|integer|min:1|max:100',
             'student_group_id' => 'nullable|exists:student_groups,id',

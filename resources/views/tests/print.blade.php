@@ -1,11 +1,18 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
+    @php
+        $faviconVersion = (string) (@filemtime(public_path('favicon.ico')) ?: @filemtime(public_path('favicon.png')) ?: time());
+    @endphp
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="color-scheme" content="only light">
     <meta name="theme-color" content="#eef1f4">
     <title>{{ $documentTitle ?? ('Печать ' . $test->title) }}</title>
+    <link rel="icon" type="image/x-icon" href="/favicon.ico?v={{ $faviconVersion }}">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon.png?v={{ $faviconVersion }}">
+    <link rel="shortcut icon" href="/favicon.ico?v={{ $faviconVersion }}">
+    <link rel="apple-touch-icon" href="/favicon.png?v={{ $faviconVersion }}">
     <script>
         (() => {
             const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
@@ -228,6 +235,16 @@
             word-break: break-word;
         }
 
+        .question-type-badge {
+            position: absolute;
+            top: 3.4mm;
+            right: 3.4mm;
+            font-size: 2.8mm;
+            line-height: 1;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
         .question-option-line {
             margin: 0.4mm 0 0;
             font-size: 3.05mm;
@@ -259,6 +276,40 @@
             position: absolute;
             font-size: 3.05mm;
             line-height: 1;
+        }
+
+        .electronic-qr-block {
+            position: absolute;
+            left: 14mm;
+            bottom: 16mm;
+            width: 28mm;
+            border: 0.35mm solid #111111;
+            border-radius: 4mm;
+            background: #ffffff;
+            padding: 1.6mm;
+        }
+
+        .electronic-qr-block img {
+            display: block;
+            width: 24mm;
+            height: 24mm;
+            margin: 0 auto;
+            object-fit: contain;
+        }
+
+        .electronic-qr-title {
+            margin: 0 0 1mm;
+            font-size: 2.6mm;
+            font-weight: 700;
+            text-align: center;
+        }
+
+        .electronic-qr-code {
+            margin: 1mm 0 0;
+            font-size: 2.3mm;
+            line-height: 1.2;
+            text-align: center;
+            word-break: break-word;
         }
 
         @media print {
@@ -387,6 +438,10 @@
                         height: {{ $block['height_mm'] ?? 0 }}mm;
                     "
                 >
+                    @if(!empty($question['type_label']))
+                        <div class="question-type-badge">{{ $question['type_label'] }}</div>
+                    @endif
+
                     @foreach(($question['title_lines'] ?? []) as $line)
                         <p class="question-title-line">{{ $line }}</p>
                     @endforeach
@@ -441,6 +496,14 @@
             >
                 {{ $page['footer']['text'] ?? '' }}
             </div>
+
+            @if(!empty($electronicAccessQrDataUri) && ($test->delivery_mode ?? 'blank') === 'hybrid')
+                <aside class="electronic-qr-block">
+                    <p class="electronic-qr-title">Электронный вход</p>
+                    <img src="{{ $electronicAccessQrDataUri }}" alt="QR электронного теста">
+                    <p class="electronic-qr-code">Код: {{ $test->access_code }}</p>
+                </aside>
+            @endif
         </section>
     @endforeach
 @endforeach

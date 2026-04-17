@@ -8,6 +8,7 @@ use App\Models\Answer;
 use App\Support\BlankScanLayout;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class TestService
@@ -23,6 +24,8 @@ class TestService
             $variantCount = $this->testVariantService->normalizeVariantCount($data['variant_count'] ?? 1);
             $this->ensureQuestionStructureWithinScanFormat($data['questions'] ?? [], $variantCount);
             $subjectName = $this->normalizeSubjectName($data['subject_name'] ?? null, $data['title']);
+            $deliveryMode = $this->normalizeDeliveryMode($data['delivery_mode'] ?? null);
+            $testStatus = $this->resolveTestStatus($data);
 
             $test = Test::create([
                 'title' => $data['title'],
@@ -30,9 +33,12 @@ class TestService
                 'description' => $data['description'] ?? null,
                 'created_by' => Auth::id(),
                 'time_limit' => $data['time_limit'] ?? null,
-                'is_active' => $data['is_active'] ?? true,
+                'is_active' => $this->isActiveForStatus($testStatus),
+                'test_status' => $testStatus,
                 'grade_criteria' => $this->normalizeGradeCriteria($data['grade_criteria'] ?? []),
                 'variant_count' => $variantCount,
+                'delivery_mode' => $deliveryMode,
+                'access_code' => $this->generateUniqueAccessCode(),
             ]);
 
             if (isset($data['questions'])) {
@@ -56,6 +62,8 @@ class TestService
             }
 
             $nextTitle = $data['title'] ?? $test->title;
+            $deliveryMode = $this->normalizeDeliveryMode($data['delivery_mode'] ?? $test->delivery_mode);
+            $testStatus = $this->resolveTestStatus($data, $test);
 
             // Обновляем основную информацию теста
             $test->update([
@@ -63,9 +71,12 @@ class TestService
                 'subject_name' => $this->normalizeSubjectName($data['subject_name'] ?? $test->subject_name, $nextTitle),
                 'description' => $data['description'] ?? $test->description,
                 'time_limit' => $data['time_limit'] ?? $test->time_limit,
-                'is_active' => $data['is_active'] ?? $test->is_active,
+                'is_active' => $this->isActiveForStatus($testStatus),
+                'test_status' => $testStatus,
                 'grade_criteria' => $this->normalizeGradeCriteria($data['grade_criteria'] ?? $test->grade_criteria ?? []),
                 'variant_count' => $nextVariantCount,
+                'delivery_mode' => $deliveryMode,
+                'access_code' => $test->access_code ?: $this->generateUniqueAccessCode(),
             ]);
 
             // Обновляем вопросы, если они переданы
@@ -198,6 +209,37 @@ class TestService
         return $test->delete();
     }
 
+    public function closeTest(Test $test): Test
+    {
+        DB::transaction(function () use ($test) {
+            $test->update([
+                'test_status' => 'closed',
+                'is_active' => false,
+            ]);
+
+            $test->electronicSessions()
+                ->where('is_active', true)
+                ->update([
+                    'is_active' => false,
+                    'ended_at' => now(),
+                ]);
+        });
+
+        return $test->fresh('questions.answers');
+    }
+
+    public function updateDeliveryMode(Test $test, string $deliveryMode): Test
+    {
+        $normalizedDeliveryMode = $this->normalizeDeliveryMode($deliveryMode);
+
+        $test->update([
+            'delivery_mode' => $normalizedDeliveryMode,
+            'access_code' => $test->access_code ?: $this->generateUniqueAccessCode(),
+        ]);
+
+        return $test->fresh('questions.answers');
+    }
+
     protected function normalizeGradeCriteria(array $gradeCriteria): array
     {
         return collect($gradeCriteria)
@@ -249,6 +291,7 @@ class TestService
         }
 
         $this->ensureAllVariantsContainQuestions($questions, $variantCount);
+        $this->ensureAllVariantsHaveEqualScores($questions, $variantCount);
     }
 
     protected function ensureAnswerCountWithinScanLimit(array $answers, ?int $questionIndex = null): void
@@ -314,5 +357,80 @@ class TestService
                 'questions' => 'Для вариантов ' . implode(', ', $missingVariants) . ' не добавлено ни одного вопроса.',
             ]);
         }
+    }
+
+    protected function ensureAllVariantsHaveEqualScores(array $questions, int $variantCount): void
+    {
+        if ($variantCount <= 1 || $questions === []) {
+            return;
+        }
+
+        $scoresByVariant = array_fill(1, $variantCount, 0);
+
+        foreach ($questions as $question) {
+            $variantNumber = (int) ($question['variant_number'] ?? $question['variant'] ?? 1);
+            $points = max(1, (int) ($question['points'] ?? 1));
+
+            if (!array_key_exists($variantNumber, $scoresByVariant)) {
+                continue;
+            }
+
+            $scoresByVariant[$variantNumber] += $points;
+        }
+
+        $uniqueScores = array_values(array_unique(array_values($scoresByVariant)));
+        if (count($uniqueScores) <= 1) {
+            return;
+        }
+
+        $scoreSummary = collect($scoresByVariant)
+            ->map(fn (int $score, int $variantNumber) => 'В' . $variantNumber . ': ' . $score)
+            ->implode(', ');
+
+        throw ValidationException::withMessages([
+            'questions' => 'У всех вариантов должна быть одинаковая сумма баллов. Сейчас: ' . $scoreSummary . '.',
+        ]);
+    }
+
+    protected function normalizeDeliveryMode(?string $mode): string
+    {
+        $normalized = trim((string) $mode);
+
+        return in_array($normalized, ['blank', 'electronic', 'hybrid'], true)
+            ? $normalized
+            : 'blank';
+    }
+
+    protected function resolveTestStatus(array $data, ?Test $test = null): string
+    {
+        $normalized = trim((string) ($data['test_status'] ?? ''));
+
+        if (in_array($normalized, ['active', 'draft', 'closed'], true)) {
+            return $normalized;
+        }
+
+        if (array_key_exists('is_active', $data)) {
+            return !empty($data['is_active']) ? 'active' : 'draft';
+        }
+
+        return $test?->test_status ?: 'active';
+    }
+
+    protected function isActiveForStatus(string $status): bool
+    {
+        return $status === 'active';
+    }
+
+    protected function generateUniqueAccessCode(): string
+    {
+        $alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+
+        do {
+            $code = collect(range(1, 8))
+                ->map(fn () => $alphabet[random_int(0, strlen($alphabet) - 1)])
+                ->implode('');
+        } while (Test::query()->where('access_code', $code)->exists());
+
+        return Str::upper($code);
     }
 }

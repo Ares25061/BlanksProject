@@ -29,6 +29,10 @@
                         <i class="fas fa-pen"></i>
                         Редактировать
                     </button>
+                    <button id="launchElectronicButton" onclick="scrollToTestSection('electronicSection')" class="bg-indigo-600 text-white px-4 py-3 rounded-2xl hover:bg-indigo-500 transition flex items-center gap-2">
+                        <i class="fas fa-display"></i>
+                        Провести тест электронно
+                    </button>
                     <button onclick="downloadTestExport('json')" class="bg-violet-600 text-white px-4 py-3 rounded-2xl hover:bg-violet-500 transition flex items-center gap-2">
                         <i class="fas fa-file-code"></i>
                         Экспорт JSON
@@ -47,7 +51,7 @@
                 </div>
             </div>
 
-            <div class="grid md:grid-cols-5 gap-4 mt-6">
+            <div class="grid md:grid-cols-3 xl:grid-cols-6 gap-4 mt-6">
                 <div class="bg-slate-50 rounded-2xl p-4 dark:bg-slate-950/70">
                     <div class="text-xs uppercase tracking-[0.25em] text-slate-400 dark:text-slate-500">Вопросы</div>
                     <div id="questionCount" class="text-2xl font-bold mt-2">0</div>
@@ -68,10 +72,50 @@
                     <div class="text-xs uppercase tracking-[0.25em] text-slate-400 dark:text-slate-500">Варианты</div>
                     <div id="variantCount" class="text-2xl font-bold mt-2">1</div>
                 </div>
+                <div class="bg-slate-50 rounded-2xl p-4 dark:bg-slate-950/70">
+                    <div class="text-xs uppercase tracking-[0.25em] text-slate-400 dark:text-slate-500">Формат</div>
+                    <div id="deliveryMode" class="mt-2 max-w-full break-words text-xl font-bold leading-tight xl:text-2xl">На бланках</div>
+                </div>
             </div>
         </section>
 
-        <div class="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_220px]">
+        <div class="grid items-start gap-6 xl:grid-cols-[220px_minmax(0,1fr)]">
+            <aside class="hidden xl:block xl:sticky xl:top-24">
+                <section class="proverium-panel rounded-3xl border border-slate-200 p-4 dark:border-slate-800">
+                    <div class="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500 dark:text-slate-400">Навигация</div>
+                    <div class="mt-4 space-y-2">
+                        <button type="button" onclick="scrollToTestSection('pageContent')" class="flex w-full items-center justify-between rounded-2xl border border-slate-200 bg-white px-3 py-3 text-left text-sm font-medium text-slate-700 transition hover:border-sky-300 hover:text-sky-700 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:hover:border-sky-400 dark:hover:text-sky-300">
+                            <span>Карточка теста</span>
+                            <i class="fas fa-arrow-down"></i>
+                        </button>
+                        <button type="button" onclick="scrollToTestSection('questionsSection')" class="flex w-full items-center justify-between rounded-2xl border border-slate-200 bg-white px-3 py-3 text-left text-sm font-medium text-slate-700 transition hover:border-sky-300 hover:text-sky-700 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:hover:border-sky-400 dark:hover:text-sky-300">
+                            <span>Вопросы</span>
+                            <i class="fas fa-arrow-down"></i>
+                        </button>
+                        <button type="button" onclick="scrollToTestSection('gradingSection')" class="flex w-full items-center justify-between rounded-2xl border border-slate-200 bg-white px-3 py-3 text-left text-sm font-medium text-slate-700 transition hover:border-sky-300 hover:text-sky-700 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:hover:border-sky-400 dark:hover:text-sky-300">
+                            <span>Шкала</span>
+                            <i class="fas fa-arrow-down"></i>
+                        </button>
+                        <button type="button" onclick="scrollToTestSection('electronicSection')" class="flex w-full items-center justify-between rounded-2xl border border-slate-200 bg-white px-3 py-3 text-left text-sm font-medium text-slate-700 transition hover:border-sky-300 hover:text-sky-700 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:hover:border-sky-400 dark:hover:text-sky-300">
+                            <span>Электронный режим</span>
+                            <i class="fas fa-arrow-down"></i>
+                        </button>
+                        <button type="button" onclick="scrollToTestSection('blankGenerationSection')" class="flex w-full items-center justify-between rounded-2xl border border-slate-200 bg-white px-3 py-3 text-left text-sm font-medium text-slate-700 transition hover:border-sky-300 hover:text-sky-700 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:hover:border-sky-400 dark:hover:text-sky-300">
+                            <span>Выпуск бланков</span>
+                            <i class="fas fa-arrow-down"></i>
+                        </button>
+                        <button type="button" onclick="scrollToTestSection('scanUploadSection')" class="flex w-full items-center justify-between rounded-2xl border border-slate-200 bg-white px-3 py-3 text-left text-sm font-medium text-slate-700 transition hover:border-sky-300 hover:text-sky-700 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:hover:border-sky-400 dark:hover:text-sky-300">
+                            <span>Загрузка сканов</span>
+                            <i class="fas fa-arrow-down"></i>
+                        </button>
+                        <button type="button" onclick="scrollToTestSection('blankFormsSection')" class="flex w-full items-center justify-between rounded-2xl border border-slate-200 bg-white px-3 py-3 text-left text-sm font-medium text-slate-700 transition hover:border-sky-300 hover:text-sky-700 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:hover:border-sky-400 dark:hover:text-sky-300">
+                            <span>Персональные бланки</span>
+                            <i class="fas fa-arrow-down"></i>
+                        </button>
+                    </div>
+                </section>
+            </aside>
+
             <div class="space-y-6">
                 <section id="questionsOverviewSection" class="grid xl:grid-cols-[1.2fr_0.8fr] gap-6">
                     <div id="questionsSection" class="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 dark:bg-slate-900 dark:border-slate-800">
@@ -99,6 +143,86 @@
                                 Поддерживаются <span class="font-semibold">JPG / PNG / WEBP / PDF</span>. Если загружен PDF, браузер автоматически преобразует все его листы в изображения перед отправкой. Чужие бланки тоже можно распознать, но оценку им поставить нельзя.
                             </div>
                         </section>
+                    </div>
+                </section>
+
+                <section id="electronicSection" class="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 dark:bg-slate-900 dark:border-slate-800">
+                    <div class="flex flex-wrap justify-between items-start gap-4">
+                        <div>
+                            <h2 class="text-xl font-semibold">Электронное тестирование</h2>
+                            <p id="electronicSectionDescription" class="text-slate-500 mt-1 dark:text-slate-400">Запустите прохождение по группе, выдайте ссылку или код и отслеживайте завершённые работы.</p>
+                        </div>
+                        <div id="electronicLiveBadge" class="hidden rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-sm font-medium text-emerald-800 dark:border-emerald-900/40 dark:bg-emerald-950/30 dark:text-emerald-200"></div>
+                    </div>
+
+                    <div class="mt-5 grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
+                        <div class="space-y-5">
+                            <div class="rounded-3xl border border-slate-200 bg-slate-50 p-5 dark:border-slate-700 dark:bg-slate-950/60">
+                                <div class="grid md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label for="electronicGroupSelect" class="block text-sm font-medium text-slate-700 mb-2 dark:text-slate-300">Группа для запуска</label>
+                                        <select id="electronicGroupSelect" class="w-full rounded-2xl border border-slate-300 px-4 py-3 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 dark:border-slate-700"></select>
+                                    </div>
+                                    <div>
+                                        <label for="electronicVariantMode" class="block text-sm font-medium text-slate-700 mb-2 dark:text-slate-300">Распределение вариантов</label>
+                                        <select id="electronicVariantMode" class="w-full rounded-2xl border border-slate-300 px-4 py-3 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 dark:border-slate-700">
+                                            <option value="same">Всем один вариант</option>
+                                            <option value="balanced">Распределить поровну</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div id="electronicSameVariantWrap" class="mt-4">
+                                    <label for="electronicVariantNumber" class="block text-sm font-medium text-slate-700 mb-2 dark:text-slate-300">Номер варианта</label>
+                                    <select id="electronicVariantNumber" class="w-full rounded-2xl border border-slate-300 px-4 py-3 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 dark:border-slate-700"></select>
+                                </div>
+
+                                <div class="mt-5 flex flex-wrap gap-3">
+                                    <button id="startElectronicSessionButton" type="button" onclick="startElectronicSession()" class="rounded-2xl bg-indigo-600 px-5 py-3 font-medium text-white transition hover:bg-indigo-500">
+                                        Запустить по группе
+                                    </button>
+                                    <button type="button" onclick="copyElectronicCode()" class="rounded-2xl border border-slate-200 bg-white px-5 py-3 font-medium text-slate-700 transition hover:border-indigo-300 hover:text-indigo-700 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200">
+                                        Копировать код
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="rounded-3xl border border-slate-200 bg-slate-50 p-5 dark:border-slate-700 dark:bg-slate-950/60">
+                                <div class="grid gap-4 xl:grid-cols-[220px_minmax(0,1fr)]">
+                                    <div class="min-w-0">
+                                        <div class="text-xs uppercase tracking-[0.25em] text-slate-400 dark:text-slate-500">Код теста</div>
+                                        <div id="electronicAccessCode" class="mt-2 text-2xl font-bold tracking-[0.26em]">—</div>
+                                    </div>
+                                    <div class="min-w-0">
+                                        <div class="text-xs uppercase tracking-[0.25em] text-slate-400 dark:text-slate-500">Общая ссылка</div>
+                                        <a id="electronicGeneralLink" href="#" target="_blank" rel="noopener noreferrer" class="mt-2 block break-all text-sm leading-5 font-medium text-sky-600 hover:text-sky-800 dark:text-sky-300 dark:hover:text-sky-200">Сначала запустите тест</a>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="rounded-3xl border border-slate-200 bg-slate-50 p-5 dark:border-slate-700 dark:bg-slate-950/60">
+                                <div class="flex items-center justify-between gap-3">
+                                    <div>
+                                        <div class="text-xs uppercase tracking-[0.25em] text-slate-400 dark:text-slate-500">Персональные ссылки</div>
+                                        <div class="mt-2 text-sm text-slate-600 dark:text-slate-300">Для каждого ученика группы можно открыть отдельную ссылку с уже заданным ФИО.</div>
+                                    </div>
+                                </div>
+                                <div id="electronicMembersList" class="mt-4 space-y-3"></div>
+                            </div>
+                        </div>
+
+                        <div class="space-y-5">
+                            <div class="rounded-3xl border border-slate-200 bg-slate-50 p-5 dark:border-slate-700 dark:bg-slate-950/60">
+                                <div class="flex items-center justify-between gap-3">
+                                    <div>
+                                        <div class="text-xs uppercase tracking-[0.25em] text-slate-400 dark:text-slate-500">Завершённые работы</div>
+                                        <div class="mt-2 text-sm text-slate-600 dark:text-slate-300">Преподаватель видит логи активности, ответы и может сразу поставить оценку.</div>
+                                    </div>
+                                    <div id="electronicAttemptsSummary" class="text-sm font-medium text-slate-500 dark:text-slate-400">Нет активного запуска</div>
+                                </div>
+                                <div id="electronicAttemptsList" class="mt-4 space-y-3"></div>
+                            </div>
+                        </div>
                     </div>
                 </section>
 
@@ -160,7 +284,7 @@
                                 </div>
 
                                 <div class="flex flex-wrap gap-3">
-                                    <button onclick="generateBlankForms()" class="bg-emerald-600 text-white px-5 py-3 rounded-2xl hover:bg-emerald-500 transition font-medium">
+                                    <button id="generateBlankFormsButton" onclick="generateBlankForms()" class="bg-emerald-600 text-white px-5 py-3 rounded-2xl hover:bg-emerald-500 transition font-medium">
                                         Сгенерировать бланки
                                     </button>
                                     <div id="printGeneratedActions" class="hidden flex flex-wrap gap-3">
@@ -204,37 +328,6 @@
                 </section>
             </div>
 
-            <aside class="hidden xl:block xl:sticky xl:top-24">
-                <section class="proverium-panel rounded-3xl border border-slate-200 p-4 dark:border-slate-800">
-                    <div class="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500 dark:text-slate-400">Навигация</div>
-                    <div class="mt-4 space-y-2">
-                        <button type="button" onclick="scrollToTestSection('pageContent')" class="flex w-full items-center justify-between rounded-2xl border border-slate-200 bg-white px-3 py-3 text-left text-sm font-medium text-slate-700 transition hover:border-sky-300 hover:text-sky-700 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:hover:border-sky-400 dark:hover:text-sky-300">
-                            <span>Карточка теста</span>
-                            <i class="fas fa-arrow-down"></i>
-                        </button>
-                        <button type="button" onclick="scrollToTestSection('questionsSection')" class="flex w-full items-center justify-between rounded-2xl border border-slate-200 bg-white px-3 py-3 text-left text-sm font-medium text-slate-700 transition hover:border-sky-300 hover:text-sky-700 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:hover:border-sky-400 dark:hover:text-sky-300">
-                            <span>Вопросы</span>
-                            <i class="fas fa-arrow-down"></i>
-                        </button>
-                        <button type="button" onclick="scrollToTestSection('gradingSection')" class="flex w-full items-center justify-between rounded-2xl border border-slate-200 bg-white px-3 py-3 text-left text-sm font-medium text-slate-700 transition hover:border-sky-300 hover:text-sky-700 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:hover:border-sky-400 dark:hover:text-sky-300">
-                            <span>Шкала</span>
-                            <i class="fas fa-arrow-down"></i>
-                        </button>
-                        <button type="button" onclick="scrollToTestSection('blankGenerationSection')" class="flex w-full items-center justify-between rounded-2xl border border-slate-200 bg-white px-3 py-3 text-left text-sm font-medium text-slate-700 transition hover:border-sky-300 hover:text-sky-700 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:hover:border-sky-400 dark:hover:text-sky-300">
-                            <span>Выпуск бланков</span>
-                            <i class="fas fa-arrow-down"></i>
-                        </button>
-                        <button type="button" onclick="scrollToTestSection('scanUploadSection')" class="flex w-full items-center justify-between rounded-2xl border border-slate-200 bg-white px-3 py-3 text-left text-sm font-medium text-slate-700 transition hover:border-sky-300 hover:text-sky-700 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:hover:border-sky-400 dark:hover:text-sky-300">
-                            <span>Загрузка сканов</span>
-                            <i class="fas fa-arrow-down"></i>
-                        </button>
-                        <button type="button" onclick="scrollToTestSection('blankFormsSection')" class="flex w-full items-center justify-between rounded-2xl border border-slate-200 bg-white px-3 py-3 text-left text-sm font-medium text-slate-700 transition hover:border-sky-300 hover:text-sky-700 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:hover:border-sky-400 dark:hover:text-sky-300">
-                            <span>Персональные бланки</span>
-                            <i class="fas fa-arrow-down"></i>
-                        </button>
-                    </div>
-                </section>
-            </aside>
         </div>
     </div>
 </div>
@@ -245,6 +338,9 @@
     let currentTest = null;
     let groups = [];
     let blankForms = [];
+    let electronicDashboard = null;
+    let electronicKnownSubmittedAttemptIds = [];
+    let electronicPollHandle = null;
     let lastGeneratedBlankIds = [];
     let blankGenerationMode = 'all';
     let selectedGroupStudentIds = [];
@@ -255,6 +351,64 @@
 
     async function apiFetch(url, options = {}) {
         return authApiFetch(url, options);
+    }
+
+    function getTestStatusValue(test = currentTest) {
+        return test?.test_status || (test?.is_active ? 'active' : 'draft');
+    }
+
+    function getTestStatusLabel(test = currentTest) {
+        if (test?.test_status_label) {
+            return test.test_status_label;
+        }
+
+        switch (getTestStatusValue(test)) {
+            case 'closed':
+                return 'Закрыт';
+            case 'draft':
+                return 'Черновик';
+            default:
+                return 'Активен';
+        }
+    }
+
+    function isCurrentTestClosed() {
+        return getTestStatusValue(currentTest) === 'closed';
+    }
+
+    function setControlDisabledState(element, disabled, disabledTitle = '') {
+        if (!element) {
+            return;
+        }
+
+        element.disabled = disabled;
+        element.title = disabled ? disabledTitle : '';
+        element.classList.toggle('opacity-50', disabled);
+        element.classList.toggle('cursor-not-allowed', disabled);
+    }
+
+    function syncTestAvailabilityUi() {
+        const isClosed = isCurrentTestClosed();
+        const closedElectronicTitle = 'Тест закрыт. Новые электронные прохождения больше недоступны.';
+        const closedBlankTitle = 'Тест закрыт. Новые бланки для него больше не выпускаются.';
+
+        setControlDisabledState(document.getElementById('launchElectronicButton'), isClosed, closedElectronicTitle);
+        setControlDisabledState(document.getElementById('startElectronicSessionButton'), isClosed, closedElectronicTitle);
+        setControlDisabledState(document.getElementById('generateBlankFormsButton'), isClosed, closedBlankTitle);
+
+        const description = document.getElementById('electronicSectionDescription');
+        if (!description) {
+            return;
+        }
+
+        if (isClosed) {
+            description.textContent = 'Тест закрыт. Новые электронные прохождения запускать нельзя, но уже отправленные работы по-прежнему доступны для проверки.';
+            return;
+        }
+
+        description.textContent = currentTest?.delivery_mode === 'blank'
+            ? 'Этот тест пока работает только на бланках. Чтобы открыть электронное прохождение, переведите тест в электронный или совмещённый формат.'
+            : 'Запустите прохождение по группе, выдайте ссылку или код и отслеживайте завершённые работы.';
     }
 
     async function loadPage() {
@@ -273,6 +427,18 @@
 
             renderTest();
             renderGroups();
+            renderElectronicGroupSelect();
+            try {
+                await loadElectronicDashboard();
+            } catch (electronicError) {
+                console.error('Электронный блок временно недоступен:', electronicError);
+                electronicDashboard = {
+                    delivery_mode: currentTest?.delivery_mode || 'blank',
+                    access_code: currentTest?.access_code || null,
+                    current_session: null,
+                };
+                renderElectronicDashboard();
+            }
             await loadBlankForms();
 
             document.getElementById('loading').classList.add('hidden');
@@ -309,8 +475,9 @@
             ? `${maxVariantScore} / вариант`
             : (currentTest.questions || []).reduce((sum, question) => sum + (question.points || 0), 0);
         document.getElementById('timeLimit').textContent = currentTest.time_limit ? `${currentTest.time_limit} мин` : 'Без лимита';
-        document.getElementById('testStatus').textContent = currentTest.is_active ? 'Активен' : 'Черновик';
+        document.getElementById('testStatus').textContent = getTestStatusLabel(currentTest);
         document.getElementById('variantCount').textContent = variantCount;
+        document.getElementById('deliveryMode').textContent = getDeliveryModeLabel(currentTest.delivery_mode);
 
         const questionsList = document.getElementById('questionsList');
         questionsList.innerHTML = buildQuestionCards(variantSummaries);
@@ -355,6 +522,8 @@
         }
 
         renderVariantAssignmentSettings();
+        renderElectronicVariantOptions();
+        syncTestAvailabilityUi();
     }
 
     function buildQuestionCards(variantSummaries) {
@@ -383,8 +552,8 @@
                                     ${questionData.question.type === 'single' ? 'Один правильный ответ' : 'Несколько правильных ответов'}
                                 </div>
                             </div>
-                            <span class="bg-white border border-slate-200 rounded-full px-3 py-1 text-sm font-semibold text-slate-700 dark:bg-slate-950 dark:border-slate-700 dark:text-slate-200">
-                                ${questionData.question.points || 1} балл.
+                            <span class="inline-flex shrink-0 whitespace-nowrap bg-white border border-slate-200 rounded-full px-3 py-1 text-sm font-semibold text-slate-700 dark:bg-slate-950 dark:border-slate-700 dark:text-slate-200">
+                                ${formatPointsLabel(questionData.question.points || 1)}
                             </span>
                         </div>
 
@@ -405,6 +574,22 @@
 
     function normalizeVariantCount() {
         return Math.max(1, Math.min(10, Number(currentTest?.variant_count) || 1));
+    }
+
+    function formatPointsLabel(points) {
+        const value = Math.max(0, Number(points) || 0);
+        const mod10 = value % 10;
+        const mod100 = value % 100;
+
+        if (mod10 === 1 && mod100 !== 11) {
+            return `${value} балл`;
+        }
+
+        if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) {
+            return `${value} балла`;
+        }
+
+        return `${value} баллов`;
     }
 
     function getAvailableVariantNumbers() {
@@ -554,6 +739,400 @@
         `;
 
         renderGroupStudents();
+    }
+
+    function renderElectronicGroupSelect() {
+        const select = document.getElementById('electronicGroupSelect');
+        if (!select) {
+            return;
+        }
+
+        if (!groups.length) {
+            select.innerHTML = '<option value="">Сначала создайте учебную группу</option>';
+            return;
+        }
+
+        select.innerHTML = `
+            <option value="">Выберите группу</option>
+            ${groups.map((group) => `<option value="${group.id}">${escapeHtml(group.name)} (${group.students?.length || 0})</option>`).join('')}
+        `;
+    }
+
+    function renderElectronicVariantOptions() {
+        const select = document.getElementById('electronicVariantNumber');
+        if (!select) {
+            return;
+        }
+
+        const variantCount = normalizeVariantCount();
+        select.innerHTML = Array.from({ length: variantCount }, (_, index) => {
+            const value = index + 1;
+            return `<option value="${value}">Вариант ${value}</option>`;
+        }).join('');
+    }
+
+    function getDeliveryModeLabel(mode) {
+        switch (mode) {
+            case 'electronic':
+                return 'Электронный';
+            case 'hybrid':
+                return 'Совмещённый';
+            default:
+                return 'На бланках';
+        }
+    }
+
+    async function loadElectronicDashboard() {
+        const response = await apiFetch(`/api/tests/${testId}/electronic-dashboard`);
+        if (!response.ok) {
+            const payload = await response.json().catch(() => ({}));
+            const message = payload.errors
+                ? Object.values(payload.errors).flat().join(', ')
+                : (payload.message || 'Не удалось загрузить электронное тестирование');
+            throw new Error(message);
+        }
+
+        const payload = await response.json();
+        const previousSubmittedIds = (electronicDashboard?.current_session?.attempts || [])
+            .filter((attempt) => ['submitted', 'reviewed'].includes(attempt.status))
+            .map((attempt) => attempt.id);
+
+        electronicDashboard = payload.data || {};
+        renderElectronicDashboard();
+        notifyAboutNewElectronicAttempts(previousSubmittedIds);
+        startElectronicPolling();
+    }
+
+    function renderElectronicDashboard() {
+        const accessCode = document.getElementById('electronicAccessCode');
+        const generalLink = document.getElementById('electronicGeneralLink');
+        const membersList = document.getElementById('electronicMembersList');
+        const attemptsList = document.getElementById('electronicAttemptsList');
+        const attemptsSummary = document.getElementById('electronicAttemptsSummary');
+        const badge = document.getElementById('electronicLiveBadge');
+        const sameVariantWrap = document.getElementById('electronicSameVariantWrap');
+        const isBlankMode = (electronicDashboard?.delivery_mode || currentTest?.delivery_mode) === 'blank';
+        const isClosed = isCurrentTestClosed();
+
+        accessCode.textContent = electronicDashboard?.access_code || '—';
+        generalLink.textContent = electronicDashboard?.current_session?.general_link || 'Сначала запустите тест';
+        generalLink.href = electronicDashboard?.current_session?.general_link || '#';
+        generalLink.classList.toggle('pointer-events-none', !electronicDashboard?.current_session?.general_link);
+        sameVariantWrap.classList.toggle('hidden', document.getElementById('electronicVariantMode').value !== 'same');
+
+        if (isBlankMode) {
+            badge.classList.add('hidden');
+            membersList.innerHTML = `
+                <div class="rounded-2xl border border-dashed border-slate-300 bg-white px-4 py-4 text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-400">
+                    Этот тест пока переведён только в режим бланков.
+                </div>
+            `;
+            attemptsSummary.textContent = 'Электронный режим выключен';
+            attemptsList.innerHTML = '';
+            return;
+        }
+
+        const currentSession = electronicDashboard?.current_session;
+        if (!currentSession) {
+            badge.classList.add('hidden');
+            membersList.innerHTML = `
+                <div class="rounded-2xl border border-dashed border-slate-300 bg-white px-4 py-4 text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-400">
+                    ${isClosed ? 'Тест закрыт. Новый электронный запуск недоступен.' : 'Активного запуска пока нет. Выберите группу и создайте новый запуск.'}
+                </div>
+            `;
+            attemptsSummary.textContent = isClosed ? 'Тест закрыт' : 'Нет активного запуска';
+            attemptsList.innerHTML = '';
+            syncTestAvailabilityUi();
+            return;
+        }
+
+        badge.classList.remove('hidden');
+        badge.textContent = `${currentSession.group?.name || 'Группа'} • ${currentSession.unreviewed_count || 0} новых работ`;
+
+        membersList.innerHTML = (currentSession.members || []).length
+            ? currentSession.members.map((member) => `
+                <article class="rounded-2xl border border-slate-200 bg-white px-4 py-4 dark:border-slate-700 dark:bg-slate-900">
+                    <div class="flex flex-wrap items-start justify-between gap-3">
+                        <div>
+                            <div class="font-semibold text-slate-900 dark:text-white">${escapeHtml(member.full_name || 'Ученик')}</div>
+                            <div class="mt-1 text-sm text-slate-500 dark:text-slate-400">Вариант ${member.variant_number}</div>
+                        </div>
+                        <button type="button" onclick="copyTextToClipboard('${member.personal_link}')" class="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-700 transition hover:border-indigo-300 hover:text-indigo-700 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200">
+                            Копировать ссылку
+                        </button>
+                    </div>
+                </article>
+            `).join('')
+            : '<div class="text-sm text-slate-500 dark:text-slate-400">В выбранной группе пока нет учеников.</div>';
+
+        const attempts = currentSession.attempts || [];
+        attemptsSummary.textContent = attempts.length
+            ? `Работ: ${attempts.length}. Новых без оценки: ${currentSession.unreviewed_count || 0}`
+            : 'Пока нет завершённых работ';
+        attemptsList.innerHTML = attempts.length
+            ? attempts.map((attempt) => buildElectronicAttemptCard(attempt)).join('')
+            : '<div class="rounded-2xl border border-dashed border-slate-300 bg-white px-4 py-4 text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-400">Завершённых работ пока нет.</div>';
+        syncTestAvailabilityUi();
+    }
+
+    function buildElectronicAttemptCard(attempt) {
+        return `
+            <article class="rounded-2xl border border-slate-200 bg-white px-4 py-4 dark:border-slate-700 dark:bg-slate-900">
+                <div class="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                        <div class="font-semibold text-slate-900 dark:text-white">${escapeHtml(attempt.student_full_name || 'Ученик')}</div>
+                        <div class="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                            ${attempt.submitted_at ? `Сдан: ${formatDate(attempt.submitted_at)}` : 'В процессе'} • Вариант ${attempt.variant_number}
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-sm font-semibold ${attempt.status === 'reviewed' ? 'text-emerald-600 dark:text-emerald-300' : 'text-indigo-600 dark:text-indigo-300'}">${escapeHtml(attempt.status_label || 'Работа')}</div>
+                        <div class="mt-1 text-sm text-slate-500 dark:text-slate-400">${attempt.total_score ?? '—'} балл.</div>
+                    </div>
+                </div>
+
+                <div class="mt-4 flex flex-wrap gap-2 text-sm">
+                    <div class="rounded-full bg-slate-100 px-3 py-1 dark:bg-slate-950/70">
+                        Автооценка: <span class="font-semibold text-slate-900 dark:text-white">${escapeHtml(attempt.grade_label || 'Без оценки')}</span>
+                    </div>
+                    <div class="rounded-full bg-slate-100 px-3 py-1 dark:bg-slate-950/70">
+                        Оценка в журнал: <span class="font-semibold text-slate-900 dark:text-white">${escapeHtml(attempt.assigned_grade_value || 'не выставлена')}</span>
+                    </div>
+                    ${attempt.is_manual_student ? `
+                        <div class="rounded-full bg-amber-100 px-3 py-1 text-amber-900 dark:bg-amber-950/40 dark:text-amber-200">
+                            Ученик вне списка группы
+                        </div>
+                    ` : ''}
+                </div>
+
+                ${(attempt.log_summary_items || []).length ? `
+                    <div class="mt-4 flex flex-wrap gap-2 text-xs">
+                        ${(attempt.log_summary_items || []).map((item) => `
+                            <div class="rounded-full border border-slate-200 px-3 py-1 text-slate-600 dark:border-slate-700 dark:text-slate-300">
+                                ${escapeHtml(item.label)}: <span class="font-semibold text-slate-900 dark:text-white">${item.count}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                ` : ''}
+
+                <div class="mt-4 flex flex-wrap gap-3">
+                    <a href="/electronic-attempts/${attempt.id}" class="rounded-2xl bg-indigo-600 px-4 py-3 text-sm font-medium text-white transition hover:bg-indigo-500">
+                        Открыть проверку
+                    </a>
+                </div>
+            </article>
+        `;
+    }
+
+    function startElectronicPolling() {
+        clearInterval(electronicPollHandle);
+        electronicPollHandle = setInterval(async () => {
+            if (document.hidden || !electronicDashboard || currentTest?.delivery_mode === 'blank' || isCurrentTestClosed()) {
+                return;
+            }
+
+            try {
+                const response = await apiFetch(`/api/tests/${testId}/electronic-dashboard`);
+                if (!response.ok) {
+                    return;
+                }
+
+                const payload = await response.json();
+                const previousSubmittedIds = (electronicDashboard?.current_session?.attempts || [])
+                    .filter((attempt) => ['submitted', 'reviewed'].includes(attempt.status))
+                    .map((attempt) => attempt.id);
+                electronicDashboard = payload.data || {};
+                renderElectronicDashboard();
+                notifyAboutNewElectronicAttempts(previousSubmittedIds);
+            } catch (error) {
+                console.error('Ошибка обновления электронного тестирования:', error);
+            }
+        }, 15000);
+    }
+
+    function notifyAboutNewElectronicAttempts(previousSubmittedIds = []) {
+        const currentSubmittedAttempts = (electronicDashboard?.current_session?.attempts || [])
+            .filter((attempt) => ['submitted', 'reviewed'].includes(attempt.status));
+        const newAttempts = currentSubmittedAttempts.filter((attempt) => !previousSubmittedIds.includes(attempt.id));
+
+        if (!newAttempts.length) {
+            electronicKnownSubmittedAttemptIds = currentSubmittedAttempts.map((attempt) => attempt.id);
+            return;
+        }
+
+        if (window.Notification && Notification.permission === 'default') {
+            Notification.requestPermission().catch(() => {});
+        }
+
+        newAttempts.forEach((attempt) => {
+            if (window.Notification && Notification.permission === 'granted') {
+                new Notification('Провериум: новая завершённая работа', {
+                    body: `${attempt.student_full_name} завершил(а) тест.`,
+                });
+            }
+        });
+
+        electronicKnownSubmittedAttemptIds = currentSubmittedAttempts.map((attempt) => attempt.id);
+    }
+
+    async function startElectronicSession() {
+        if (isCurrentTestClosed()) {
+            alert('Тест закрыт. Новые электронные прохождения для него недоступны.');
+            return;
+        }
+
+        if (currentTest?.delivery_mode === 'blank') {
+            const shouldEnableHybrid = confirm('Этот тест сейчас работает только на бланках. Переключить формат на совмещённый и продолжить запуск электронного теста?');
+            if (!shouldEnableHybrid) {
+                return;
+            }
+
+            try {
+                const response = await apiFetch(`/api/tests/${testId}/delivery-mode`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        delivery_mode: 'hybrid',
+                    }),
+                });
+
+                if (!response.ok) {
+                    const error = await response.json().catch(() => ({}));
+                    const message = error.errors ? Object.values(error.errors).flat().join(', ') : (error.message || 'Не удалось изменить формат теста.');
+                    throw new Error(message);
+                }
+
+                const payload = await response.json();
+                currentTest = payload.data || currentTest;
+                renderTest();
+                await loadElectronicDashboard();
+            } catch (error) {
+                alert(error.message || 'Не удалось переключить формат теста.');
+                return;
+            }
+        }
+        const studentGroupId = parseInt(document.getElementById('electronicGroupSelect').value, 10);
+        if (!studentGroupId) {
+            alert('Выберите группу для электронного тестирования.');
+            return;
+        }
+
+        const variantAssignmentMode = document.getElementById('electronicVariantMode').value;
+        const payload = {
+            student_group_id: studentGroupId,
+            variant_assignment_mode: variantAssignmentMode,
+        };
+
+        if (variantAssignmentMode === 'same') {
+            payload.variant_number = parseInt(document.getElementById('electronicVariantNumber').value, 10) || 1;
+        }
+
+        try {
+            const response = await apiFetch(`/api/tests/${testId}/electronic-launch`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(payload),
+            });
+
+            if (!response.ok) {
+                const error = await response.json().catch(() => ({}));
+                const message = error.errors ? Object.values(error.errors).flat().join(', ') : (error.message || 'Не удалось создать электронный запуск.');
+                throw new Error(message);
+            }
+
+            await loadElectronicDashboard();
+            alert('Электронный запуск создан. Можно раздавать ссылку или код.');
+        } catch (error) {
+            alert(error.message || 'Ошибка запуска');
+        }
+    }
+
+    async function assignElectronicGrade(attemptId) {
+        const gradeValue = document.getElementById(`attemptGrade_${attemptId}`)?.value.trim();
+        const gradeDate = document.getElementById(`attemptGradeDate_${attemptId}`)?.value;
+
+        if (!gradeValue || !gradeDate) {
+            alert('Укажите оценку и дату.');
+            return;
+        }
+
+        try {
+            const response = await apiFetch(`/api/electronic-attempts/${attemptId}/assign-grade`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    grade_value: gradeValue,
+                    grade_date: gradeDate,
+                }),
+            });
+
+            if (!response.ok) {
+                const error = await response.json().catch(() => ({}));
+                throw new Error(error.errors ? Object.values(error.errors).flat().join(', ') : (error.message || 'Не удалось сохранить оценку.'));
+            }
+
+            await loadElectronicDashboard();
+        } catch (error) {
+            alert(error.message || 'Ошибка сохранения оценки');
+        }
+    }
+
+    async function attachElectronicStudent(attemptId) {
+        const studentFullName = document.getElementById(`attachStudentName_${attemptId}`)?.value.trim();
+        const gradeValue = document.getElementById(`attemptGrade_${attemptId}`)?.value.trim();
+        const gradeDate = document.getElementById(`attemptGradeDate_${attemptId}`)?.value;
+
+        if (!studentFullName) {
+            alert('Укажите ФИО ученика.');
+            return;
+        }
+
+        try {
+            const response = await apiFetch(`/api/electronic-attempts/${attemptId}/attach-student`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    student_full_name: studentFullName,
+                    grade_value: gradeValue || null,
+                    grade_date: gradeDate || null,
+                }),
+            });
+
+            if (!response.ok) {
+                const error = await response.json().catch(() => ({}));
+                throw new Error(error.errors ? Object.values(error.errors).flat().join(', ') : (error.message || 'Не удалось привязать ученика.'));
+            }
+
+            await loadElectronicDashboard();
+        } catch (error) {
+            alert(error.message || 'Ошибка привязки ученика');
+        }
+    }
+
+    async function copyElectronicCode() {
+        if (!electronicDashboard?.access_code) {
+            alert('Код пока не готов.');
+            return;
+        }
+
+        await copyTextToClipboard(electronicDashboard.access_code);
+    }
+
+    async function copyTextToClipboard(value) {
+        try {
+            await navigator.clipboard.writeText(value);
+            alert('Скопировано.');
+        } catch (error) {
+            alert('Не удалось скопировать автоматически. Скопируйте вручную: ' + value);
+        }
     }
 
     function getSelectedGroup() {
@@ -935,6 +1514,11 @@
     }
 
     async function generateBlankForms() {
+        if (isCurrentTestClosed()) {
+            alert('Тест закрыт. Новые бланки для него больше не выпускаются.');
+            return;
+        }
+
         const groupId = document.getElementById('groupSelect').value;
         if (!groupId) {
             alert('Выберите группу');
@@ -1349,6 +1933,13 @@
         if (!await ensureAuthenticatedPage()) {
             return;
         }
+
+        document.getElementById('electronicVariantMode')?.addEventListener('change', () => {
+            document.getElementById('electronicSameVariantWrap')?.classList.toggle(
+                'hidden',
+                document.getElementById('electronicVariantMode').value !== 'same'
+            );
+        });
 
         syncBlankGenerationModeButtons();
         loadPage();

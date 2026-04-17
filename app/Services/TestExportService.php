@@ -23,12 +23,14 @@ class TestExportService
             'description' => $test->description,
             'time_limit' => $test->time_limit,
             'variant_count' => $variantCount,
+            'delivery_mode' => $test->delivery_mode,
             'grade_criteria' => collect($test->grade_criteria ?? [])->values()->all(),
             'questions' => $this->orderedQuestions($test)
-                ->map(function ($question) use ($includeQuestionVariant) {
+                ->values()
+                ->map(function ($question, int $index) use ($includeQuestionVariant) {
                     $payload = [
                         'question_text' => $question->question_text,
-                        'order' => (int) ($question->order ?? 0),
+                        'order' => $index + 1,
                         'type' => $question->type,
                         'points' => (int) ($question->points ?? 1),
                         'answers' => $question->answers
@@ -66,6 +68,7 @@ class TestExportService
             ['description', (string) ($payload['description'] ?? '')],
             ['time_limit', (string) ($payload['time_limit'] ?? '')],
             ['variant_count', (string) ($payload['variant_count'] ?? 1)],
+            ['delivery_mode', (string) ($payload['delivery_mode'] ?? 'blank')],
             ['grade_criteria_json', $this->encodeGradeCriteria($payload['grade_criteria'] ?? [])],
             [],
             array_merge(['question_text', 'order', 'variant', 'type', 'points'], $answerColumns, ['correct']),
@@ -122,12 +125,11 @@ class TestExportService
 
     protected function orderedQuestions(Test $test): Collection
     {
-        return $test->questions
-            ->sortBy([
-                fn ($question) => (int) ($question->order ?? 0),
-                fn ($question) => (int) $question->id,
-            ])
-            ->values();
+        return $test->questions()
+            ->with('answers')
+            ->orderBy('order')
+            ->orderBy('id')
+            ->get();
     }
 
     protected function encodeGradeCriteria(array $gradeCriteria): string

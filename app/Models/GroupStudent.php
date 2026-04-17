@@ -35,4 +35,14 @@ class GroupStudent extends Model
             ->orderByDesc('grade_date')
             ->orderByDesc('updated_at');
     }
+
+    public function electronicSessionMembers()
+    {
+        return $this->hasMany(ElectronicTestSessionMember::class);
+    }
+
+    public function electronicAttempts()
+    {
+        return $this->hasMany(ElectronicTestAttempt::class);
+    }
 }

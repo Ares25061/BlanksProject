@@ -21,7 +21,31 @@
         <p class="text-slate-600 mt-2 dark:text-slate-400">Соберите вопросы, укажите предмет, баллы и шкалу оценивания, по которой будут считаться результаты сканирования.</p>
     </div>
 
-    <form id="testForm" class="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
+    <form id="testForm" class="grid items-start gap-6 xl:grid-cols-[260px_minmax(0,1fr)_320px]">
+        <aside class="hidden xl:block xl:sticky xl:top-24">
+            <section class="bg-white rounded-3xl border border-slate-200 p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900 dark:shadow-none">
+                <div class="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500 dark:text-slate-400">Навигация</div>
+                <div class="mt-4 space-y-2">
+                    <button type="button" onclick="scrollToComposerSection('detailsSection')" class="flex w-full items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-3 text-left text-sm font-medium text-slate-700 transition hover:border-sky-300 hover:text-sky-700 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:hover:border-sky-400 dark:hover:text-sky-300">
+                        <span>Основная информация</span>
+                        <i class="fas fa-arrow-down"></i>
+                    </button>
+                    <button type="button" onclick="scrollToComposerSection('importSection')" class="flex w-full items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-3 text-left text-sm font-medium text-slate-700 transition hover:border-sky-300 hover:text-sky-700 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:hover:border-sky-400 dark:hover:text-sky-300">
+                        <span>Импорт</span>
+                        <i class="fas fa-arrow-down"></i>
+                    </button>
+                    <button type="button" onclick="scrollToComposerSection('gradingSection')" class="flex w-full items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-3 text-left text-sm font-medium text-slate-700 transition hover:border-sky-300 hover:text-sky-700 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:hover:border-sky-400 dark:hover:text-sky-300">
+                        <span>Шкала оценивания</span>
+                        <i class="fas fa-arrow-down"></i>
+                    </button>
+                    <button type="button" onclick="scrollToComposerSection('questionsSection')" class="flex w-full items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-3 text-left text-sm font-medium text-slate-700 transition hover:border-sky-300 hover:text-sky-700 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:hover:border-sky-400 dark:hover:text-sky-300">
+                        <span>Вопросы</span>
+                        <i class="fas fa-arrow-down"></i>
+                    </button>
+                </div>
+            </section>
+        </aside>
+
         <div class="space-y-6">
         <section id="detailsSection" class="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 space-y-4 dark:bg-slate-900 dark:border-slate-800 dark:shadow-none">
             <div class="flex flex-wrap justify-between gap-4 items-center">
@@ -53,7 +77,7 @@
                           placeholder="Кратко опишите тему, формат или особенности проведения"></textarea>
             </div>
 
-            <div class="grid md:grid-cols-3 gap-4">
+            <div class="grid md:grid-cols-2 xl:grid-cols-4 gap-4">
                 <div>
                     <label for="time_limit" class="block text-sm font-medium text-slate-700 mb-2 dark:text-slate-300">Время выполнения</label>
                     <input id="time_limit" type="number" min="1"
@@ -63,18 +87,29 @@
 
                 <div>
                     <label for="variant_count" class="block text-sm font-medium text-slate-700 mb-2 dark:text-slate-300">Количество вариантов</label>
-                    <input id="variant_count" type="number" min="1" max="10" value="1"
+                    <input id="variant_count" type="number" min="1" max="10"
                            class="w-full px-4 py-3 rounded-2xl border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
                            placeholder="От 1 до 10">
                     <p class="text-xs text-slate-500 mt-2 dark:text-slate-400">До 10 вариантов. На печати можно будет выдать всем один вариант, распределить поровну или назначить вручную.</p>
                 </div>
 
                 <div>
-                    <label for="is_active" class="block text-sm font-medium text-slate-700 mb-2 dark:text-slate-300">Статус</label>
-                    <select id="is_active" class="w-full px-4 py-3 rounded-2xl border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500">
-                        <option value="1">Активен</option>
-                        <option value="0">Черновик</option>
+                    <label for="test_status" class="block text-sm font-medium text-slate-700 mb-2 dark:text-slate-300">Статус</label>
+                    <select id="test_status" class="w-full px-4 py-3 rounded-2xl border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500">
+                        <option value="active">Активен</option>
+                        <option value="draft">Черновик</option>
+                        <option value="closed">Закрыт</option>
                     </select>
+                </div>
+
+                <div>
+                    <label for="delivery_mode" class="block text-sm font-medium text-slate-700 mb-2 dark:text-slate-300">Формат проведения</label>
+                    <select id="delivery_mode" class="w-full px-4 py-3 rounded-2xl border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500">
+                        <option value="blank">Только на бланках</option>
+                        <option value="electronic">Только электронно</option>
+                        <option value="hybrid">Совмещённый режим</option>
+                    </select>
+                    <p class="text-xs text-slate-500 mt-2 dark:text-slate-400">В электронном и совмещённом режиме будет доступен код теста, ссылка для прохождения и запуск на выбранную группу.</p>
                 </div>
             </div>
         </section>
@@ -197,27 +232,6 @@
                 </div>
             </section>
 
-            <section class="bg-white rounded-3xl border border-slate-200 p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900 dark:shadow-none">
-                <div class="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500 dark:text-slate-400">Навигация</div>
-                <div class="mt-4 space-y-2">
-                    <button type="button" onclick="scrollToComposerSection('detailsSection')" class="flex w-full items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-3 text-left text-sm font-medium text-slate-700 transition hover:border-sky-300 hover:text-sky-700 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:hover:border-sky-400 dark:hover:text-sky-300">
-                        <span>Основная информация</span>
-                        <i class="fas fa-arrow-down"></i>
-                    </button>
-                    <button type="button" onclick="scrollToComposerSection('importSection')" class="flex w-full items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-3 text-left text-sm font-medium text-slate-700 transition hover:border-sky-300 hover:text-sky-700 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:hover:border-sky-400 dark:hover:text-sky-300">
-                        <span>Импорт</span>
-                        <i class="fas fa-arrow-down"></i>
-                    </button>
-                    <button type="button" onclick="scrollToComposerSection('gradingSection')" class="flex w-full items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-3 text-left text-sm font-medium text-slate-700 transition hover:border-sky-300 hover:text-sky-700 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:hover:border-sky-400 dark:hover:text-sky-300">
-                        <span>Шкала оценивания</span>
-                        <i class="fas fa-arrow-down"></i>
-                    </button>
-                    <button type="button" onclick="scrollToComposerSection('questionsSection')" class="flex w-full items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-3 text-left text-sm font-medium text-slate-700 transition hover:border-sky-300 hover:text-sky-700 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:hover:border-sky-400 dark:hover:text-sky-300">
-                        <span>Вопросы</span>
-                        <i class="fas fa-arrow-down"></i>
-                    </button>
-                </div>
-            </section>
         </aside>
     </form>
 </div>
@@ -307,9 +321,21 @@
         return `q_${Date.now()}_${Math.random().toString(16).slice(2)}`;
     }
 
-    function normalizeVariantCountValue(value = null) {
-        const source = value ?? document.getElementById('variant_count').value;
-        const parsed = parseInt(source, 10) || DEFAULT_VARIANT_COUNT;
+    function getVariantCountInputValue() {
+        return String(document.getElementById('variant_count').value || '').trim();
+    }
+
+    function hasVariantCountValue(value = null) {
+        return String(value ?? getVariantCountInputValue()).trim() !== '';
+    }
+
+    function normalizeVariantCountValue(value = null, fallback = DEFAULT_VARIANT_COUNT) {
+        const source = String(value ?? getVariantCountInputValue()).trim();
+        const parsed = parseInt(source, 10);
+
+        if (!Number.isInteger(parsed)) {
+            return fallback;
+        }
 
         return Math.max(1, Math.min(10, parsed));
     }
@@ -334,8 +360,6 @@
     }
 
     function refreshQuestionVariantOptions() {
-        document.getElementById('variant_count').value = String(normalizeVariantCountValue());
-
         document.querySelectorAll('.question-item').forEach((questionItem) => {
             renderQuestionVariantOptions(
                 questionItem,
@@ -462,8 +486,7 @@
             .reduce((sum, value) => sum + value, 0);
     }
 
-    function getVariantScoreTotals() {
-        const variantCount = normalizeVariantCountValue();
+    function getVariantScoreTotals(variantCount = normalizeVariantCountValue()) {
         const totals = Array.from({ length: variantCount }, () => 0);
 
         document.querySelectorAll('.question-item').forEach((questionItem) => {
@@ -506,6 +529,7 @@
     function renderComposerSidebarState() {
         const questionCount = document.querySelectorAll('.question-item').length;
         const variantCount = normalizeVariantCountValue();
+        const variantCountSpecified = hasVariantCountValue();
         const scoreSummary = variantCount <= 1
             ? `${getTotalPoints()} балл.`
             : getVariantScoreTotals()
@@ -521,7 +545,7 @@
         }
 
         if (variantCountElement) {
-            variantCountElement.textContent = String(variantCount);
+            variantCountElement.textContent = variantCountSpecified ? String(variantCount) : '—';
         }
 
         if (scoreSummaryElement) {
@@ -631,6 +655,10 @@
             document.getElementById('description').value = imported.description;
         }
 
+        if (imported.delivery_mode && ['blank', 'electronic', 'hybrid'].includes(imported.delivery_mode)) {
+            document.getElementById('delivery_mode').value = imported.delivery_mode;
+        }
+
         if (!document.getElementById('time_limit').value && imported.time_limit) {
             document.getElementById('time_limit').value = imported.time_limit;
         }
@@ -675,11 +703,14 @@
             valid = false;
         }
 
-        const normalizedVariantCount = parseInt(variantCount.value, 10) || 1;
-        if (normalizedVariantCount < 1 || normalizedVariantCount > 10) {
+        const variantCountRaw = String(variantCount.value || '').trim();
+        const normalizedVariantCount = parseInt(variantCountRaw, 10);
+        if (!variantCountRaw || !Number.isInteger(normalizedVariantCount) || normalizedVariantCount < 1 || normalizedVariantCount > 10) {
             variantCount.classList.add('error-border');
             valid = false;
         }
+
+        const resolvedVariantCount = Number.isInteger(normalizedVariantCount) ? normalizedVariantCount : DEFAULT_VARIANT_COUNT;
 
         const questions = document.querySelectorAll('.question-item');
         if (!questions.length) {
@@ -705,7 +736,7 @@
                 valid = false;
             }
 
-            if ((parseInt(questionVariant?.value, 10) || 1) < 1 || (parseInt(questionVariant?.value, 10) || 1) > normalizedVariantCount) {
+            if ((parseInt(questionVariant?.value, 10) || 1) < 1 || (parseInt(questionVariant?.value, 10) || 1) > resolvedVariantCount) {
                 questionVariant?.classList.add('error-border');
                 valid = false;
             }
@@ -751,6 +782,15 @@
             }
         });
 
+        if (resolvedVariantCount > 1) {
+            const scoreTotals = getVariantScoreTotals(resolvedVariantCount);
+            if (new Set(scoreTotals).size > 1) {
+                variantCount.classList.add('error-border');
+                alert(`У всех вариантов должна быть одинаковая сумма баллов. Сейчас: ${scoreTotals.map((value, index) => `В${index + 1}: ${value}`).join(', ')}`);
+                valid = false;
+            }
+        }
+
         return valid;
     }
 
@@ -786,8 +826,9 @@
             subject_name: document.getElementById('subject_name').value.trim(),
             description: document.getElementById('description').value.trim() || null,
             time_limit: document.getElementById('time_limit').value ? parseInt(document.getElementById('time_limit').value, 10) : null,
-            variant_count: parseInt(document.getElementById('variant_count').value, 10) || 1,
-            is_active: document.getElementById('is_active').value === '1',
+            variant_count: parseInt(document.getElementById('variant_count').value, 10),
+            test_status: document.getElementById('test_status').value,
+            delivery_mode: document.getElementById('delivery_mode').value,
             grade_criteria: collectGradeCriteria(),
             questions: collectQuestions()
         };
@@ -803,8 +844,11 @@
             });
 
             if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.message || 'Не удалось создать тест');
+                const error = await response.json().catch(() => ({}));
+                const message = error.errors
+                    ? Object.values(error.errors).flat().join(', ')
+                    : (error.message || 'Не удалось создать тест');
+                throw new Error(message);
             }
 
             const data = await response.json();
@@ -822,6 +866,7 @@
 
     document.getElementById('variant_count').addEventListener('input', () => {
         refreshQuestionVariantOptions();
+        updateTotalPoints();
     });
 
     document.getElementById('questionsImportInput').addEventListener('change', async (event) => {

@@ -164,10 +164,12 @@ class UnifiedSheetLayoutService
         $blockLeftMm = UnifiedSheetLayout::columnLeftMm($columnIndex);
         $blockWidthMm = UnifiedSheetLayout::columnWidthMm();
         $innerWidthMm = $blockWidthMm - (UnifiedSheetLayout::QUESTION_INNER_PADDING_MM * 2);
+        $typeLabel = (string) $question->type === 'multiple' ? 'Тип: М' : 'Тип: 1';
+        $titleWrapWidthMm = max(20, $innerWidthMm - 18);
 
         $titleLines = $this->wrapText(
             '[' . $questionNumber . '] ' . trim((string) $question->question_text),
-            $innerWidthMm,
+            $titleWrapWidthMm,
             UnifiedSheetLayout::TITLE_CHAR_WIDTH_MM
         );
         $optionLines = $this->wrapText(
@@ -253,6 +255,7 @@ class UnifiedSheetLayoutService
             'question_text' => (string) $question->question_text,
             'title_lines' => $titleLines,
             'option_lines' => $optionLines,
+            'type_label' => $typeLabel,
             'block' => [
                 'left_mm' => round($blockLeftMm, 2),
                 'top_mm' => round($topMm, 2),
@@ -279,6 +282,7 @@ class UnifiedSheetLayoutService
             'question_text' => '',
             'title_lines' => ['В этом варианте нет вопросов.'],
             'option_lines' => [''],
+            'type_label' => '',
             'block' => [
                 'left_mm' => UnifiedSheetLayout::columnLeftMm(0),
                 'top_mm' => UnifiedSheetLayout::questionAreaTopMm(),

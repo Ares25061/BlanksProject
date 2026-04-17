@@ -2,6 +2,7 @@
     $pageTitle = trim((string) ($title ?? ''));
     $appName = config('app.name', 'Провериум');
     $documentTitle = $pageTitle !== '' ? $pageTitle.' | '.$appName : $appName;
+    $faviconVersion = (string) (@filemtime(public_path('favicon.ico')) ?: @filemtime(public_path('favicon.png')) ?: time());
 @endphp
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,10 +10,10 @@
 <title>{{ $documentTitle }}</title>
 <meta name="csrf-token" content="{{ csrf_token() }}">
 <meta name="theme-color" content="#edf3ef">
-<link rel="icon" type="image/svg+xml" href="/favicon.svg">
-<link rel="icon" type="image/png" sizes="32x32" href="/favicon.png">
-<link rel="icon" type="image/x-icon" href="/favicon.ico">
-<link rel="shortcut icon" href="/favicon.ico">
+<link rel="icon" type="image/x-icon" href="/favicon.ico?v={{ $faviconVersion }}">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon.png?v={{ $faviconVersion }}">
+<link rel="shortcut icon" href="/favicon.ico?v={{ $faviconVersion }}">
+<link rel="apple-touch-icon" href="/favicon.png?v={{ $faviconVersion }}">
 <script>
     (() => {
         const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');

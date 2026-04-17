@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\TestController;
 use App\Http\Controllers\BlankFormController;
+use App\Http\Controllers\ElectronicTestController;
 use App\Http\Controllers\ScanPreviewController;
 use App\Http\Controllers\StudentGroupController;
 use App\Http\Controllers\UserController;
@@ -10,6 +11,14 @@ use Illuminate\Support\Facades\Route;
 Route::apiResource('/user', UserController::class);
 Route::post('/register', [UserController::class, 'register']);
 Route::post('/login', [UserController::class, 'login']);
+Route::post('/public/test-code/resolve', [ElectronicTestController::class, 'resolveCode']);
+Route::get('/public/electronic-sessions/{token}', [ElectronicTestController::class, 'session']);
+Route::get('/public/electronic-members/{token}', [ElectronicTestController::class, 'member']);
+Route::post('/public/electronic-sessions/{token}/start', [ElectronicTestController::class, 'startFromSession']);
+Route::post('/public/electronic-members/{token}/start', [ElectronicTestController::class, 'startFromMember']);
+Route::get('/public/electronic-attempts/{token}', [ElectronicTestController::class, 'showAttempt']);
+Route::post('/public/electronic-attempts/{token}/submit', [ElectronicTestController::class, 'submitAttempt']);
+Route::post('/public/electronic-attempts/{token}/logs', [ElectronicTestController::class, 'logAttempt']);
 // Защищенные маршруты (требуют аутентификации)
 Route::middleware('auth:api')->group(function () {
     Route::apiResource('student-groups', StudentGroupController::class);
@@ -22,6 +31,13 @@ Route::middleware('auth:api')->group(function () {
     Route::post('tests/{test}/questions', [TestController::class, 'addQuestion']);
     Route::post('tests/import-questions', [TestController::class, 'importQuestions']);
     Route::get('tests/{test}/export', [TestController::class, 'export']);
+    Route::patch('tests/{test}/delivery-mode', [TestController::class, 'updateDeliveryMode']);
+    Route::patch('tests/{test}/close', [TestController::class, 'close']);
+    Route::get('tests/{test}/electronic-dashboard', [ElectronicTestController::class, 'dashboard']);
+    Route::post('tests/{test}/electronic-launch', [ElectronicTestController::class, 'launch']);
+    Route::get('electronic-attempts/{attempt}', [ElectronicTestController::class, 'showTeacherAttempt']);
+    Route::patch('electronic-attempts/{attempt}/assign-grade', [ElectronicTestController::class, 'assignGrade']);
+    Route::post('electronic-attempts/{attempt}/attach-student', [ElectronicTestController::class, 'attachStudent']);
 
     // Бланки
     Route::get('blank-forms', [BlankFormController::class, 'index']);

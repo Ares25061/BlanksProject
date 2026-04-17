@@ -49,6 +49,11 @@ class TestController extends Controller
                 $query->where('title', 'like', "%{$search}%");
             })
             ->when($request->status, function ($query, $status) {
+                if (in_array($status, ['active', 'draft', 'closed'], true)) {
+                    $query->where('test_status', $status);
+                    return;
+                }
+
                 $query->where('is_active', $status === 'active');
             })
             ->orderBy($request->sort_by ?? 'created_at', $request->sort_direction ?? 'desc')
@@ -107,6 +112,44 @@ class TestController extends Controller
         return response()->json([
             'status' => 'success',
             'message' => 'Тест успешно удален'
+        ]);
+    }
+
+    public function updateDeliveryMode(Request $request, Test $test)
+    {
+        $this->authorize('update', $test);
+
+        $validated = $request->validate([
+            'delivery_mode' => 'required|in:blank,electronic,hybrid',
+        ]);
+
+        $test = $this->testService->updateDeliveryMode($test, $validated['delivery_mode']);
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Формат теста обновлён',
+            'data' => $test,
+        ]);
+    }
+
+    public function close(Test $test)
+    {
+        $this->authorize('update', $test);
+
+        if ((string) $test->test_status === 'closed') {
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Тест уже закрыт',
+                'data' => $test,
+            ]);
+        }
+
+        $test = $this->testService->closeTest($test);
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Тест завершён и переведён в статус "Закрыт"',
+            'data' => $test,
         ]);
     }
 
@@ -227,6 +270,14 @@ class TestController extends Controller
         $documentTitle = $this->buildPrintDocumentTitle($test, $blankForms);
 
         $loadedTest = $test->load('questions.answers');
+        $electronicAccessUrl = null;
+        $electronicAccessQrDataUri = null;
+
+        if (($loadedTest->delivery_mode ?? 'blank') === 'hybrid' && !empty($loadedTest->access_code)) {
+            $electronicAccessUrl = url('/take-test?code=' . urlencode((string) $loadedTest->access_code));
+            $electronicAccessQrDataUri = $this->blankSheetQrCodeService->renderTextDataUri($electronicAccessUrl, 200);
+        }
+
         $sheetPagesByBlankForm = $blankForms->mapWithKeys(function (BlankForm $blankForm) {
             $pages = (int) $blankForm->id > 0
                 ? $this->blankSheetManifestService->ensurePersisted($blankForm->fresh('test.questions.answers'))
@@ -250,6 +301,8 @@ class TestController extends Controller
             'blankForms' => $blankForms,
             'documentTitle' => $documentTitle,
             'sheetPagesByBlankForm' => $sheetPagesByBlankForm,
+            'electronicAccessUrl' => $electronicAccessUrl,
+            'electronicAccessQrDataUri' => $electronicAccessQrDataUri,
         ]);
     }
 

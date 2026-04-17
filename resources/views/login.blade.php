@@ -73,7 +73,7 @@
                     <div class="inline-flex items-center gap-3 text-[#14387a] dark:text-slate-50">
                         <img src="{{ asset('brand/proverium-mark.svg') }}" alt="Провериум" class="h-11 w-11 rounded-2xl shadow-halo">
                         <div class="flex min-w-0 flex-col gap-0.5">
-                            <span class="truncate text-xl font-black uppercase tracking-tight">{{ config('app.name', 'Провериум') }}</span>
+                            <span class="truncate text-xl font-black uppercase tracking-tight">Провериум</span>
                         </div>
                     </div>
                     <h2 class="mt-4 text-3xl font-semibold tracking-tight text-slate-950 dark:text-slate-50">Вход в кабинет</h2>
@@ -108,12 +108,6 @@
                                    class="w-full rounded-2xl border border-slate-300 bg-white/85 px-4 py-3 text-slate-900 shadow-sm outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-500/30 dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-100 dark:focus:border-sky-400"
                                    placeholder="Введите пароль">
                         </div>
-                    </div>
-
-                    <div class="flex justify-end">
-                        <a href="#" class="text-sm font-medium text-sky-600 transition hover:text-sky-700 dark:text-sky-300 dark:hover:text-sky-200">
-                            Забыли пароль?
-                        </a>
                     </div>
 
                     <button type="submit"

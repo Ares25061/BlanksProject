@@ -25,7 +25,7 @@ class UserController extends Controller
     {
         $users = User::paginate($request->per_page ?? 10, ['*'], 'page', $request->page ?? 1);
         if ($users->isEmpty()) {
-            return response()->json(['error' => 'Users not found'], 404);
+            return response()->json(['error' => 'Пользователи не найдены'], 404);
         }
 
         return response()->json(['status'=> 'success','users' => $users], 200);
@@ -41,7 +41,7 @@ class UserController extends Controller
         $user->refresh();
         return response()->json([
             'status'=> 'success',
-            'message' => 'User created!',
+            'message' => 'Пользователь создан',
             'user' => $user,
         ]);
     }
@@ -57,7 +57,7 @@ class UserController extends Controller
         ])->find($id);
 
         if (is_null($user)) {
-            return response()->json(['error' => 'User not found'], 404);
+            return response()->json(['error' => 'Пользователь не найден'], 404);
         }
         return response()->json([
             'status'=> 'success',
@@ -74,7 +74,7 @@ class UserController extends Controller
         if (is_null($user)) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'User not found'
+                'message' => 'Пользователь не найден'
             ], 404);
         }
         $validated = $request->validated();
@@ -84,7 +84,7 @@ class UserController extends Controller
         ]);
         return response()->json([
             'status'=> 'success',
-            'message' => 'User edited!',
+            'message' => 'Профиль обновлён',
             'user' => $user,
         ]);
     }
@@ -96,7 +96,7 @@ class UserController extends Controller
     {
         $user = User::find($id);
         if (is_null($user)) {
-            return response()->json(['error' => 'User not found'], 404);
+            return response()->json(['error' => 'Пользователь не найден'], 404);
         }
         $this->authorize('update',$user);
         $validated = $request->validated();
@@ -107,7 +107,7 @@ class UserController extends Controller
         ]);
         return response()->json([
             'status'=> 'success',
-            'message' => 'User updated!',
+            'message' => 'Пользователь обновлён',
             'user' => $user,
         ]);
     }
@@ -119,13 +119,13 @@ class UserController extends Controller
     {
         $user = User::find($id);
         if (is_null($user)) {
-            return response()->json(['error' => 'User not found'], 404);
+            return response()->json(['error' => 'Пользователь не найден'], 404);
         }
         $this->authorize('delete',$user);
         $user->delete();
         return response()->json([
             'status'=> 'success',
-            'message' => 'User deleted',
+            'message' => 'Пользователь удалён',
         ]);
     }
 
@@ -137,7 +137,7 @@ class UserController extends Controller
         $token = Auth::login($user);
         return response()->json([
             'status' => 'success',
-            'message' => 'User registered successfully',
+            'message' => 'Регистрация завершена',
             'user' => $user,
             'authorization' => [
                 'token' => $token,
@@ -157,7 +157,7 @@ class UserController extends Controller
         if (!$token) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'Invalid credentials',
+                'message' => 'Неверный email или пароль',
             ], 401);
         }
 
@@ -178,7 +178,7 @@ class UserController extends Controller
         Auth::logout();
         return response()->json([
             'status' => 'success',
-            'message' => 'logged out',
+            'message' => 'Вы вышли из аккаунта',
         ]);
     }
 

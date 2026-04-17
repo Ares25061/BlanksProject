@@ -73,7 +73,7 @@
                     <div class="inline-flex items-center gap-3 text-[#14387a] dark:text-slate-50">
                         <img src="{{ asset('brand/proverium-mark.svg') }}" alt="Провериум" class="h-11 w-11 rounded-2xl shadow-halo">
                         <div class="flex min-w-0 flex-col gap-0.5">
-                            <span class="truncate text-xl font-black uppercase tracking-tight">{{ config('app.name', 'Провериум') }}</span>
+                            <span class="truncate text-xl font-black uppercase tracking-tight">Провериум</span>
                         </div>
                     </div>
                     <h2 class="mt-4 text-3xl font-semibold tracking-tight text-slate-950 dark:text-slate-50">Создать аккаунт</h2>

@@ -65,6 +65,7 @@ class TestImportService
             'description' => $this->nullableString(Arr::get($payload, 'description')),
             'time_limit' => $this->nullableInt(Arr::get($payload, 'time_limit')),
             'variant_count' => $derivedVariantCount,
+            'delivery_mode' => $this->normalizeDeliveryMode(Arr::get($payload, 'delivery_mode')),
             'grade_criteria' => $this->normalizeGradeCriteria(Arr::get($payload, 'grade_criteria', [])),
             'questions' => $this->normalizeQuestions($questionSource, $derivedVariantCount ?? 1),
         ];
@@ -117,6 +118,7 @@ class TestImportService
             'description' => $this->nullableString($metadata['description'] ?? null),
             'time_limit' => $this->nullableInt($metadata['time_limit'] ?? null),
             'variant_count' => $variantCount,
+            'delivery_mode' => $this->normalizeDeliveryMode($metadata['delivery_mode'] ?? null),
             'grade_criteria' => $this->normalizeGradeCriteria($metadata['grade_criteria'] ?? []),
             'questions' => $this->normalizeSpreadsheetQuestionVariants($questions, $variantCount),
         ];
@@ -430,6 +432,7 @@ class TestImportService
             'description', 'opisanie' => 'description',
             'time_limit', 'time', 'vremya', 'time_limit_minutes' => 'time_limit',
             'variant_count', 'variants', 'kolichestvo_variantov' => 'variant_count',
+            'delivery_mode', 'format', 'mode', 'format_provedeniya' => 'delivery_mode',
             'grade_criteria_json', 'grade_criteria', 'criteria', 'kriterii' => 'grade_criteria',
             default => null,
         };
@@ -593,5 +596,16 @@ class TestImportService
                 return $question;
             })
             ->all();
+    }
+
+    private function normalizeDeliveryMode(mixed $value): string
+    {
+        $normalized = Str::lower(trim((string) $value));
+
+        return match ($normalized) {
+            'electronic', 'electron', 'электронно', 'электронный' => 'electronic',
+            'hybrid', 'mixed', 'combined', 'совмещенный', 'совмещённый' => 'hybrid',
+            default => 'blank',
+        };
     }
 }

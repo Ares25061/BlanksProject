@@ -30,4 +30,35 @@ class WebPageController extends Controller
     {
         return view('groups.show', ['id' => $id]);
     }
+
+    public function takeTest()
+    {
+        return view('tests.take', [
+            'sessionToken' => null,
+            'memberToken' => null,
+        ]);
+    }
+
+    public function takeTestSession(string $token)
+    {
+        return view('tests.take', [
+            'sessionToken' => $token,
+            'memberToken' => null,
+        ]);
+    }
+
+    public function takeTestMember(string $token)
+    {
+        return view('tests.take', [
+            'sessionToken' => null,
+            'memberToken' => $token,
+        ]);
+    }
+
+    public function electronicAttemptReview(int $id)
+    {
+        return view('tests.electronic-attempt-review', [
+            'attemptId' => $id,
+        ]);
+    }
 }

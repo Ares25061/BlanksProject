@@ -33,6 +33,6 @@ class TestPolicy
 
     public function generateBlankForms(User $user, Test $test)
     {
-        return $user->id === $test->created_by;
+        return $user->id === $test->created_by && (string) $test->test_status !== 'closed';
     }
 }
