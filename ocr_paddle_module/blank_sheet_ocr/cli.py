@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import argparse
+import base64
 import json
 import sys
 from pathlib import Path
 from typing import Any
+from urllib.parse import parse_qs, urlparse
 
 import cv2
 import numpy as np
@@ -148,11 +150,53 @@ def align_page(
 def try_parse_qr_text(text: str) -> dict[str, Any] | None:
     if not text:
         return None
+
+    text = text.strip()
     try:
         payload = json.loads(text)
     except Exception:
+        payload = None
+
+    if isinstance(payload, dict):
+        return payload
+
+    parsed_url = urlparse(text)
+    if not parsed_url.scheme or not parsed_url.netloc:
         return None
-    return payload if isinstance(payload, dict) else None
+
+    query = parse_qs(parsed_url.query)
+    for key in ("sheet", "payload", "qr"):
+        values = query.get(key) or []
+        if not values:
+            continue
+
+        decoded_payload = try_decode_payload_token(values[0])
+        if decoded_payload is not None:
+            return decoded_payload
+
+    return None
+
+
+def try_decode_payload_token(token: str) -> dict[str, Any] | None:
+    if not token:
+        return None
+
+    normalized = token.strip()
+    if not normalized:
+        return None
+
+    padding = "=" * ((4 - len(normalized) % 4) % 4)
+
+    try:
+        decoded = base64.urlsafe_b64decode((normalized + padding).encode("ascii"))
+        payload = json.loads(decoded.decode("utf-8"))
+    except Exception:
+        return None
+
+    if not isinstance(payload, dict):
+        return None
+
+    return payload
 
 
 def candidate_qr_images(image: np.ndarray) -> list[np.ndarray]:

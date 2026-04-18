@@ -271,21 +271,24 @@ class TestController extends Controller
 
         $loadedTest = $test->load('questions.answers');
         $electronicAccessUrl = null;
-        $electronicAccessQrDataUri = null;
 
         if (($loadedTest->delivery_mode ?? 'blank') === 'hybrid' && !empty($loadedTest->access_code)) {
             $electronicAccessUrl = url('/take-test?code=' . urlencode((string) $loadedTest->access_code));
-            $electronicAccessQrDataUri = $this->blankSheetQrCodeService->renderTextDataUri($electronicAccessUrl, 200);
         }
 
-        $sheetPagesByBlankForm = $blankForms->mapWithKeys(function (BlankForm $blankForm) {
+        $sheetPagesByBlankForm = $blankForms->mapWithKeys(function (BlankForm $blankForm) use ($electronicAccessUrl) {
             $pages = (int) $blankForm->id > 0
                 ? $this->blankSheetManifestService->ensurePersisted($blankForm->fresh('test.questions.answers'))
                 : $this->blankSheetManifestService->buildPreview($blankForm->loadMissing('test.questions.answers'));
 
             $pages = collect($pages)
-                ->map(function (array $page) {
-                    $page['qr_data_uri'] = $this->blankSheetQrCodeService->renderDataUri($page['qr_payload'] ?? []);
+                ->map(function (array $page) use ($electronicAccessUrl) {
+                    $qrPayload = (array) ($page['qr_payload'] ?? []);
+                    $qrText = $electronicAccessUrl
+                        ? $this->blankSheetQrCodeService->buildSheetAccessUrl($electronicAccessUrl, $qrPayload)
+                        : $this->blankSheetQrCodeService->encodePayload($qrPayload);
+
+                    $page['qr_data_uri'] = $this->blankSheetQrCodeService->renderTextDataUri($qrText, 360);
 
                     return $page;
                 })
@@ -302,7 +305,6 @@ class TestController extends Controller
             'documentTitle' => $documentTitle,
             'sheetPagesByBlankForm' => $sheetPagesByBlankForm,
             'electronicAccessUrl' => $electronicAccessUrl,
-            'electronicAccessQrDataUri' => $electronicAccessQrDataUri,
         ]);
     }
 

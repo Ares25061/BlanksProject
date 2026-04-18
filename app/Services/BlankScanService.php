@@ -45,7 +45,7 @@ class BlankScanService
             $scanPath = $this->storeNormalizedScanImage($image);
             $absoluteScanPath = Storage::disk('local')->path($scanPath);
             $identified = Utf8Normalizer::deep($this->pythonCellOcrService->identifyPage($absoluteScanPath));
-            $pagePayload = $this->blankSheetQrCodeService->normalizePayload((array) ($identified['qr_payload'] ?? []));
+            $pagePayload = $this->blankSheetQrCodeService->normalizePayload($identified['qr_payload'] ?? null);
 
             if (!$pagePayload) {
                 throw ValidationException::withMessages([

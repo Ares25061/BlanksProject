@@ -7,6 +7,28 @@
         .error-border {
             border-color: #ef4444 !important;
             background-color: #fff1f2 !important;
+            color: #881337 !important;
+            caret-color: #881337 !important;
+        }
+
+        .error-border::placeholder {
+            color: #be123c !important;
+        }
+
+        .composer-field {
+            display: flex;
+            height: 100%;
+            flex-direction: column;
+        }
+
+        .composer-field-label {
+            display: flex;
+            min-height: 2.75rem;
+            align-items: flex-end;
+        }
+
+        .composer-field-hint {
+            min-height: 4.5rem;
         }
     </style>
 </head>
@@ -78,38 +100,40 @@
             </div>
 
             <div class="grid md:grid-cols-2 xl:grid-cols-4 gap-4">
-                <div>
-                    <label for="time_limit" class="block text-sm font-medium text-slate-700 mb-2 dark:text-slate-300">Время выполнения</label>
+                <div class="composer-field">
+                    <label for="time_limit" class="composer-field-label text-sm font-medium text-slate-700 mb-2 dark:text-slate-300">Время выполнения</label>
                     <input id="time_limit" type="number" min="1"
                            class="w-full px-4 py-3 rounded-2xl border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
                            placeholder="Минуты">
+                    <p class="composer-field-hint mt-2 text-xs text-transparent select-none">.</p>
                 </div>
 
-                <div>
-                    <label for="variant_count" class="block text-sm font-medium text-slate-700 mb-2 dark:text-slate-300">Количество вариантов</label>
+                <div class="composer-field">
+                    <label for="variant_count" class="composer-field-label text-sm font-medium text-slate-700 mb-2 dark:text-slate-300">Количество вариантов</label>
                     <input id="variant_count" type="number" min="1" max="10"
                            class="w-full px-4 py-3 rounded-2xl border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
                            placeholder="От 1 до 10">
-                    <p class="text-xs text-slate-500 mt-2 dark:text-slate-400">До 10 вариантов. На печати можно будет выдать всем один вариант, распределить поровну или назначить вручную.</p>
+                    <p class="composer-field-hint text-xs text-slate-500 mt-2 dark:text-slate-400">До 10 вариантов. На печати можно будет выдать всем один вариант, распределить поровну или назначить вручную.</p>
                 </div>
 
-                <div>
-                    <label for="test_status" class="block text-sm font-medium text-slate-700 mb-2 dark:text-slate-300">Статус</label>
+                <div class="composer-field">
+                    <label for="test_status" class="composer-field-label text-sm font-medium text-slate-700 mb-2 dark:text-slate-300">Статус</label>
                     <select id="test_status" class="w-full px-4 py-3 rounded-2xl border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500">
                         <option value="active">Активен</option>
                         <option value="draft">Черновик</option>
                         <option value="closed">Закрыт</option>
                     </select>
+                    <p class="composer-field-hint mt-2 text-xs text-transparent select-none">.</p>
                 </div>
 
-                <div>
-                    <label for="delivery_mode" class="block text-sm font-medium text-slate-700 mb-2 dark:text-slate-300">Формат проведения</label>
+                <div class="composer-field">
+                    <label for="delivery_mode" class="composer-field-label text-sm font-medium text-slate-700 mb-2 dark:text-slate-300">Формат проведения</label>
                     <select id="delivery_mode" class="w-full px-4 py-3 rounded-2xl border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500">
                         <option value="blank">Только на бланках</option>
                         <option value="electronic">Только электронно</option>
                         <option value="hybrid">Совмещённый режим</option>
                     </select>
-                    <p class="text-xs text-slate-500 mt-2 dark:text-slate-400">В электронном и совмещённом режиме будет доступен код теста, ссылка для прохождения и запуск на выбранную группу.</p>
+                    <p class="composer-field-hint text-xs text-slate-500 mt-2 dark:text-slate-400">В электронном и совмещённом режиме будет доступен код теста, ссылка для прохождения и запуск на выбранную группу.</p>
                 </div>
             </div>
         </section>

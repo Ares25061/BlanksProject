@@ -27,17 +27,23 @@ class BlankSheetQrCodeService
         return $payload;
     }
 
-    public function normalizePayload(array $payload): ?array
+    public function normalizePayload(mixed $payload): ?array
     {
-        if (!$this->verifyPayload($payload)) {
+        $resolvedPayload = $this->extractPayload($payload);
+
+        if (!is_array($resolvedPayload)) {
+            return null;
+        }
+
+        if (!$this->verifyPayload($resolvedPayload)) {
             return null;
         }
 
         return [
-            'blank_form_id' => (int) Arr::get($payload, 'bid', 0),
-            'page_number' => max(1, (int) Arr::get($payload, 'pg', 1)),
-            'page_count' => max(1, (int) Arr::get($payload, 'pc', 1)),
-            'form_number' => (string) Arr::get($payload, 'fn', ''),
+            'blank_form_id' => (int) Arr::get($resolvedPayload, 'bid', 0),
+            'page_number' => max(1, (int) Arr::get($resolvedPayload, 'pg', 1)),
+            'page_count' => max(1, (int) Arr::get($resolvedPayload, 'pc', 1)),
+            'form_number' => (string) Arr::get($resolvedPayload, 'fn', ''),
         ];
     }
 
@@ -71,6 +77,13 @@ class BlankSheetQrCodeService
         $writer = new SvgWriter();
 
         return $writer->write($qrCode)->getDataUri();
+    }
+
+    public function buildSheetAccessUrl(string $baseUrl, array $payload): string
+    {
+        $separator = str_contains($baseUrl, '?') ? '&' : '?';
+
+        return $baseUrl . $separator . 'sheet=' . $this->encodePayloadToken($payload);
     }
 
     public function encodePayload(array $payload): string
@@ -113,6 +126,71 @@ class BlankSheetQrCodeService
         }
 
         return $key !== '' ? $key : 'blank-sheet-local-secret';
+    }
+
+    protected function extractPayload(mixed $payload): ?array
+    {
+        if (is_array($payload)) {
+            return $payload;
+        }
+
+        $text = trim((string) $payload);
+        if ($text === '') {
+            return null;
+        }
+
+        $decodedJson = json_decode($text, true);
+        if (is_array($decodedJson)) {
+            return $decodedJson;
+        }
+
+        $query = parse_url($text, PHP_URL_QUERY);
+        if (!is_string($query) || $query === '') {
+            return null;
+        }
+
+        parse_str($query, $params);
+
+        foreach (['sheet', 'payload', 'qr'] as $key) {
+            $candidate = trim((string) Arr::get($params, $key, ''));
+            if ($candidate === '') {
+                continue;
+            }
+
+            $decoded = $this->decodePayloadToken($candidate);
+            if ($decoded !== null) {
+                return $decoded;
+            }
+        }
+
+        return null;
+    }
+
+    protected function encodePayloadToken(array $payload): string
+    {
+        $encoded = base64_encode($this->encodePayload($payload));
+
+        return rtrim(strtr($encoded, '+/', '-_'), '=');
+    }
+
+    protected function decodePayloadToken(string $token): ?array
+    {
+        $normalized = trim($token);
+        if ($normalized === '') {
+            return null;
+        }
+
+        $paddingLength = (4 - (strlen($normalized) % 4)) % 4;
+        $base64 = strtr($normalized . str_repeat('=', $paddingLength), '-_', '+/');
+        $decoded = base64_decode($base64, true);
+
+        if ($decoded === false) {
+            return null;
+        }
+
+        $payload = json_decode($decoded, true);
+
+        return is_array($payload) ? $payload : null;
     }
 
     protected function sortRecursive(mixed $value): mixed

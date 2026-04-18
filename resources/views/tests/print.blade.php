@@ -278,40 +278,6 @@
             line-height: 1;
         }
 
-        .electronic-qr-block {
-            position: absolute;
-            left: 14mm;
-            bottom: 16mm;
-            width: 28mm;
-            border: 0.35mm solid #111111;
-            border-radius: 4mm;
-            background: #ffffff;
-            padding: 1.6mm;
-        }
-
-        .electronic-qr-block img {
-            display: block;
-            width: 24mm;
-            height: 24mm;
-            margin: 0 auto;
-            object-fit: contain;
-        }
-
-        .electronic-qr-title {
-            margin: 0 0 1mm;
-            font-size: 2.6mm;
-            font-weight: 700;
-            text-align: center;
-        }
-
-        .electronic-qr-code {
-            margin: 1mm 0 0;
-            font-size: 2.3mm;
-            line-height: 1.2;
-            text-align: center;
-            word-break: break-word;
-        }
-
         @media print {
             body {
                 padding: 0;
@@ -496,14 +462,6 @@
             >
                 {{ $page['footer']['text'] ?? '' }}
             </div>
-
-            @if(!empty($electronicAccessQrDataUri) && ($test->delivery_mode ?? 'blank') === 'hybrid')
-                <aside class="electronic-qr-block">
-                    <p class="electronic-qr-title">Электронный вход</p>
-                    <img src="{{ $electronicAccessQrDataUri }}" alt="QR электронного теста">
-                    <p class="electronic-qr-code">Код: {{ $test->access_code }}</p>
-                </aside>
-            @endif
         </section>
     @endforeach
 @endforeach
