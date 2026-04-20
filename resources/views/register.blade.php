@@ -8,13 +8,11 @@
 @include('layouts.nav')
 
 <main class="relative overflow-hidden">
-    <div class="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_14%_16%,rgba(13,148,136,0.12),transparent_22%),radial-gradient(circle_at_86%_12%,rgba(99,102,241,0.10),transparent_18%),radial-gradient(circle_at_50%_100%,rgba(14,165,233,0.08),transparent_28%)]"></div>
-
     <div class="relative mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8 lg:py-16">
         <div class="grid gap-8 lg:grid-cols-[minmax(0,1.02fr)_460px] lg:items-center">
             <section class="space-y-8 py-4 lg:py-8">
                 <div class="space-y-5">
-                    <div class="inline-flex items-center gap-2 rounded-full border border-indigo-200 bg-white/70 px-4 py-2 text-sm font-medium text-indigo-700 shadow-sm backdrop-blur dark:border-indigo-500/20 dark:bg-white/[0.04] dark:text-indigo-200">
+                    <div class="inline-flex items-center gap-2 rounded-full border border-indigo-200 bg-indigo-50/90 px-4 py-2 text-sm font-medium text-indigo-700 shadow-sm dark:border-indigo-500/20 dark:bg-slate-900/80 dark:text-indigo-200">
                         <span class="h-2.5 w-2.5 rounded-full bg-indigo-500"></span>
                         Регистрация кабинета преподавателя
                     </div>
@@ -31,7 +29,7 @@
 
                 <div class="grid max-w-2xl gap-4">
                     <div class="flex items-start gap-4 border-l border-indigo-600/20 pl-4 dark:border-indigo-400/20">
-                        <div class="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-white/75 text-indigo-700 shadow-sm ring-1 ring-black/5 dark:bg-white/[0.05] dark:text-indigo-200 dark:ring-white/10">
+                        <div class="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-white/90 text-indigo-700 shadow-sm ring-1 ring-black/5 dark:bg-slate-900 dark:text-indigo-200 dark:ring-white/10">
                             <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
                             </svg>
@@ -43,7 +41,7 @@
                     </div>
 
                     <div class="flex items-start gap-4 border-l border-indigo-600/20 pl-4 dark:border-indigo-400/20">
-                        <div class="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-white/75 text-indigo-700 shadow-sm ring-1 ring-black/5 dark:bg-white/[0.05] dark:text-indigo-200 dark:ring-white/10">
+                        <div class="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-white/90 text-indigo-700 shadow-sm ring-1 ring-black/5 dark:bg-slate-900 dark:text-indigo-200 dark:ring-white/10">
                             <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 19h16M4 15h16M4 11h16M4 7h16"/>
                             </svg>
@@ -55,14 +53,14 @@
                     </div>
 
                     <div class="flex items-start gap-4 border-l border-indigo-600/20 pl-4 dark:border-indigo-400/20">
-                        <div class="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-white/75 text-indigo-700 shadow-sm ring-1 ring-black/5 dark:bg-white/[0.05] dark:text-indigo-200 dark:ring-white/10">
+                        <div class="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-white/90 text-indigo-700 shadow-sm ring-1 ring-black/5 dark:bg-slate-900 dark:text-indigo-200 dark:ring-white/10">
                             <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                             </svg>
                         </div>
                         <div>
                             <h2 class="text-base font-semibold text-slate-900 dark:text-slate-100">Готово к реальной работе</h2>
-                            <p class="mt-1 text-sm leading-6 text-slate-600 dark:text-slate-400">Светлая, тёмная и авто-тема подстраиваются под окружение без ручных правок шаблонов.</p>
+                            <p class="mt-1 text-sm leading-6 text-slate-600 dark:text-slate-400">Интерфейс подстраивается под системную тему и остаётся читаемым в разных браузерах.</p>
                         </div>
                     </div>
                 </div>

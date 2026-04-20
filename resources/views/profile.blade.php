@@ -104,7 +104,7 @@
                                 <h1 class="text-3xl font-black tracking-tight">${user.name}</h1>
                                 <p class="mt-2 text-base text-slate-600 dark:text-white/80">${user.email}</p>
                             </div>
-                            <span class="inline-flex rounded-full border border-slate-200 bg-white/80 px-3 py-1 text-sm font-medium text-slate-700 backdrop-blur dark:border-white/10 dark:bg-white/15 dark:text-white">
+                    <span class="inline-flex rounded-full border border-slate-200 bg-white/90 px-3 py-1 text-sm font-medium text-slate-700 dark:border-white/10 dark:bg-slate-900/90 dark:text-white">
                                 ID: ${user.id}
                             </span>
                         </div>

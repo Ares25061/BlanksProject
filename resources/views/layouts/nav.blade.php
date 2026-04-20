@@ -1,14 +1,66 @@
 <style>
+    .proverium-topbar {
+        background: rgba(248, 250, 255, 0.94);
+        border-color: rgba(198, 209, 228, 0.72);
+        box-shadow: 0 18px 40px -34px rgba(30, 41, 59, 0.34);
+    }
+
+    html.dark .proverium-topbar {
+        background: rgba(9, 14, 28, 0.96);
+        border-color: rgba(102, 126, 173, 0.22);
+        box-shadow: 0 22px 54px -34px rgba(0, 0, 0, 0.66);
+    }
+
+    .proverium-nav-link {
+        color: #4b5876;
+    }
+
+    .proverium-nav-link:hover {
+        background: rgba(226, 232, 255, 0.8);
+        color: #1a2550;
+    }
+
     .proverium-nav-link[data-active="true"] {
-        background: rgba(14, 165, 233, 0.12);
-        color: #0369a1;
-        box-shadow: inset 0 0 0 1px rgba(14, 165, 233, 0.18);
+        background: linear-gradient(135deg, rgba(79, 70, 229, 0.14), rgba(96, 165, 250, 0.14));
+        color: #27358d;
+        box-shadow: inset 0 0 0 1px rgba(99, 102, 241, 0.18);
+    }
+
+    html.dark .proverium-nav-link {
+        color: #b6c2e1;
+    }
+
+    html.dark .proverium-nav-link:hover {
+        background: rgba(37, 47, 79, 0.9);
+        color: #eef2ff;
     }
 
     html.dark .proverium-nav-link[data-active="true"] {
-        background: rgba(56, 189, 248, 0.18);
-        color: #e0f2fe;
-        box-shadow: inset 0 0 0 1px rgba(56, 189, 248, 0.22);
+        background: linear-gradient(135deg, rgba(79, 70, 229, 0.28), rgba(59, 130, 246, 0.2));
+        color: #eef2ff;
+        box-shadow: inset 0 0 0 1px rgba(145, 158, 255, 0.22);
+    }
+
+    .proverium-ghost-button {
+        background: rgba(255, 255, 255, 0.68);
+        color: #44506e;
+        box-shadow: inset 0 0 0 1px rgba(198, 209, 228, 0.76);
+    }
+
+    .proverium-ghost-button:hover {
+        background: rgba(238, 242, 255, 0.92);
+        color: #18224b;
+    }
+
+    html.dark .proverium-ghost-button {
+        background: rgba(18, 26, 45, 0.96);
+        color: #d6def5;
+        box-shadow: inset 0 0 0 1px rgba(109, 130, 176, 0.2);
+    }
+
+    html.dark .proverium-ghost-button:hover {
+        background: rgba(30, 40, 66, 0.96);
+        color: #f8faff;
     }
 
     .proverium-profile-button {
@@ -28,26 +80,26 @@
     }
 </style>
 
-<nav class="sticky top-0 z-50 border-b border-black/5 bg-white/82 text-slate-900 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-slate-950/82 dark:text-white">
+<nav class="proverium-topbar sticky top-0 z-50 border-b text-slate-900 dark:text-white">
     <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div class="flex items-center justify-between gap-4 py-3">
-            <div class="flex min-w-0 items-center gap-4">
-                <a href="/" class="flex min-w-0 items-center gap-3 rounded-3xl px-2 py-1.5 transition hover:bg-slate-100/80 dark:hover:bg-slate-900/70">
+        <div class="flex items-center justify-between gap-4 py-2.5">
+            <div class="flex min-w-0 items-center gap-3">
+                <a href="/" class="flex min-w-0 items-center gap-3 rounded-3xl px-2 py-1.5 transition hover:bg-white/70 dark:hover:bg-slate-900/80">
                     <img src="{{ asset('brand/proverium-mark.svg') }}"
                          alt="Логотип Провериум"
-                         class="h-11 w-11 shrink-0 rounded-2xl shadow-halo">
+                         class="h-10 w-10 shrink-0 rounded-2xl shadow-halo">
                     <div class="min-w-0">
-                        <div class="truncate text-lg font-extrabold tracking-tight text-slate-950 dark:text-white">
+                        <div class="truncate text-base font-extrabold tracking-tight text-slate-950 dark:text-white md:text-lg">
                             Провериум
                         </div>
-                        <div class="hidden truncate text-[10px] uppercase tracking-[0.28em] text-slate-500 md:block dark:text-slate-400">
+                        <div class="hidden truncate text-[10px] uppercase tracking-[0.26em] text-slate-500 md:block dark:text-slate-400">
                             Платформа авто проверки работ
                         </div>
                     </div>
                 </a>
 
                 <div class="hidden lg:flex items-center gap-2">
-                    <a href="/take-test" data-nav-match="/take-test" class="proverium-nav-link inline-flex items-center gap-2 rounded-2xl px-3 py-2 text-sm font-medium text-emerald-700 transition hover:bg-emerald-50 hover:text-emerald-900 dark:text-emerald-300 dark:hover:bg-emerald-950/40 dark:hover:text-emerald-100">
+                    <a href="/take-test" data-nav-match="/take-test" class="proverium-nav-link inline-flex items-center gap-2 rounded-2xl px-3 py-2 text-sm font-medium transition">
                         <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-5.197-3.03A1 1 0 0 0 8 9.03v5.94a1 1 0 0 0 1.555.832l5.197-3.03a1 1 0 0 0 0-1.664Z"/>
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/>
@@ -55,14 +107,14 @@
                         <span>Пройти тест</span>
                     </a>
 
-                    <a href="/tests" data-auth-guard="true" data-nav-match="/tests" class="proverium-nav-link inline-flex items-center gap-2 rounded-2xl px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-100 hover:text-slate-950 dark:text-slate-300 dark:hover:bg-slate-900 dark:hover:text-white">
+                    <a href="/tests" data-auth-guard="true" data-nav-match="/tests" class="proverium-nav-link inline-flex items-center gap-2 rounded-2xl px-3 py-2 text-sm font-medium transition">
                         <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2"/>
                         </svg>
                         <span>Тесты</span>
                     </a>
 
-                    <a href="/groups" data-auth-guard="true" data-nav-match="/groups" class="proverium-nav-link inline-flex items-center gap-2 rounded-2xl px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-100 hover:text-slate-950 dark:text-slate-300 dark:hover:bg-slate-900 dark:hover:text-white">
+                    <a href="/groups" data-auth-guard="true" data-nav-match="/groups" class="proverium-nav-link inline-flex items-center gap-2 rounded-2xl px-3 py-2 text-sm font-medium transition">
                         <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5V8H2v12h5m10 0v-4a2 2 0 0 0-2-2H9a2 2 0 0 0-2 2v4m10 0H7m10-9a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm-6 0a2 2 0 1 1-4 0 2 2 0 0 1 4 0z"/>
                         </svg>
@@ -73,7 +125,7 @@
 
             <div class="hidden md:flex items-center gap-2">
                 <div data-guest-buttons class="flex items-center gap-2">
-                    <a href="/user/login" class="rounded-2xl px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-100 hover:text-slate-950 dark:text-slate-300 dark:hover:bg-slate-900 dark:hover:text-white">
+                    <a href="/user/login" class="proverium-ghost-button rounded-2xl px-3.5 py-2 text-sm font-medium transition">
                         Вход
                     </a>
                     <a href="/user/register" class="rounded-2xl bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-800 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-200">
@@ -85,7 +137,7 @@
                     <a href="/user/profile" data-nav-match="/user/profile,/user/edit" class="proverium-profile-button rounded-2xl px-4 py-2 text-sm font-medium transition">
                         Профиль
                     </a>
-                    <button onclick="logout()" class="rounded-2xl bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-800 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-200">
+                    <button onclick="logout()" class="proverium-ghost-button rounded-2xl px-4 py-2 text-sm font-medium transition">
                         Выйти
                     </button>
                 </div>
@@ -93,7 +145,7 @@
         </div>
 
         <div class="flex flex-wrap items-center gap-2 border-t border-slate-200/70 pb-3 pt-3 dark:border-slate-800 lg:hidden">
-            <a href="/take-test" data-nav-match="/take-test" class="proverium-nav-link inline-flex items-center gap-2 rounded-2xl px-3 py-2 text-sm font-medium text-emerald-700 transition hover:bg-emerald-50 hover:text-emerald-900 dark:text-emerald-300 dark:hover:bg-emerald-950/40 dark:hover:text-emerald-100">
+            <a href="/take-test" data-nav-match="/take-test" class="proverium-nav-link inline-flex items-center gap-2 rounded-2xl px-3 py-2 text-sm font-medium transition">
                 <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-5.197-3.03A1 1 0 0 0 8 9.03v5.94a1 1 0 0 0 1.555.832l5.197-3.03a1 1 0 0 0 0-1.664Z"/>
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/>
@@ -101,14 +153,14 @@
                 <span>Пройти тест</span>
             </a>
 
-            <a href="/tests" data-auth-guard="true" data-nav-match="/tests" class="proverium-nav-link inline-flex items-center gap-2 rounded-2xl px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-100 hover:text-slate-950 dark:text-slate-300 dark:hover:bg-slate-900 dark:hover:text-white">
+            <a href="/tests" data-auth-guard="true" data-nav-match="/tests" class="proverium-nav-link inline-flex items-center gap-2 rounded-2xl px-3 py-2 text-sm font-medium transition">
                 <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2"/>
                 </svg>
                 <span>Тесты</span>
             </a>
 
-            <a href="/groups" data-auth-guard="true" data-nav-match="/groups" class="proverium-nav-link inline-flex items-center gap-2 rounded-2xl px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-100 hover:text-slate-950 dark:text-slate-300 dark:hover:bg-slate-900 dark:hover:text-white">
+            <a href="/groups" data-auth-guard="true" data-nav-match="/groups" class="proverium-nav-link inline-flex items-center gap-2 rounded-2xl px-3 py-2 text-sm font-medium transition">
                 <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5V8H2v12h5m10 0v-4a2 2 0 0 0-2-2H9a2 2 0 0 0-2 2v4m10 0H7m10-9a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm-6 0a2 2 0 1 1-4 0 2 2 0 0 1 4 0z"/>
                 </svg>
@@ -117,7 +169,7 @@
 
             <div class="ml-auto flex items-center gap-2">
                 <div data-guest-buttons class="flex items-center gap-2">
-                    <a href="/user/login" class="rounded-2xl px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-100 hover:text-slate-950 dark:text-slate-300 dark:hover:bg-slate-900 dark:hover:text-white">
+                    <a href="/user/login" class="proverium-ghost-button rounded-2xl px-3.5 py-2 text-sm font-medium transition">
                         Вход
                     </a>
                     <a href="/user/register" class="rounded-2xl bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-800 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-200">
@@ -129,7 +181,7 @@
                     <a href="/user/profile" data-nav-match="/user/profile,/user/edit" class="proverium-profile-button rounded-2xl px-4 py-2 text-sm font-medium transition">
                         Профиль
                     </a>
-                    <button onclick="logout()" class="rounded-2xl bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-800 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-200">
+                    <button onclick="logout()" class="proverium-ghost-button rounded-2xl px-4 py-2 text-sm font-medium transition">
                         Выйти
                     </button>
                 </div>

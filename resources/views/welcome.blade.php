@@ -8,13 +8,19 @@
 @include('layouts.nav')
 
 <main class="relative overflow-hidden">
-    <div class="absolute inset-x-0 top-0 -z-10 h-[34rem] bg-[radial-gradient(circle_at_top_left,_rgba(91,99,245,0.22),_transparent_30rem),radial-gradient(circle_at_top_right,_rgba(16,185,129,0.18),_transparent_24rem)]"></div>
+    <div class="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
+        <div class="absolute -left-44 top-8 h-[36rem] w-[46rem] -rotate-[34deg] rounded-[4rem] bg-white/18 dark:bg-indigo-300/[0.04]"></div>
+        <div class="absolute -left-16 bottom-[-10rem] h-[26rem] w-[42rem] -rotate-[34deg] rounded-[4rem] bg-indigo-400/18 shadow-[0_40px_120px_-80px_rgba(79,70,229,0.7)] dark:bg-indigo-500/[0.16]"></div>
+        <div class="absolute left-[24%] bottom-[-3rem] h-[14rem] w-[30rem] -rotate-[34deg] rounded-[3rem] bg-violet-300/16 dark:bg-violet-400/[0.14]"></div>
+        <div class="absolute right-[-8rem] top-[12rem] h-[20rem] w-[26rem] -rotate-[30deg] rounded-[3.5rem] bg-sky-300/10 dark:bg-sky-400/[0.08]"></div>
+        <div class="absolute right-[10%] bottom-[6rem] h-[8rem] w-[18rem] -rotate-[30deg] rounded-[2.5rem] bg-white/10 dark:bg-white/[0.03]"></div>
+    </div>
 
     <section class="max-w-7xl mx-auto px-4 pt-10 pb-8 md:pt-16 md:pb-12">
         <div class="grid gap-8 lg:grid-cols-[1.02fr_0.98fr] lg:items-center">
             <div class="space-y-7">
                 <div class="inline-flex items-center gap-2 rounded-full border border-sky-200 bg-sky-50/90 px-4 py-2 text-sm font-medium text-sky-800 shadow-sm dark:border-indigo-900 dark:bg-slate-900/80 dark:text-indigo-200">
-                    <span class="h-2.5 w-2.5 rounded-full bg-emerald-500"></span>
+                    <span class="h-2.5 w-2.5 rounded-full bg-indigo-500"></span>
                     OCR, бланки, журнал и проверка в одном рабочем контуре
                 </div>
 
@@ -63,11 +69,8 @@
             </div>
 
             <div class="relative">
-                <div class="absolute -left-8 top-10 hidden h-32 w-32 rounded-full bg-indigo-300/35 blur-3xl dark:bg-indigo-700/30 lg:block"></div>
-                <div class="absolute -right-10 bottom-10 hidden h-40 w-40 rounded-full bg-emerald-400/30 blur-3xl dark:bg-emerald-600/20 lg:block"></div>
-
                 <section class="proverium-panel relative rounded-[2rem] border border-white/70 p-6 md:p-8 dark:border-slate-800/80">
-                    <div class="rounded-[1.75rem] bg-[linear-gradient(135deg,_rgba(99,102,241,0.14),_rgba(16,185,129,0.10))] p-5 dark:bg-[linear-gradient(135deg,_rgba(79,70,229,0.18),_rgba(16,185,129,0.12))]">
+                    <div class="rounded-[1.75rem] bg-[linear-gradient(135deg,_rgba(255,255,255,0.78)_0%,_rgba(255,255,255,0.78)_26%,_rgba(99,102,241,0.18)_26%,_rgba(99,102,241,0.18)_60%,_rgba(96,165,250,0.11)_60%,_rgba(96,165,250,0.11)_100%)] p-5 dark:bg-[linear-gradient(135deg,_rgba(255,255,255,0.04)_0%,_rgba(255,255,255,0.04)_18%,_rgba(79,70,229,0.28)_18%,_rgba(79,70,229,0.28)_58%,_rgba(59,130,246,0.16)_58%,_rgba(59,130,246,0.16)_100%)]">
                         <img src="{{ asset('brand/proverium-logo-light.svg') }}"
                              alt="Провериум"
                              class="w-full dark:hidden">
@@ -84,7 +87,7 @@
                                 Один маршрут без скачков между разными сервисами и таблицами.
                             </p>
                         </article>
-                        <article class="rounded-3xl border border-emerald-100 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900/85 dark:shadow-none">
+                        <article class="rounded-3xl border border-sky-100 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900/85 dark:shadow-none">
                             <div class="text-xs font-semibold uppercase tracking-[0.32em] text-slate-400 dark:text-slate-500">Чужой бланк</div>
                             <div class="mt-3 text-lg font-bold text-slate-900 dark:text-white">Проверка по тесту даже без локального ученика</div>
                             <p class="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
@@ -157,7 +160,7 @@
                 </div>
             </section>
 
-            <section class="rounded-[2rem] border border-slate-200 bg-[linear-gradient(145deg,_#f8fbff,_#eef4ff,_#eefbf7)] p-6 text-slate-900 shadow-halo dark:border-slate-800 dark:bg-[linear-gradient(145deg,_#0f172a,_#111c44)] dark:text-white md:p-8">
+            <section class="rounded-[2rem] border border-slate-200 bg-[linear-gradient(145deg,_#f8faff,_#eef3ff,_#f1f5ff)] p-6 text-slate-900 shadow-halo dark:border-slate-800 dark:bg-[linear-gradient(145deg,_#0e162b,_#16234a)] dark:text-white md:p-8">
                 <div class="grid gap-5 md:grid-cols-3">
                     <article class="rounded-3xl border border-slate-200 bg-white/85 p-5 dark:border-white/10 dark:bg-white/5">
                         <div class="text-4xl font-black text-indigo-600 dark:text-indigo-200">01</div>
@@ -191,7 +194,7 @@
     </section>
 
     <section class="max-w-7xl mx-auto px-4 pt-6 pb-14 md:pt-10 md:pb-20">
-        <div class="rounded-[2.2rem] bg-[linear-gradient(135deg,_#1e293b,_#3a46c7,_#16a085)] p-[1px] shadow-halo">
+        <div class="rounded-[2.2rem] bg-[linear-gradient(135deg,_#1e293b,_#3a46c7,_#7c8cff)] p-[1px] shadow-halo">
             <div class="rounded-[2.1rem] bg-white px-6 py-8 dark:bg-slate-950 md:px-10 md:py-10">
                 <div class="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
                     <div class="max-w-3xl">

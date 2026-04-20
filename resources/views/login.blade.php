@@ -8,14 +8,12 @@
 @include('layouts.nav')
 
 <main class="relative overflow-hidden">
-    <div class="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_18%,rgba(13,148,136,0.12),transparent_22%),radial-gradient(circle_at_82%_14%,rgba(59,130,246,0.12),transparent_18%),radial-gradient(circle_at_50%_100%,rgba(14,165,233,0.08),transparent_26%)]"></div>
-
     <div class="relative mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8 lg:py-16">
         <div class="grid gap-8 lg:grid-cols-[minmax(0,1.06fr)_430px] lg:items-center">
             <section class="space-y-8 py-4 lg:py-8">
                 <div class="space-y-5">
-                    <div class="inline-flex items-center gap-2 rounded-full border border-teal-200 bg-white/70 px-4 py-2 text-sm font-medium text-teal-700 shadow-sm backdrop-blur dark:border-teal-500/20 dark:bg-white/[0.04] dark:text-teal-200">
-                        <span class="h-2.5 w-2.5 rounded-full bg-emerald-500"></span>
+                    <div class="inline-flex items-center gap-2 rounded-full border border-sky-200 bg-sky-50/90 px-4 py-2 text-sm font-medium text-sky-700 shadow-sm dark:border-sky-500/20 dark:bg-slate-900/80 dark:text-sky-200">
+                        <span class="h-2.5 w-2.5 rounded-full bg-sky-500"></span>
                         Один кабинет для тестов, бланков и проверки сканов
                     </div>
 
@@ -30,8 +28,8 @@
                 </div>
 
                 <div class="grid max-w-2xl gap-4">
-                    <div class="flex items-start gap-4 border-l border-teal-600/25 pl-4 dark:border-teal-400/25">
-                        <div class="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-white/75 text-teal-700 shadow-sm ring-1 ring-black/5 dark:bg-white/[0.05] dark:text-teal-200 dark:ring-white/10">
+                    <div class="flex items-start gap-4 border-l border-sky-600/25 pl-4 dark:border-sky-400/25">
+                        <div class="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-white/90 text-sky-700 shadow-sm ring-1 ring-black/5 dark:bg-slate-900 dark:text-sky-200 dark:ring-white/10">
                             <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2"/>
                             </svg>
@@ -42,8 +40,8 @@
                         </div>
                     </div>
 
-                    <div class="flex items-start gap-4 border-l border-teal-600/25 pl-4 dark:border-teal-400/25">
-                        <div class="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-white/75 text-teal-700 shadow-sm ring-1 ring-black/5 dark:bg-white/[0.05] dark:text-teal-200 dark:ring-white/10">
+                    <div class="flex items-start gap-4 border-l border-sky-600/25 pl-4 dark:border-sky-400/25">
+                        <div class="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-white/90 text-sky-700 shadow-sm ring-1 ring-black/5 dark:bg-slate-900 dark:text-sky-200 dark:ring-white/10">
                             <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7h18M6 7v11a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7M9 11h.01M12 11h.01M15 11h.01M9 15h.01M12 15h.01M15 15h.01"/>
                             </svg>
@@ -54,8 +52,8 @@
                         </div>
                     </div>
 
-                    <div class="flex items-start gap-4 border-l border-teal-600/25 pl-4 dark:border-teal-400/25">
-                        <div class="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-white/75 text-teal-700 shadow-sm ring-1 ring-black/5 dark:bg-white/[0.05] dark:text-teal-200 dark:ring-white/10">
+                    <div class="flex items-start gap-4 border-l border-sky-600/25 pl-4 dark:border-sky-400/25">
+                        <div class="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-white/90 text-sky-700 shadow-sm ring-1 ring-black/5 dark:bg-slate-900 dark:text-sky-200 dark:ring-white/10">
                             <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5V8H2v12h5m10 0v-4a2 2 0 0 0-2-2H9a2 2 0 0 0-2 2v4m10 0H7"/>
                             </svg>

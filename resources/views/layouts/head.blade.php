@@ -6,10 +6,10 @@
 @endphp
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="color-scheme" content="only light">
+<meta name="color-scheme" content="light dark">
 <title>{{ $documentTitle }}</title>
 <meta name="csrf-token" content="{{ csrf_token() }}">
-<meta name="theme-color" content="#edf3ef">
+<meta name="theme-color" content="#f4f6fb">
 <link rel="icon" type="image/x-icon" href="/favicon.ico?v={{ $faviconVersion }}">
 <link rel="icon" type="image/png" sizes="32x32" href="/favicon.png?v={{ $faviconVersion }}">
 <link rel="shortcut icon" href="/favicon.ico?v={{ $faviconVersion }}">
@@ -27,16 +27,16 @@
             root.classList.toggle('dark', themeValue === 'dark');
             root.dataset.theme = themeValue;
             root.dataset.themeMode = 'system';
-            root.style.colorScheme = themeValue === 'dark' ? 'dark' : 'only light';
-            root.style.backgroundColor = themeValue === 'dark' ? '#0b1115' : '#edf3ef';
-            root.style.color = themeValue === 'dark' ? '#e5eef5' : '#0f172a';
+            root.style.colorScheme = themeValue;
+            root.style.backgroundColor = themeValue === 'dark' ? '#09111f' : '#f4f6fb';
+            root.style.color = themeValue === 'dark' ? '#e6ecff' : '#172033';
 
             if (themeColorMeta) {
-                themeColorMeta.setAttribute('content', themeValue === 'dark' ? '#0b1115' : '#edf3ef');
+                themeColorMeta.setAttribute('content', themeValue === 'dark' ? '#09111f' : '#f4f6fb');
             }
 
             if (colorSchemeMeta) {
-                colorSchemeMeta.setAttribute('content', themeValue === 'dark' ? 'dark' : 'only light');
+                colorSchemeMeta.setAttribute('content', themeValue);
             }
 
             window.dispatchEvent(new CustomEvent('proverium:theme-change', {
@@ -75,10 +75,11 @@
                         800: '#34357d',
                         900: '#21244d',
                     },
-                    mint: {
-                        400: '#36d6a2',
-                        500: '#1cc794',
-                        600: '#10ab7e',
+                    mist: {
+                        100: '#eef2ff',
+                        200: '#dbe4ff',
+                        300: '#c5d3ff',
+                        700: '#394a7a',
                     }
                 },
                 boxShadow: {
@@ -92,15 +93,27 @@
 <style>
     :root {
         --proverium-page-light:
-            radial-gradient(circle at 16% 10%, rgba(13, 148, 136, 0.10), transparent 20rem),
-            radial-gradient(circle at 84% 8%, rgba(59, 130, 246, 0.09), transparent 17rem),
-            radial-gradient(circle at 52% 100%, rgba(14, 165, 233, 0.06), transparent 24rem),
-            linear-gradient(180deg, #edf3ef 0%, #e8f1ed 44%, #eef4f2 100%);
+            linear-gradient(134deg, rgba(255, 255, 255, 0.86) 0 33%, rgba(255, 255, 255, 0) 33% 100%),
+            linear-gradient(141deg, rgba(99, 102, 241, 0) 0 58%, rgba(99, 102, 241, 0.11) 58% 72%, rgba(99, 102, 241, 0) 72% 100%),
+            linear-gradient(318deg, rgba(129, 140, 248, 0.10) 0 18%, rgba(129, 140, 248, 0) 18% 100%),
+            linear-gradient(152deg, rgba(96, 165, 250, 0) 0 74%, rgba(96, 165, 250, 0.09) 74% 86%, rgba(96, 165, 250, 0) 86% 100%),
+            linear-gradient(180deg, #f4f6fb 0%, #eef2fb 54%, #f8f9fd 100%);
         --proverium-page-dark:
-            radial-gradient(circle at 16% 12%, rgba(45, 212, 191, 0.16), transparent 22rem),
-            radial-gradient(circle at 84% 8%, rgba(96, 165, 250, 0.12), transparent 18rem),
-            radial-gradient(circle at 52% 100%, rgba(20, 184, 166, 0.10), transparent 26rem),
-            linear-gradient(180deg, #0d1317 0%, #11181d 40%, #0b1115 100%);
+            linear-gradient(135deg, rgba(34, 43, 74, 0.78) 0 27%, rgba(34, 43, 74, 0) 27% 100%),
+            linear-gradient(141deg, rgba(99, 102, 241, 0) 0 57%, rgba(99, 102, 241, 0.18) 57% 70%, rgba(99, 102, 241, 0) 70% 100%),
+            linear-gradient(145deg, rgba(59, 130, 246, 0) 0 74%, rgba(59, 130, 246, 0.14) 74% 86%, rgba(59, 130, 246, 0) 86% 100%),
+            linear-gradient(318deg, rgba(90, 88, 255, 0.18) 0 15%, rgba(90, 88, 255, 0) 15% 100%),
+            linear-gradient(180deg, #0a0f1d 0%, #0d1324 52%, #090e1b 100%);
+        --proverium-panel-light: rgba(255, 255, 255, 0.9);
+        --proverium-panel-dark: rgba(12, 19, 36, 0.9);
+        --proverium-panel-border-light: rgba(191, 202, 224, 0.76);
+        --proverium-panel-border-dark: rgba(113, 132, 170, 0.18);
+        --proverium-surface-light: rgba(249, 251, 255, 0.96);
+        --proverium-surface-dark: rgba(11, 17, 31, 0.96);
+        --proverium-text-light: #172033;
+        --proverium-text-dark: #e6ecff;
+        --proverium-muted-light: #62708d;
+        --proverium-muted-dark: #9babd1;
     }
 
     html,
@@ -108,40 +121,31 @@
         min-height: 100%;
     }
 
-    html[data-theme="light"],
-    html[data-theme="light"] body,
-    html[data-theme="light"] button,
-    html[data-theme="light"] input,
-    html[data-theme="light"] select,
-    html[data-theme="light"] textarea {
-        color-scheme: only light !important;
-        forced-color-adjust: none;
-    }
-
     html[data-theme="light"] {
-        background-color: #edf3ef;
-        color: #0f172a;
+        background-color: #f4f6fb;
+        color: var(--proverium-text-light);
+        color-scheme: light;
     }
 
     html[data-theme="light"] body {
         background: var(--proverium-page-light);
-        color: #0f172a;
+        color: var(--proverium-text-light);
     }
 
     html.dark {
-        background-color: #0b1115;
-        color: #e5eef5;
+        background-color: #09111f;
+        color: var(--proverium-text-dark);
         color-scheme: dark;
-        forced-color-adjust: none;
     }
 
     html.dark body {
         background: var(--proverium-page-dark);
-        color: #e5eef5;
+        color: var(--proverium-text-dark);
     }
 
     body {
         transition: background-color 0.25s ease, color 0.25s ease;
+        background-attachment: fixed;
     }
 
     input,
@@ -158,40 +162,39 @@
     html[data-theme="light"] input,
     html[data-theme="light"] select,
     html[data-theme="light"] textarea {
-        background-color: rgba(255, 255, 255, 0.88);
-        border-color: #cbd5e1;
-        color: #0f172a;
+        background-color: rgba(255, 255, 255, 0.96);
+        border-color: #c7d2e5;
+        color: var(--proverium-text-light);
     }
 
     html[data-theme="light"] input::placeholder,
     html[data-theme="light"] textarea::placeholder {
-        color: #94a3b8;
+        color: #8a97b1;
     }
 
     .proverium-panel {
-        background: rgba(255, 255, 255, 0.92);
-        border: 1px solid rgba(203, 213, 225, 0.72);
-        box-shadow: 0 26px 64px -42px rgba(15, 23, 42, 0.24);
-        backdrop-filter: blur(22px);
+        background: var(--proverium-panel-light);
+        border: 1px solid var(--proverium-panel-border-light);
+        box-shadow: 0 28px 68px -44px rgba(30, 41, 59, 0.28);
     }
 
     html.dark .proverium-panel {
-        background: rgba(15, 23, 42, 0.78);
-        border-color: rgba(255, 255, 255, 0.08);
-        box-shadow: 0 36px 90px -38px rgba(0, 0, 0, 0.72);
+        background: var(--proverium-panel-dark);
+        border-color: var(--proverium-panel-border-dark);
+        box-shadow: 0 36px 84px -42px rgba(0, 0, 0, 0.64);
     }
 
     html.dark input,
     html.dark select,
     html.dark textarea {
-        background-color: rgba(255, 255, 255, 0.04);
-        border-color: rgba(255, 255, 255, 0.10);
+        background-color: rgba(10, 17, 31, 0.92);
+        border-color: rgba(122, 143, 186, 0.18);
         color: #e2e8f0;
     }
 
     html.dark option,
     html.dark optgroup {
-        background-color: #0f172a;
+        background-color: #0b1326;
         color: #e2e8f0;
     }
 
@@ -235,5 +238,11 @@
 
     html.dark img {
         color-scheme: dark;
+    }
+
+    @supports (-webkit-touch-callout: none) {
+        body {
+            background-attachment: scroll;
+        }
     }
 </style>

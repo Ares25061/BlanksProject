@@ -12,13 +12,13 @@
     <section class="rounded-3xl border border-slate-200 bg-white/90 p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900/90">
         <div class="flex flex-wrap items-start justify-between gap-4">
             <div>
-                <p class="text-sm font-semibold uppercase tracking-[0.3em] text-emerald-700">Электронное тестирование</p>
+                <p class="text-sm font-semibold uppercase tracking-[0.3em] text-indigo-700 dark:text-indigo-300">Электронное тестирование</p>
                 <h1 class="mt-2 text-3xl font-bold">Пройти тест</h1>
                 <p class="mt-2 max-w-2xl text-sm text-slate-600 dark:text-slate-300">
                     Введите код теста или откройте прямую ссылку от преподавателя. Регистрация на сайте не требуется.
                 </p>
             </div>
-            <div id="sessionStatusPill" class="hidden rounded-full border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-medium text-emerald-800 dark:border-emerald-900/40 dark:bg-emerald-950/30 dark:text-emerald-200"></div>
+            <div id="sessionStatusPill" class="hidden rounded-full border border-indigo-200 bg-indigo-50 px-4 py-2 text-sm font-medium text-indigo-800 dark:border-indigo-900/40 dark:bg-indigo-950/30 dark:text-indigo-200"></div>
         </div>
     </section>
 
@@ -27,9 +27,9 @@
                 <div class="flex flex-wrap items-end gap-3">
                     <div class="min-w-[220px] flex-1">
                         <label for="testCodeInput" class="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">Код теста</label>
-                        <input id="testCodeInput" type="text" maxlength="20" class="w-full rounded-2xl border border-slate-300 px-4 py-3 uppercase tracking-[0.28em] focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/30 dark:border-slate-700" placeholder="Например ABCD2345">
+                        <input id="testCodeInput" type="text" maxlength="20" class="w-full rounded-2xl border border-slate-300 px-4 py-3 uppercase tracking-[0.28em] focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 dark:border-slate-700" placeholder="Например ABCD2345">
                     </div>
-                    <button id="resolveCodeButton" type="button" class="rounded-2xl bg-emerald-600 px-5 py-3 font-medium text-white transition hover:bg-emerald-500">
+                    <button id="resolveCodeButton" type="button" class="rounded-2xl bg-indigo-600 px-5 py-3 font-medium text-white transition hover:bg-indigo-500">
                         Открыть тест
                     </button>
                 </div>
@@ -37,34 +37,29 @@
             </section>
 
             <section id="sessionSection" class="hidden rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-                <div class="flex flex-wrap justify-between gap-4">
+                <div>
                     <div>
                         <p id="sessionModeLabel" class="text-sm font-semibold uppercase tracking-[0.28em] text-slate-500 dark:text-slate-400"></p>
                         <h2 id="sessionTitle" class="mt-2 text-3xl font-bold"></h2>
                         <p id="sessionMeta" class="mt-2 text-sm text-slate-600 dark:text-slate-300"></p>
                         <p id="sessionDescription" class="mt-3 max-w-3xl text-sm text-slate-500 dark:text-slate-400"></p>
                     </div>
-                    <div class="rounded-3xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm dark:border-slate-700 dark:bg-slate-950/60">
-                        <div class="text-xs uppercase tracking-[0.25em] text-slate-400 dark:text-slate-500">Требования</div>
-                        <div class="mt-2 font-medium">Полный экран и журнал активности</div>
-                        <div class="mt-1 text-slate-500 dark:text-slate-400">При выходе из окна и разворачивании фиксируются события прохождения.</div>
-                    </div>
                 </div>
 
                 <div id="studentPickerSection" class="mt-6 space-y-4">
-                    <div id="prefilledStudentCard" class="hidden rounded-3xl border border-emerald-200 bg-emerald-50 p-5 dark:border-emerald-900/40 dark:bg-emerald-950/30">
-                        <div class="text-xs uppercase tracking-[0.25em] text-emerald-700 dark:text-emerald-300">Персональная ссылка</div>
+                    <div id="prefilledStudentCard" class="hidden rounded-3xl border border-indigo-200 bg-indigo-50 p-5 dark:border-indigo-900/40 dark:bg-indigo-950/30">
+                        <div class="text-xs uppercase tracking-[0.25em] text-indigo-700 dark:text-indigo-300">Персональная ссылка</div>
                         <div id="prefilledStudentName" class="mt-2 text-xl font-semibold"></div>
                     </div>
 
                     <div id="studentListSection" class="space-y-4">
                         <div>
                             <label for="studentSelect" class="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">Ученик</label>
-                            <select id="studentSelect" class="w-full rounded-2xl border border-slate-300 px-4 py-3 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/30 dark:border-slate-700"></select>
+                            <select id="studentSelect" class="w-full rounded-2xl border border-slate-300 px-4 py-3 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 dark:border-slate-700"></select>
                         </div>
                         <div id="manualNameWrap" class="hidden">
                             <label for="manualFullName" class="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">ФИО вручную</label>
-                            <input id="manualFullName" type="text" class="w-full rounded-2xl border border-slate-300 px-4 py-3 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/30 dark:border-slate-700" placeholder="Введите фамилию, имя и отчество">
+                            <input id="manualFullName" type="text" class="w-full rounded-2xl border border-slate-300 px-4 py-3 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 dark:border-slate-700" placeholder="Введите фамилию, имя и отчество">
                         </div>
                     </div>
 
@@ -82,7 +77,7 @@
                         <p id="attemptIntro" class="mt-2 text-sm text-slate-600 dark:text-slate-300"></p>
                     </div>
                     <div class="flex flex-wrap gap-3">
-                        <button id="fullscreenButton" type="button" class="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 transition hover:border-emerald-300 hover:text-emerald-700 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200">
+                        <button id="fullscreenButton" type="button" class="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 transition hover:border-indigo-300 hover:text-indigo-700 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:hover:border-indigo-500 dark:hover:text-indigo-200">
                             Полный экран
                         </button>
                         <div class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 dark:border-slate-700 dark:bg-slate-950/60">
@@ -339,13 +334,13 @@
                 </div>
                 <div class="mt-4 space-y-3">
                     ${(question.answers || []).map((answer) => `
-                        <label class="flex cursor-pointer items-start gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 transition hover:border-emerald-300 dark:border-slate-700 dark:bg-slate-900">
+                        <label class="flex cursor-pointer items-start gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 transition hover:border-indigo-300 dark:border-slate-700 dark:bg-slate-900 dark:hover:border-indigo-500">
                             <input
                                 type="${question.type === 'multiple' ? 'checkbox' : 'radio'}"
                                 name="question_${question.id}"
                                 value="${answer.id}"
                                 ${(question.selected_answers || []).includes(answer.id) ? 'checked' : ''}
-                                class="mt-1 h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
+                                class="mt-1 h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
                             >
                             <span>${escapeHtml(answer.answer_text)}</span>
                         </label>
@@ -400,7 +395,7 @@
                 }),
             });
             const data = await parseApiResponse(response);
-            finishAttempt(data);
+            await finishAttempt(data);
         } catch (error) {
             attemptSubmissionInProgress = false;
             antiCheatActive = true;
@@ -410,7 +405,7 @@
         }
     }
 
-    function finishAttempt(data) {
+    async function finishAttempt(data) {
         antiCheatActive = false;
         attemptSubmissionInProgress = false;
         currentAttempt = {
@@ -419,10 +414,12 @@
             submitted_at: data.submitted_at || null,
         };
         clearInterval(timerHandle);
+        await exitFullscreenMode();
         document.getElementById('attemptSection').classList.add('hidden');
         document.getElementById('finishSection').classList.remove('hidden');
         document.getElementById('finishStudentName').textContent = data.student_full_name || 'Работа отправлена';
         setPageMessage(`Работа отправлена ${formatDateTime(data.submitted_at)}.`, 'success');
+        window.scrollTo({ top: 0, behavior: 'auto' });
     }
 
     function startTimer() {
@@ -452,16 +449,77 @@
         timerHandle = setInterval(updateTimer, 1000);
     }
 
+    function getFullscreenElement() {
+        return document.fullscreenElement || document.webkitFullscreenElement || null;
+    }
+
+    function isSafariBrowser() {
+        const userAgent = navigator.userAgent || '';
+        return /Safari/i.test(userAgent) && !/Chrome|Chromium|CriOS|Edg|OPR|YaBrowser|FxiOS/i.test(userAgent);
+    }
+
     async function requestFullscreenMode() {
+        const target = document.documentElement;
+        const requestMethod = target.requestFullscreen || target.webkitRequestFullscreen;
+
+        if (typeof requestMethod !== 'function') {
+            logAntiCheatEvent('fullscreen_unavailable', {
+                user_agent: navigator.userAgent,
+            });
+            return false;
+        }
+
         try {
-            if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
-                await document.documentElement.requestFullscreen();
+            if (!getFullscreenElement()) {
+                const result = requestMethod.call(target);
+                if (result && typeof result.then === 'function') {
+                    await result;
+                }
             }
+
+            return Boolean(getFullscreenElement());
         } catch (error) {
             logAntiCheatEvent('fullscreen_denied', {
                 message: error.message,
             });
+            return false;
         }
+    }
+
+    async function exitFullscreenMode() {
+        const exitMethod = document.exitFullscreen || document.webkitExitFullscreen;
+
+        if (typeof exitMethod !== 'function' || !getFullscreenElement()) {
+            return true;
+        }
+
+        try {
+            const result = exitMethod.call(document);
+            if (result && typeof result.then === 'function') {
+                await result;
+            }
+        } catch (error) {
+            console.warn('Не удалось корректно выйти из полноэкранного режима:', error);
+        }
+
+        const waitUntil = Date.now() + 1200;
+        while (getFullscreenElement() && Date.now() < waitUntil) {
+            await new Promise((resolve) => setTimeout(resolve, 50));
+        }
+
+        if (isSafariBrowser()) {
+            const root = document.documentElement;
+
+            // Safari иногда не перерисовывает страницу после webkit fullscreen без принудительного repaint.
+            root.style.webkitBackfaceVisibility = 'hidden';
+            root.style.transform = 'translateZ(0)';
+            void root.offsetHeight;
+            await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+            root.style.transform = '';
+            root.style.webkitBackfaceVisibility = '';
+        }
+
+        return !getFullscreenElement();
     }
 
     async function logAntiCheatEvent(eventType, payload = {}) {
@@ -505,8 +563,10 @@
             logAntiCheatEvent(document.hidden ? 'visibility_hidden' : 'visibility_visible');
         });
 
-        document.addEventListener('fullscreenchange', () => {
-            logAntiCheatEvent(document.fullscreenElement ? 'fullscreen_enter' : 'fullscreen_exit');
+        ['fullscreenchange', 'webkitfullscreenchange'].forEach((eventName) => {
+            document.addEventListener(eventName, () => {
+                logAntiCheatEvent(getFullscreenElement() ? 'fullscreen_enter' : 'fullscreen_exit');
+            });
         });
 
         window.addEventListener('resize', () => {
