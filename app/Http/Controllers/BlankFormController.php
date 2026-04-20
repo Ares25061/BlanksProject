@@ -11,6 +11,7 @@ use App\Services\TestVariantService;
 use Illuminate\Http\Request;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 
 class BlankFormController extends Controller
 {
@@ -41,6 +42,8 @@ class BlankFormController extends Controller
         if ((string) $test->test_status === 'closed') {
             abort(422, 'Тест закрыт. Для него больше нельзя выпускать новые бланки.');
         }
+
+        $this->ensureBlankGenerationAvailable($test);
 
         $validated = $request->validate([
             'count' => 'nullable|integer|min:1|max:100',
@@ -171,6 +174,8 @@ class BlankFormController extends Controller
     {
         $this->authorize('update', $test);
 
+        $this->ensureBlankScanningAvailable($test);
+
         $validated = $request->validate([
             'scans' => 'required|array|min:1',
             'scans.*' => 'required|file|mimes:jpg,jpeg,png,webp,pdf|max:15360',
@@ -277,6 +282,37 @@ class BlankFormController extends Controller
         }
 
         return $blankForm->scan_path;
+    }
+
+    protected function ensureBlankGenerationAvailable(Test $test): void
+    {
+        if ($this->normalizeDeliveryMode($test->delivery_mode) !== 'electronic') {
+            return;
+        }
+
+        throw ValidationException::withMessages([
+            'delivery_mode' => 'Для этого теста сейчас включён только электронный режим. Переключите формат теста на бланки или совмещённый, чтобы выпускать бланки.',
+        ]);
+    }
+
+    protected function ensureBlankScanningAvailable(Test $test): void
+    {
+        if ($this->normalizeDeliveryMode($test->delivery_mode) !== 'electronic') {
+            return;
+        }
+
+        throw ValidationException::withMessages([
+            'delivery_mode' => 'Для этого теста сейчас включён только электронный режим. Сканирование бланков доступно только в режиме бланков или совмещённом.',
+        ]);
+    }
+
+    protected function normalizeDeliveryMode(?string $mode): string
+    {
+        $normalized = trim((string) $mode);
+
+        return in_array($normalized, ['blank', 'electronic', 'hybrid'], true)
+            ? $normalized
+            : 'blank';
     }
 
     public function index(Request $request)

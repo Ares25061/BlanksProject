@@ -387,6 +387,97 @@
         element.classList.toggle('cursor-not-allowed', disabled);
     }
 
+    function resolveScanSupportState(options = {}) {
+        const variantSummaries = options.variantSummaries || getVariantSummaries();
+        const hasTooManyAnswers = options.hasTooManyAnswers ?? (currentTest.questions || []).some((question) => (question.answers || []).length > 5);
+        const answerSheetPageCount = options.answerSheetPageCount ?? Math.max(
+            1,
+            ...variantSummaries.map((summary) => Math.max(1, Math.ceil(summary.questionCount / SCAN_ROWS_PER_PAGE)))
+        );
+
+        if (currentTest?.delivery_mode === 'electronic') {
+            return {
+                disabled: true,
+                disabledTitle: 'Для этого теста сейчас включён только электронный режим.',
+                noteVisible: true,
+                noteText: 'Для этого теста сейчас включён только электронный режим. Чтобы сканировать бланки, переключите формат на бланки или совмещённый.',
+            };
+        }
+
+        if (hasTooManyAnswers) {
+            return {
+                disabled: true,
+                disabledTitle: 'В одном или нескольких вопросах больше 4 вариантов ответа.',
+                noteVisible: true,
+                noteText: 'В одном или нескольких вопросах больше 4 вариантов ответа. Текущий формат автосканирования поддерживает максимум 4.',
+            };
+        }
+
+        if (answerSheetPageCount > 1) {
+            return {
+                disabled: false,
+                disabledTitle: '',
+                noteVisible: true,
+                noteText: `Для самого длинного варианта этого теста понадобится ${answerSheetPageCount} листа(ов) ответов на каждого ученика. При проверке загружайте все листы ученика одной пачкой.`,
+            };
+        }
+
+        return {
+            disabled: false,
+            disabledTitle: '',
+            noteVisible: false,
+            noteText: '',
+        };
+    }
+
+    function syncScanControlsState(options = {}) {
+        const scanSupportNote = document.getElementById('scanSupportNote');
+        const scanButton = document.getElementById('scanButton');
+        const scanFilesInput = document.getElementById('scanFiles');
+
+        if (!scanSupportNote || !scanButton || !scanFilesInput) {
+            return resolveScanSupportState(options);
+        }
+
+        const state = resolveScanSupportState(options);
+
+        setControlDisabledState(scanButton, state.disabled, state.disabledTitle);
+        scanFilesInput.disabled = state.disabled;
+        scanFilesInput.title = state.disabled ? state.disabledTitle : '';
+        scanFilesInput.classList.toggle('opacity-50', state.disabled);
+        scanFilesInput.classList.toggle('cursor-not-allowed', state.disabled);
+
+        scanSupportNote.textContent = state.noteText;
+        scanSupportNote.classList.toggle('hidden', !state.noteVisible);
+
+        return state;
+    }
+
+    async function updateTestDeliveryMode(deliveryMode) {
+        const response = await apiFetch(`/api/tests/${testId}/delivery-mode`, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                delivery_mode: deliveryMode,
+            }),
+        });
+
+        if (!response.ok) {
+            const error = await response.json().catch(() => ({}));
+            const message = error.errors ? Object.values(error.errors).flat().join(', ') : (error.message || 'Не удалось изменить формат теста.');
+            throw new Error(message);
+        }
+
+        const payload = await response.json();
+        currentTest = payload.data || currentTest;
+        renderTest();
+        await loadElectronicDashboard();
+
+        return currentTest;
+    }
+
     function syncTestAvailabilityUi() {
         const isClosed = isCurrentTestClosed();
         const closedElectronicTitle = 'Тест закрыт. Новые электронные прохождения больше недоступны.';
@@ -491,27 +582,15 @@
         `).join('');
 
         const hasTooManyAnswers = (currentTest.questions || []).some((question) => (question.answers || []).length > 5);
-        const scanSupportNote = document.getElementById('scanSupportNote');
         const answerSheetPageCount = Math.max(
             1,
             ...variantSummaries.map((summary) => Math.max(1, Math.ceil(summary.questionCount / SCAN_ROWS_PER_PAGE)))
         );
-        const scanButton = document.getElementById('scanButton');
-
-        scanButton.disabled = false;
-        scanButton.classList.remove('opacity-50', 'cursor-not-allowed');
-
-        if (hasTooManyAnswers) {
-            scanSupportNote.classList.remove('hidden');
-            scanSupportNote.textContent = 'В одном или нескольких вопросах больше 4 вариантов ответа. Текущий формат автосканирования поддерживает максимум 4.';
-            scanButton.disabled = true;
-            scanButton.classList.add('opacity-50', 'cursor-not-allowed');
-        } else if (answerSheetPageCount > 1) {
-            scanSupportNote.classList.remove('hidden');
-            scanSupportNote.textContent = `Для самого длинного варианта этого теста понадобится ${answerSheetPageCount} листа(ов) ответов на каждого ученика. При проверке загружайте все листы ученика одной пачкой.`;
-        } else {
-            scanSupportNote.classList.add('hidden');
-        }
+        syncScanControlsState({
+            variantSummaries,
+            hasTooManyAnswers,
+            answerSheetPageCount,
+        });
 
         if (normalizeVariantCount() <= 1) {
             blankVariantDistributionMode = 'same';
@@ -988,26 +1067,7 @@
             }
 
             try {
-                const response = await apiFetch(`/api/tests/${testId}/delivery-mode`, {
-                    method: 'PATCH',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        delivery_mode: 'hybrid',
-                    }),
-                });
-
-                if (!response.ok) {
-                    const error = await response.json().catch(() => ({}));
-                    const message = error.errors ? Object.values(error.errors).flat().join(', ') : (error.message || 'Не удалось изменить формат теста.');
-                    throw new Error(message);
-                }
-
-                const payload = await response.json();
-                currentTest = payload.data || currentTest;
-                renderTest();
-                await loadElectronicDashboard();
+                await updateTestDeliveryMode('hybrid');
             } catch (error) {
                 alert(error.message || 'Не удалось переключить формат теста.');
                 return;
@@ -1519,6 +1579,20 @@
             return;
         }
 
+        if (currentTest?.delivery_mode === 'electronic') {
+            const shouldEnableHybrid = confirm('Этот тест сейчас работает только в электронном режиме. Переключить формат на совмещённый и продолжить выпуск бланков?');
+            if (!shouldEnableHybrid) {
+                return;
+            }
+
+            try {
+                await updateTestDeliveryMode('hybrid');
+            } catch (error) {
+                alert(error.message || 'Не удалось переключить формат теста.');
+                return;
+            }
+        }
+
         const groupId = document.getElementById('groupSelect').value;
         if (!groupId) {
             alert('Выберите группу');
@@ -1698,6 +1772,13 @@
     async function uploadScans() {
         const input = document.getElementById('scanFiles');
         const scanButton = document.getElementById('scanButton');
+        const scanSupportState = resolveScanSupportState();
+
+        if (scanSupportState.disabled) {
+            alert(scanSupportState.noteText || 'Сканирование бланков сейчас недоступно.');
+            return;
+        }
+
         if (!input.files.length) {
             alert('Выберите хотя бы один файл');
             return;
@@ -1747,9 +1828,9 @@
         } catch (error) {
             alert(error.message || 'Ошибка загрузки сканов');
         } finally {
-            scanButton.disabled = false;
             scanButton.classList.remove('opacity-70', 'cursor-wait');
             scanButton.textContent = 'Обработать сканы';
+            syncScanControlsState();
         }
     }
 

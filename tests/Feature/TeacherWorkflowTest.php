@@ -91,6 +91,45 @@ class TeacherWorkflowTest extends TestCase
             ->assertForbidden();
     }
 
+    public function test_api_rejects_blank_generation_for_electronic_only_test(): void
+    {
+        $teacher = User::factory()->create();
+
+        $test = Test::create([
+            'title' => 'Только электронно',
+            'created_by' => $teacher->id,
+            'is_active' => true,
+            'delivery_mode' => 'electronic',
+        ]);
+
+        $response = $this->actingAs($teacher, 'api')->postJson('/api/tests/' . $test->id . '/generate-blank-forms', [
+            'count' => 1,
+        ]);
+
+        $response->assertStatus(422);
+        $response->assertJsonValidationErrors(['delivery_mode']);
+        $response->assertJsonPath('errors.delivery_mode.0', 'Для этого теста сейчас включён только электронный режим. Переключите формат теста на бланки или совмещённый, чтобы выпускать бланки.');
+        $this->assertDatabaseCount('blank_forms', 0);
+    }
+
+    public function test_api_rejects_blank_scan_upload_for_electronic_only_test(): void
+    {
+        $teacher = User::factory()->create();
+
+        $test = Test::create([
+            'title' => 'Только электронно',
+            'created_by' => $teacher->id,
+            'is_active' => true,
+            'delivery_mode' => 'electronic',
+        ]);
+
+        $response = $this->actingAs($teacher, 'api')->postJson('/api/tests/' . $test->id . '/scan-blank-forms');
+
+        $response->assertStatus(422);
+        $response->assertJsonValidationErrors(['delivery_mode']);
+        $response->assertJsonPath('errors.delivery_mode.0', 'Для этого теста сейчас включён только электронный режим. Сканирование бланков доступно только в режиме бланков или совмещённом.');
+    }
+
     public function test_grading_service_uses_custom_grade_criteria(): void
     {
         $teacher = User::factory()->create();
