@@ -80,6 +80,8 @@ python -m venv .venv
 ```
 
 В Railway Python-окружение поднимается автоматически через `railpack.json`.
+Переменную `PADDLE_OCR_PYTHON` лучше оставить пустой, чтобы приложение брало проектный `.venv/bin/python`.
+Если указывать путь вручную, для Linux/Railway используйте `.venv/bin/python`, а не общий `python`.
 
 ## Импорт и экспорт тестов
 

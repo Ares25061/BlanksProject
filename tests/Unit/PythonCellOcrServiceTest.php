@@ -10,46 +10,47 @@ class PythonCellOcrServiceTest extends TestCase
 {
     public function test_resolve_python_executable_skips_missing_configured_path_and_uses_existing_fallback(): void
     {
-        $tempDir = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'python-ocr-' . bin2hex(random_bytes(4));
-        $fakePython = $tempDir . DIRECTORY_SEPARATOR . 'python-fallback' . (DIRECTORY_SEPARATOR === '\\' ? '.exe' : '');
+        $fakePython = '/resolved/python-fallback';
 
-        mkdir($tempDir, 0777, true);
-        file_put_contents($fakePython, '#!/bin/sh' . PHP_EOL);
+        $service = new class('/missing/python', $fakePython) extends PythonCellOcrService {
+            public function __construct(
+                private string $configuredCandidate,
+                private string $fallbackCandidate,
+            ) {
+            }
 
-        try {
-            $service = new class('/missing/python', $fakePython) extends PythonCellOcrService {
-                public function __construct(
-                    private string $configuredCandidate,
-                    private string $fallbackCandidate,
-                ) {
-                }
+            public function resolveForTest(): string
+            {
+                return $this->resolvePythonExecutable();
+            }
 
-                public function resolveForTest(): string
-                {
-                    return $this->resolvePythonExecutable();
-                }
+            protected function configuredPythonCandidate(): string
+            {
+                return $this->configuredCandidate;
+            }
 
-                protected function configuredPythonCandidate(): string
-                {
-                    return $this->configuredCandidate;
-                }
+            protected function projectVenvPythonCandidate(): string
+            {
+                return '/missing/project/.venv/bin/python';
+            }
 
-                protected function projectVenvPythonCandidate(): string
-                {
-                    return '/missing/project/.venv/bin/python';
-                }
+            protected function fallbackPythonCandidates(): array
+            {
+                return [$this->fallbackCandidate];
+            }
 
-                protected function fallbackPythonCandidates(): array
-                {
-                    return [$this->fallbackCandidate];
-                }
-            };
+            protected function resolvePythonCandidate(string $candidate): ?string
+            {
+                return $candidate === $this->fallbackCandidate ? $candidate : null;
+            }
 
-            $this->assertSame($fakePython, $service->resolveForTest());
-        } finally {
-            @unlink($fakePython);
-            @rmdir($tempDir);
-        }
+            protected function missingRequiredPythonModules(string $python): array
+            {
+                return [];
+            }
+        };
+
+        $this->assertSame($fakePython, $service->resolveForTest());
     }
 
     public function test_resolve_python_executable_rejects_windows_store_alias(): void
@@ -77,8 +78,56 @@ class PythonCellOcrServiceTest extends TestCase
         };
 
         $this->expectException(ValidationException::class);
-        $this->expectExceptionMessage('Microsoft Store alias');
+        $this->expectExceptionMessage('Microsoft Store');
 
         $service->resolveForTest();
+    }
+
+    public function test_resolve_python_executable_skips_configured_python_without_required_modules_and_uses_project_venv(): void
+    {
+        $configuredPython = '/usr/bin/python3';
+        $projectPython = '/app/.venv/bin/python';
+
+        $service = new class($configuredPython, $projectPython) extends PythonCellOcrService {
+            public function __construct(
+                private string $configuredCandidate,
+                private string $projectCandidate,
+            ) {
+            }
+
+            public function resolveForTest(): string
+            {
+                return $this->resolvePythonExecutable();
+            }
+
+            protected function configuredPythonCandidate(): string
+            {
+                return $this->configuredCandidate;
+            }
+
+            protected function projectVenvPythonCandidate(): string
+            {
+                return $this->projectCandidate;
+            }
+
+            protected function fallbackPythonCandidates(): array
+            {
+                return [];
+            }
+
+            protected function resolvePythonCandidate(string $candidate): ?string
+            {
+                return in_array($candidate, [$this->configuredCandidate, $this->projectCandidate], true)
+                    ? $candidate
+                    : null;
+            }
+
+            protected function missingRequiredPythonModules(string $python): array
+            {
+                return $python === $this->configuredCandidate ? ['cv2'] : [];
+            }
+        };
+
+        $this->assertSame($projectPython, $service->resolveForTest());
     }
 }

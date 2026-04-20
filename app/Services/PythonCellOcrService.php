@@ -221,13 +221,43 @@ class PythonCellOcrService
             $projectVenv !== '' ? [$projectVenv] : [],
             $this->fallbackPythonCandidates(),
         ))));
+        $moduleFailures = [];
 
         foreach ($candidates as $candidate) {
             $resolved = $this->resolvePythonCandidate($candidate);
 
-            if ($resolved !== null) {
+            if ($resolved === null) {
+                continue;
+            }
+
+            $missingModules = $this->missingRequiredPythonModules($resolved);
+
+            if ($missingModules === []) {
                 return $resolved;
             }
+
+            $moduleFailures[$resolved] = $missingModules;
+
+            Log::warning('Python OCR candidate skipped because required modules are unavailable.', [
+                'python' => $resolved,
+                'missing_modules' => $missingModules,
+            ]);
+        }
+
+        if ($moduleFailures !== []) {
+            $details = [];
+
+            foreach ($moduleFailures as $python => $missingModules) {
+                $details[] = $python . ' (missing: ' . implode(', ', $missingModules) . ')';
+            }
+
+            throw ValidationException::withMessages([
+                'scan' => Utf8Normalizer::string(
+                    'Интерпретатор Python для OCR найден, но в нём отсутствуют обязательные модули. '
+                    . 'Проверьте PADDLE_OCR_PYTHON или пересоберите project `.venv`. Проверены: '
+                    . implode('; ', $details)
+                ),
+            ]);
         }
 
         throw ValidationException::withMessages([
@@ -274,6 +304,78 @@ class PythonCellOcrService
         }
 
         return (new ExecutableFinder())->find($candidate) ?: null;
+    }
+
+    protected function missingRequiredPythonModules(string $python): array
+    {
+        $modules = $this->requiredPythonModules();
+
+        if ($modules === []) {
+            return [];
+        }
+
+        $script = <<<'PY'
+import importlib.util
+import json
+import sys
+
+modules = sys.argv[1:]
+missing = [name for name in modules if importlib.util.find_spec(name) is None]
+print(json.dumps({"missing": missing}))
+PY;
+
+        $process = new Process(
+            array_merge([$python, '-c', $script], $modules),
+            base_path(),
+            array_merge($_ENV, [
+                'PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK' => 'True',
+            ]),
+            null,
+            10
+        );
+
+        try {
+            $process->run();
+        } catch (\Throwable $exception) {
+            Log::warning('Python OCR module check failed to start.', [
+                'python' => $python,
+                'required_modules' => $modules,
+                'exception' => Utf8Normalizer::string($exception->getMessage()),
+            ]);
+
+            return $modules;
+        }
+
+        if (!$process->isSuccessful()) {
+            Log::warning('Python OCR module check exited unsuccessfully.', [
+                'python' => $python,
+                'required_modules' => $modules,
+                'exit_code' => $process->getExitCode(),
+                'stderr' => Utf8Normalizer::string(trim($process->getErrorOutput())),
+                'stdout' => Utf8Normalizer::string(trim($process->getOutput())),
+            ]);
+
+            return $modules;
+        }
+
+        $payload = json_decode(trim($process->getOutput()), true);
+
+        if (!is_array($payload) || !isset($payload['missing']) || !is_array($payload['missing'])) {
+            Log::warning('Python OCR module check returned invalid JSON.', [
+                'python' => $python,
+                'required_modules' => $modules,
+                'stdout' => Utf8Normalizer::string(trim($process->getOutput())),
+            ]);
+
+            return $modules;
+        }
+
+        return array_values(array_map('strval', $payload['missing']));
+    }
+
+    protected function requiredPythonModules(): array
+    {
+        return ['cv2', 'numpy', 'pypdfium2', 'zxingcpp'];
     }
 
     protected function looksLikePath(string $candidate): bool
