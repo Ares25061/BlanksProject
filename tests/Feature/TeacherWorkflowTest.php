@@ -4,12 +4,15 @@ namespace Tests\Feature;
 
 use App\Models\Answer;
 use App\Models\BlankForm;
+use App\Models\ElectronicTestAttempt;
+use App\Models\ElectronicTestSession;
 use App\Models\GroupSubject;
 use App\Models\Question;
 use App\Models\StudentGrade;
 use App\Models\Test;
 use App\Models\User;
 use App\Services\TestService;
+use App\Services\BlankSheetQrCodeService;
 use App\Services\BlankFormService;
 use App\Services\GradingService;
 use App\Services\StudentGradeService;
@@ -128,6 +131,150 @@ class TeacherWorkflowTest extends TestCase
         $response->assertStatus(422);
         $response->assertJsonValidationErrors(['delivery_mode']);
         $response->assertJsonPath('errors.delivery_mode.0', 'Для этого теста сейчас включён только электронный режим. Сканирование бланков доступно только в режиме бланков или совмещённом.');
+    }
+
+    public function test_api_switch_to_blank_closes_active_electronic_session(): void
+    {
+        $teacher = User::factory()->create();
+
+        $test = Test::create([
+            'title' => 'Смена формата',
+            'created_by' => $teacher->id,
+            'is_active' => true,
+            'delivery_mode' => 'hybrid',
+            'access_code' => 'HYBRID01',
+        ]);
+
+        $session = ElectronicTestSession::create([
+            'test_id' => $test->id,
+            'created_by' => $teacher->id,
+            'access_token' => bin2hex(random_bytes(16)),
+            'is_active' => true,
+            'settings' => [],
+            'started_at' => now(),
+        ]);
+
+        $attempt = ElectronicTestAttempt::create([
+            'electronic_test_session_id' => $session->id,
+            'test_id' => $test->id,
+            'variant_number' => 1,
+            'access_token' => bin2hex(random_bytes(16)),
+            'access_type' => 'manual_name',
+            'student_full_name' => 'Тестовый Ученик',
+            'is_manual_student' => true,
+            'status' => 'in_progress',
+            'started_at' => now(),
+        ]);
+
+        $response = $this->actingAs($teacher, 'api')->patchJson('/api/tests/' . $test->id . '/delivery-mode', [
+            'delivery_mode' => 'blank',
+        ]);
+
+        $response->assertOk();
+        $response->assertJsonPath('data.delivery_mode', 'blank');
+
+        $session->refresh();
+
+        $this->assertFalse($session->is_active);
+        $this->assertNotNull($session->ended_at);
+
+        $this->getJson('/api/public/electronic-sessions/' . $session->access_token)
+            ->assertStatus(422)
+            ->assertJsonPath('errors.session.0', 'Для этого теста больше недоступно электронное прохождение.');
+
+        $this->getJson('/api/public/electronic-attempts/' . $attempt->access_token)
+            ->assertStatus(422)
+            ->assertJsonPath('errors.attempt.0', 'Для этого теста больше недоступно электронное прохождение.');
+    }
+
+    public function test_test_service_update_to_blank_closes_active_electronic_session(): void
+    {
+        $teacher = User::factory()->create();
+
+        $test = Test::create([
+            'title' => 'Редактирование формата',
+            'created_by' => $teacher->id,
+            'is_active' => true,
+            'delivery_mode' => 'electronic',
+            'access_code' => 'ELEC0001',
+        ]);
+
+        $session = ElectronicTestSession::create([
+            'test_id' => $test->id,
+            'created_by' => $teacher->id,
+            'access_token' => bin2hex(random_bytes(16)),
+            'is_active' => true,
+            'settings' => [],
+            'started_at' => now(),
+        ]);
+
+        $updatedTest = app(TestService::class)->updateTest($test, [
+            'title' => 'Редактирование формата',
+            'delivery_mode' => 'blank',
+        ]);
+
+        $this->assertSame('blank', $updatedTest->delivery_mode);
+
+        $session->refresh();
+
+        $this->assertFalse($session->is_active);
+        $this->assertNotNull($session->ended_at);
+    }
+
+    public function test_hybrid_print_keeps_sheet_qr_short_for_scanning(): void
+    {
+        $teacher = User::factory()->create();
+        $this->actingAs($teacher);
+
+        $test = Test::create([
+            'title' => 'Совмещённый тест',
+            'created_by' => $teacher->id,
+            'is_active' => true,
+            'delivery_mode' => 'hybrid',
+            'access_code' => 'MIXED001',
+        ]);
+
+        $question = Question::create([
+            'test_id' => $test->id,
+            'question_text' => 'Вопрос для печати',
+            'type' => 'single',
+            'points' => 1,
+            'order' => 0,
+        ]);
+
+        Answer::create([
+            'question_id' => $question->id,
+            'answer_text' => 'Верный',
+            'is_correct' => true,
+            'order' => 0,
+        ]);
+
+        Answer::create([
+            'question_id' => $question->id,
+            'answer_text' => 'Неверный',
+            'is_correct' => false,
+            'order' => 1,
+        ]);
+
+        $response = $this->get('/tests/' . $test->id . '/print');
+
+        $response->assertOk();
+        $response->assertViewHas('sheetPagesByBlankForm');
+        $response->assertViewHas('electronicAccessUrl', url('/take-test?code=' . urlencode('MIXED001')));
+
+        $sheetPagesByBlankForm = $response->viewData('sheetPagesByBlankForm');
+        $firstPreviewPage = $sheetPagesByBlankForm[0][0] ?? null;
+
+        $this->assertNotNull($firstPreviewPage);
+        $this->assertIsArray($firstPreviewPage['qr_payload'] ?? null);
+
+        $qrCodeService = app(BlankSheetQrCodeService::class);
+        $expectedQrDataUri = $qrCodeService->renderTextDataUri(
+            $qrCodeService->encodePayload((array) $firstPreviewPage['qr_payload']),
+            360
+        );
+
+        $this->assertSame($expectedQrDataUri, $firstPreviewPage['qr_data_uri'] ?? null);
     }
 
     public function test_grading_service_uses_custom_grade_criteria(): void

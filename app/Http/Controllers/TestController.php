@@ -276,19 +276,18 @@ class TestController extends Controller
             $electronicAccessUrl = url('/take-test?code=' . urlencode((string) $loadedTest->access_code));
         }
 
-        $sheetPagesByBlankForm = $blankForms->mapWithKeys(function (BlankForm $blankForm) use ($electronicAccessUrl) {
+        $sheetPagesByBlankForm = $blankForms->mapWithKeys(function (BlankForm $blankForm) {
             $pages = (int) $blankForm->id > 0
                 ? $this->blankSheetManifestService->ensurePersisted($blankForm->fresh('test.questions.answers'))
                 : $this->blankSheetManifestService->buildPreview($blankForm->loadMissing('test.questions.answers'));
 
             $pages = collect($pages)
-                ->map(function (array $page) use ($electronicAccessUrl) {
+                ->map(function (array $page) {
                     $qrPayload = (array) ($page['qr_payload'] ?? []);
-                    $qrText = $electronicAccessUrl
-                        ? $this->blankSheetQrCodeService->buildSheetAccessUrl($electronicAccessUrl, $qrPayload)
-                        : $this->blankSheetQrCodeService->encodePayload($qrPayload);
-
-                    $page['qr_data_uri'] = $this->blankSheetQrCodeService->renderTextDataUri($qrText, 360);
+                    $page['qr_data_uri'] = $this->blankSheetQrCodeService->renderTextDataUri(
+                        $this->blankSheetQrCodeService->encodePayload($qrPayload),
+                        360
+                    );
 
                     return $page;
                 })

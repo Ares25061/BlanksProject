@@ -79,6 +79,10 @@ class TestService
                 'access_code' => $test->access_code ?: $this->generateUniqueAccessCode(),
             ]);
 
+            if ($deliveryMode === 'blank') {
+                $this->closeActiveElectronicSessions($test);
+            }
+
             // Обновляем вопросы, если они переданы
             if (isset($data['questions'])) {
                 $this->updateTestQuestions($test, $data['questions'], $nextVariantCount);
@@ -217,12 +221,7 @@ class TestService
                 'is_active' => false,
             ]);
 
-            $test->electronicSessions()
-                ->where('is_active', true)
-                ->update([
-                    'is_active' => false,
-                    'ended_at' => now(),
-                ]);
+            $this->closeActiveElectronicSessions($test);
         });
 
         return $test->fresh('questions.answers');
@@ -232,10 +231,16 @@ class TestService
     {
         $normalizedDeliveryMode = $this->normalizeDeliveryMode($deliveryMode);
 
-        $test->update([
-            'delivery_mode' => $normalizedDeliveryMode,
-            'access_code' => $test->access_code ?: $this->generateUniqueAccessCode(),
-        ]);
+        DB::transaction(function () use ($test, $normalizedDeliveryMode) {
+            $test->update([
+                'delivery_mode' => $normalizedDeliveryMode,
+                'access_code' => $test->access_code ?: $this->generateUniqueAccessCode(),
+            ]);
+
+            if ($normalizedDeliveryMode === 'blank') {
+                $this->closeActiveElectronicSessions($test);
+            }
+        });
 
         return $test->fresh('questions.answers');
     }
@@ -419,6 +424,16 @@ class TestService
     protected function isActiveForStatus(string $status): bool
     {
         return $status === 'active';
+    }
+
+    protected function closeActiveElectronicSessions(Test $test): void
+    {
+        $test->electronicSessions()
+            ->where('is_active', true)
+            ->update([
+                'is_active' => false,
+                'ended_at' => now(),
+            ]);
     }
 
     protected function generateUniqueAccessCode(): string

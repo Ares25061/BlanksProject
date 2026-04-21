@@ -219,11 +219,7 @@ class ElectronicTestService
             ]);
         }
 
-        if ((string) $session->test?->test_status === 'closed') {
-            throw ValidationException::withMessages([
-                'session' => 'Этот тест уже закрыт. Прохождение недоступно.',
-            ]);
-        }
+        $this->ensurePublicSessionIsAvailable($session);
 
         return $session;
     }
@@ -241,11 +237,7 @@ class ElectronicTestService
             ]);
         }
 
-        if ((string) $member->session?->test?->test_status === 'closed') {
-            throw ValidationException::withMessages([
-                'session' => 'Этот тест уже закрыт. Прохождение недоступно.',
-            ]);
-        }
+        $this->ensurePublicSessionIsAvailable($member->session);
 
         return $member;
     }
@@ -367,12 +359,15 @@ class ElectronicTestService
             ]);
         }
 
+        $this->ensurePublicAttemptIsAvailable($attempt);
+
         return $attempt;
     }
 
     public function buildAttemptPayload(ElectronicTestAttempt $attempt, bool $resumed = false): array
     {
         $attempt->loadMissing(['test.questions.answers', 'answers', 'session.studentGroup', 'groupStudent']);
+        $this->ensurePublicAttemptIsAvailable($attempt);
         $test = $attempt->test;
         $questions = $this->testVariantService
             ->questionsForVariant($test, $attempt->variant_number)
@@ -423,6 +418,7 @@ class ElectronicTestService
     public function submitAttempt(ElectronicTestAttempt $attempt, array $data): ElectronicTestAttempt
     {
         $attempt->loadMissing(['test.questions.answers', 'session.studentGroup']);
+        $this->ensurePublicAttemptIsAvailable($attempt);
 
         if (in_array($attempt->status, ['submitted', 'reviewed'], true)) {
             throw ValidationException::withMessages([
@@ -497,6 +493,9 @@ class ElectronicTestService
 
     public function appendAttemptLog(ElectronicTestAttempt $attempt, array $data): ?ElectronicTestLog
     {
+        $attempt->loadMissing(['test', 'session']);
+        $this->ensurePublicAttemptIsAvailable($attempt);
+
         $eventType = trim((string) ($data['event_type'] ?? ''));
         if ($eventType === '') {
             throw ValidationException::withMessages([
@@ -1042,6 +1041,54 @@ class ElectronicTestService
         return in_array($normalized, ['blank', 'electronic', 'hybrid'], true)
             ? $normalized
             : 'blank';
+    }
+
+    private function ensurePublicSessionIsAvailable(?ElectronicTestSession $session): void
+    {
+        if (!$session) {
+            throw ValidationException::withMessages([
+                'session' => 'Ссылка на тест недействительна или устарела.',
+            ]);
+        }
+
+        if ((string) $session->test?->test_status === 'closed') {
+            throw ValidationException::withMessages([
+                'session' => 'Этот тест уже закрыт. Прохождение недоступно.',
+            ]);
+        }
+
+        if ($this->normalizeDeliveryMode($session->test?->delivery_mode) === 'blank') {
+            throw ValidationException::withMessages([
+                'session' => 'Для этого теста больше недоступно электронное прохождение.',
+            ]);
+        }
+
+        if (!$session->is_active) {
+            throw ValidationException::withMessages([
+                'session' => 'Этот запуск теста уже завершён.',
+            ]);
+        }
+    }
+
+    private function ensurePublicAttemptIsAvailable(ElectronicTestAttempt $attempt): void
+    {
+        if ((string) $attempt->test?->test_status === 'closed') {
+            throw ValidationException::withMessages([
+                'attempt' => 'Этот тест уже закрыт. Продолжить тестирование нельзя.',
+            ]);
+        }
+
+        if ($this->normalizeDeliveryMode($attempt->test?->delivery_mode) === 'blank') {
+            throw ValidationException::withMessages([
+                'attempt' => 'Для этого теста больше недоступно электронное прохождение.',
+            ]);
+        }
+
+        if (!$attempt->session?->is_active) {
+            throw ValidationException::withMessages([
+                'attempt' => 'Этот запуск теста уже завершён.',
+            ]);
+        }
     }
 
     private function buildSessionLink(ElectronicTestSession $session): string
