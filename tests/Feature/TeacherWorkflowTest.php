@@ -1063,6 +1063,7 @@ class TeacherWorkflowTest extends TestCase
             ['question_text', 'type', 'points', 'answer_a', 'answer_b', 'answer_c', 'correct'],
             ['Сколько будет 2+2?', 'single', '1', '3', '4', '', 'B'],
             ['Выберите числа больше 5', '', '2', '4', '6', '8', '2,3'],
+            ['Первый индекс массива', 'single', '1', '1', '-1', '0', 'C'],
         ]);
 
         $file = new UploadedFile(
@@ -1085,6 +1086,8 @@ class TeacherWorkflowTest extends TestCase
         $response->assertJsonPath('data.questions.1.type', 'multiple');
         $response->assertJsonPath('data.questions.1.answers.1.is_correct', true);
         $response->assertJsonPath('data.questions.1.answers.2.is_correct', true);
+        $response->assertJsonPath('data.questions.2.answers.2.answer_text', '0');
+        $response->assertJsonPath('data.questions.2.answers.2.is_correct', true);
 
         @unlink($xlsxPath);
     }

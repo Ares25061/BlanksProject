@@ -195,7 +195,7 @@ class TestImportService
 
         $answerTexts = collect(BlankScanLayout::answerLetters())
             ->map(fn (string $letter) => $this->nullableString($rowData['answer_'.Str::lower($letter)] ?? null))
-            ->filter()
+            ->filter(fn (?string $answerText) => $answerText !== null)
             ->values()
             ->all();
 

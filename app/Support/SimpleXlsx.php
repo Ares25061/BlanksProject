@@ -10,8 +10,19 @@ class SimpleXlsx
 {
     public static function readRows(string $path): array
     {
-        self::ensureZipSupport();
+        if (class_exists(ZipArchive::class)) {
+            try {
+                return self::readRowsWithZipArchive($path);
+            } catch (RuntimeException) {
+                // Fall through to the bundled ZIP reader below.
+            }
+        }
 
+        return self::readRowsWithoutZipArchive($path);
+    }
+
+    private static function readRowsWithZipArchive(string $path): array
+    {
         $zip = new ZipArchive;
         if ($zip->open($path) !== true) {
             throw new RuntimeException('Не удалось открыть XLSX-файл.');
@@ -30,6 +41,23 @@ class SimpleXlsx
         } finally {
             $zip->close();
         }
+    }
+
+    private static function readRowsWithoutZipArchive(string $path): array
+    {
+        $entries = self::readZipEntries($path);
+        $sharedStrings = self::readSharedStringsXml($entries['xl/sharedStrings.xml'] ?? null);
+        $sheetPath = self::resolveFirstWorksheetPathFromXml(
+            $entries['xl/workbook.xml'] ?? null,
+            $entries['xl/_rels/workbook.xml.rels'] ?? null
+        );
+        $sheetXml = $entries[$sheetPath] ?? null;
+
+        if (! is_string($sheetXml)) {
+            throw new RuntimeException('Не удалось прочитать первый лист XLSX-файла.');
+        }
+
+        return self::parseSheetRows($sheetXml, $sharedStrings);
     }
 
     public static function writeWorkbook(string $sheetName, array $rows): string
@@ -141,8 +169,12 @@ class SimpleXlsx
 
     private static function readSharedStrings(ZipArchive $zip): array
     {
-        $sharedStringsXml = $zip->getFromName('xl/sharedStrings.xml');
-        if ($sharedStringsXml === false) {
+        return self::readSharedStringsXml($zip->getFromName('xl/sharedStrings.xml') ?: null);
+    }
+
+    private static function readSharedStringsXml(?string $sharedStringsXml): array
+    {
+        if ($sharedStringsXml === null) {
             return [];
         }
 
@@ -161,10 +193,15 @@ class SimpleXlsx
 
     private static function resolveFirstWorksheetPath(ZipArchive $zip): string
     {
-        $workbookXml = $zip->getFromName('xl/workbook.xml');
-        $workbookRelsXml = $zip->getFromName('xl/_rels/workbook.xml.rels');
+        return self::resolveFirstWorksheetPathFromXml(
+            $zip->getFromName('xl/workbook.xml') ?: null,
+            $zip->getFromName('xl/_rels/workbook.xml.rels') ?: null
+        );
+    }
 
-        if ($workbookXml === false || $workbookRelsXml === false) {
+    private static function resolveFirstWorksheetPathFromXml(?string $workbookXml, ?string $workbookRelsXml): string
+    {
+        if ($workbookXml === null || $workbookRelsXml === null) {
             return 'xl/worksheets/sheet1.xml';
         }
 
@@ -205,6 +242,93 @@ class SimpleXlsx
         }
 
         return 'xl/worksheets/sheet1.xml';
+    }
+
+    private static function readZipEntries(string $path): array
+    {
+        $contents = file_get_contents($path);
+        if (! is_string($contents)) {
+            throw new RuntimeException('Не удалось открыть XLSX-файл.');
+        }
+
+        $endOffset = self::findEndOfCentralDirectory($contents);
+        if ($endOffset === null) {
+            throw new RuntimeException('Не удалось открыть XLSX-файл.');
+        }
+
+        $end = unpack('vdisk/vcentralDisk/ventriesDisk/ventries/VcentralSize/VcentralOffset/vcommentLength', substr($contents, $endOffset + 4, 18));
+        if (! is_array($end)) {
+            throw new RuntimeException('Не удалось открыть XLSX-файл.');
+        }
+
+        $entries = [];
+        $offset = (int) $end['centralOffset'];
+
+        for ($index = 0; $index < (int) $end['entries']; $index++) {
+            if (substr($contents, $offset, 4) !== "PK\x01\x02") {
+                throw new RuntimeException('Не удалось открыть XLSX-файл.');
+            }
+
+            $header = unpack(
+                'vversionMade/vversionNeeded/vflags/vmethod/vtime/vdate/Vcrc/VcompressedSize/VuncompressedSize/vnameLength/vextraLength/vcommentLength/vdiskStart/vinternalAttributes/VexternalAttributes/VlocalOffset',
+                substr($contents, $offset + 4, 42)
+            );
+
+            if (! is_array($header)) {
+                throw new RuntimeException('Не удалось открыть XLSX-файл.');
+            }
+
+            $nameLength = (int) $header['nameLength'];
+            $extraLength = (int) $header['extraLength'];
+            $commentLength = (int) $header['commentLength'];
+            $name = str_replace('\\', '/', substr($contents, $offset + 46, $nameLength));
+            $localOffset = (int) $header['localOffset'];
+
+            if (substr($contents, $localOffset, 4) !== "PK\x03\x04") {
+                throw new RuntimeException('Не удалось открыть XLSX-файл.');
+            }
+
+            $localHeader = unpack('vversionNeeded/vflags/vmethod/vtime/vdate/Vcrc/VcompressedSize/VuncompressedSize/vnameLength/vextraLength', substr($contents, $localOffset + 4, 26));
+            if (! is_array($localHeader)) {
+                throw new RuntimeException('Не удалось открыть XLSX-файл.');
+            }
+
+            $dataOffset = $localOffset + 30 + (int) $localHeader['nameLength'] + (int) $localHeader['extraLength'];
+            $compressedData = substr($contents, $dataOffset, (int) $header['compressedSize']);
+            $entries[$name] = self::uncompressZipEntry($compressedData, (int) $header['method']);
+            $offset += 46 + $nameLength + $extraLength + $commentLength;
+        }
+
+        return $entries;
+    }
+
+    private static function uncompressZipEntry(string $contents, int $method): string
+    {
+        if ($method === 0) {
+            return $contents;
+        }
+
+        if ($method === 8) {
+            $inflated = gzinflate($contents);
+            if (is_string($inflated)) {
+                return $inflated;
+            }
+        }
+
+        throw new RuntimeException('Не удалось открыть XLSX-файл.');
+    }
+
+    private static function findEndOfCentralDirectory(string $contents): ?int
+    {
+        $minimumOffset = max(0, strlen($contents) - 65557);
+
+        for ($offset = strlen($contents) - 22; $offset >= $minimumOffset; $offset--) {
+            if (substr($contents, $offset, 4) === "PK\x05\x06") {
+                return $offset;
+            }
+        }
+
+        return null;
     }
 
     private static function parseSheetRows(string $sheetXml, array $sharedStrings): array

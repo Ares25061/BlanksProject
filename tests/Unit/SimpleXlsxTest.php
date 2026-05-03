@@ -13,23 +13,24 @@ class SimpleXlsxTest extends TestCase
         $reflection = new ReflectionClass(SimpleXlsx::class);
         $entriesMethod = $reflection->getMethod('workbookEntries');
         $writeMethod = $reflection->getMethod('writeStoredZip');
+        $readMethod = $reflection->getMethod('readRowsWithoutZipArchive');
         $escapeMethod = $reflection->getMethod('escapeXml');
 
         $path = sys_get_temp_dir().DIRECTORY_SEPARATOR.uniqid('simple_xlsx_fallback_', true).'.xlsx';
-        $entries = $entriesMethod->invoke(null, now()->toIso8601String(), $escapeMethod->invoke(null, 'Тест'), [
+        $expectedRows = [
             ['question_text', 'order', 'variant'],
             ['Какой цикл гарантированно выполнится?', '1', '1'],
             ['Что означает break?', '2', '2'],
+        ];
+        $entries = $entriesMethod->invoke(null, now()->toIso8601String(), $escapeMethod->invoke(null, 'Тест'), [
+            ...$expectedRows,
         ]);
 
         $writeMethod->invoke(null, $path, $entries);
 
         try {
-            $this->assertSame([
-                ['question_text', 'order', 'variant'],
-                ['Какой цикл гарантированно выполнится?', '1', '1'],
-                ['Что означает break?', '2', '2'],
-            ], SimpleXlsx::readRows($path));
+            $this->assertSame($expectedRows, SimpleXlsx::readRows($path));
+            $this->assertSame($expectedRows, $readMethod->invoke(null, $path));
         } finally {
             @unlink($path);
         }
