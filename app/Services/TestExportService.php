@@ -5,19 +5,24 @@ namespace App\Services;
 use App\Models\Test;
 use App\Support\BlankScanLayout;
 use App\Support\SimpleXlsx;
+use App\Support\Utf8Normalizer;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 use JsonException;
 
 class TestExportService
 {
+    public function __construct(
+        private TestVariantService $testVariantService,
+    ) {}
+
     public function buildJsonPayload(Test $test): array
     {
         $test = $test->loadMissing('questions.answers');
-        $variantCount = max(1, (int) ($test->variant_count ?: 1));
+        $variantCount = $this->testVariantService->normalizeVariantCount($test->variant_count ?? 1);
         $includeQuestionVariant = $variantCount > 1;
 
-        return [
+        return Utf8Normalizer::deep([
             'title' => $test->title,
             'subject_name' => $test->subject_name,
             'description' => $test->description,
@@ -34,9 +39,12 @@ class TestExportService
                         'type' => $question->type,
                         'points' => (int) ($question->points ?? 1),
                         'answers' => $question->answers
-                            ->sortBy([
-                                fn ($answer) => (int) ($answer->order ?? 0),
-                                fn ($answer) => (int) $answer->id,
+                            ->sort(fn ($left, $right) => [
+                                (int) ($left->order ?? 0),
+                                (int) $left->id,
+                            ] <=> [
+                                (int) ($right->order ?? 0),
+                                (int) $right->id,
                             ])
                             ->values()
                             ->map(fn ($answer) => [
@@ -53,14 +61,14 @@ class TestExportService
                     return $payload;
                 })
                 ->all(),
-        ];
+        ]);
     }
 
     public function buildSpreadsheetPath(Test $test): string
     {
         $payload = $this->buildJsonPayload($test);
         $answerColumns = collect(BlankScanLayout::answerLetters())
-            ->map(fn (string $letter) => 'answer_' . Str::lower($letter))
+            ->map(fn (string $letter) => 'answer_'.Str::lower($letter))
             ->all();
         $rows = [
             ['title', (string) ($payload['title'] ?? '')],
@@ -79,7 +87,7 @@ class TestExportService
                 ->values();
             $correctLetters = $answers
                 ->map(function (array $answer, int $index) {
-                    if (!($answer['is_correct'] ?? false)) {
+                    if (! ($answer['is_correct'] ?? false)) {
                         return null;
                     }
 
@@ -111,16 +119,16 @@ class TestExportService
 
     public function buildDownloadFileName(Test $test, string $extension): string
     {
-        $safeTitle = Str::of((string) ($test->title ?: 'test'))
+        $safeTitle = Str::of((string) (Utf8Normalizer::string($test->title) ?: 'test'))
             ->ascii()
             ->replaceMatches('/[^A-Za-z0-9]+/u', '-')
             ->trim('-')
             ->lower()
             ->value();
 
-        $baseName = $safeTitle !== '' ? $safeTitle : ('test-' . $test->id);
+        $baseName = $safeTitle !== '' ? $safeTitle : ('test-'.$test->id);
 
-        return $baseName . '.' . ltrim(Str::lower($extension), '.');
+        return $baseName.'.'.ltrim(Str::lower($extension), '.');
     }
 
     protected function orderedQuestions(Test $test): Collection

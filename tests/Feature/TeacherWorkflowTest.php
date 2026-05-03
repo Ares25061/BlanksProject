@@ -951,6 +951,7 @@ class TeacherWorkflowTest extends TestCase
             'questions' => [
                 [
                     'variant' => 1,
+                    'order' => 1,
                     'question_text' => 'Вариант 1. Вопрос 1',
                     'type' => 'single',
                     'points' => 1,
@@ -961,6 +962,7 @@ class TeacherWorkflowTest extends TestCase
                 ],
                 [
                     'variant' => 2,
+                    'order' => 2,
                     'question_text' => 'Вариант 2. Вопрос 1',
                     'type' => 'multiple',
                     'points' => 2,
@@ -969,6 +971,28 @@ class TeacherWorkflowTest extends TestCase
                         ['answer_text' => 'A2'],
                         ['answer_text' => 'B2'],
                         ['answer_text' => 'C2'],
+                    ],
+                ],
+                [
+                    'variant' => 1,
+                    'order' => 3,
+                    'question_text' => 'Вариант 1. Вопрос 2',
+                    'type' => 'single',
+                    'points' => 1,
+                    'answers' => [
+                        ['answer_text' => 'A1-2', 'is_correct' => true],
+                        ['answer_text' => 'B1-2', 'is_correct' => false],
+                    ],
+                ],
+                [
+                    'variant' => 2,
+                    'order' => 4,
+                    'question_text' => 'Вариант 2. Вопрос 2',
+                    'type' => 'single',
+                    'points' => 1,
+                    'answers' => [
+                        ['answer_text' => 'A2-2', 'is_correct' => true],
+                        ['answer_text' => 'B2-2', 'is_correct' => false],
                     ],
                 ],
             ],
@@ -988,6 +1012,12 @@ class TeacherWorkflowTest extends TestCase
         $response->assertJsonPath('data.variant_count', 2);
         $response->assertJsonPath('data.questions.0.variant_number', 1);
         $response->assertJsonPath('data.questions.1.variant_number', 2);
+        $response->assertJsonPath('data.questions.2.variant_number', 1);
+        $response->assertJsonPath('data.questions.3.variant_number', 2);
+        $response->assertJsonPath('data.questions.0.question_text', 'Вариант 1. Вопрос 1');
+        $response->assertJsonPath('data.questions.1.question_text', 'Вариант 2. Вопрос 1');
+        $response->assertJsonPath('data.questions.2.question_text', 'Вариант 1. Вопрос 2');
+        $response->assertJsonPath('data.questions.3.question_text', 'Вариант 2. Вопрос 2');
         $response->assertJsonPath('data.questions.1.type', 'multiple');
         $response->assertJsonPath('data.questions.1.answers.0.is_correct', true);
         $response->assertJsonPath('data.questions.1.answers.1.is_correct', false);
@@ -1070,9 +1100,11 @@ class TeacherWorkflowTest extends TestCase
             ['variant_count', '2'],
             ['grade_criteria_json', '[{"label":"5","min_points":2},{"label":"4","min_points":1},{"label":"2","min_points":0}]'],
             [],
-            ['question_text', 'variant', 'type', 'points', 'answer_a', 'answer_b', 'answer_c', 'answer_d', 'correct'],
-            ['Вариант 1. Вопрос 1', '1', 'single', '1', 'A1', 'B1', '', '', 'A'],
-            ['Вариант 2. Вопрос 1', '2', 'multiple', '2', 'A2', 'B2', 'C2', '', 'A,C'],
+            ['question_text', 'order', 'variant', 'type', 'points', 'answer_a', 'answer_b', 'answer_c', 'answer_d', 'correct'],
+            ['Вариант 1. Вопрос 1', '1', '1', 'single', '1', 'A1', 'B1', '', '', 'A'],
+            ['Вариант 2. Вопрос 1', '2', '2', 'multiple', '1', 'A2', 'B2', 'C2', '', 'A,C'],
+            ['Вариант 1. Вопрос 2', '3', '1', 'single', '1', 'A1-2', 'B1-2', '', '', 'A'],
+            ['Вариант 2. Вопрос 2', '4', '2', 'single', '1', 'A2-2', 'B2-2', '', '', 'A'],
         ]);
 
         $file = new UploadedFile(
@@ -1098,6 +1130,12 @@ class TeacherWorkflowTest extends TestCase
         $response->assertJsonPath('data.grade_criteria.0.label', '5');
         $response->assertJsonPath('data.questions.0.variant_number', 1);
         $response->assertJsonPath('data.questions.1.variant_number', 2);
+        $response->assertJsonPath('data.questions.2.variant_number', 1);
+        $response->assertJsonPath('data.questions.3.variant_number', 2);
+        $response->assertJsonPath('data.questions.0.order', 0);
+        $response->assertJsonPath('data.questions.1.order', 1);
+        $response->assertJsonPath('data.questions.2.order', 2);
+        $response->assertJsonPath('data.questions.3.order', 3);
         $response->assertJsonPath('data.questions.1.answers.0.is_correct', true);
         $response->assertJsonPath('data.questions.1.answers.2.is_correct', true);
 
@@ -1120,7 +1158,20 @@ class TeacherWorkflowTest extends TestCase
             ],
             'questions' => [
                 [
-                    'question_text' => 'Вариант 1. Вопрос 1',
+                    'question_text' => 'Вариант 2. Вопрос 1',
+                    'order' => 1,
+                    'type' => 'multiple',
+                    'points' => 1,
+                    'variant_number' => 2,
+                    'answers' => [
+                        ['answer_text' => 'A2', 'is_correct' => true],
+                        ['answer_text' => 'B2', 'is_correct' => false],
+                        ['answer_text' => 'C2', 'is_correct' => true],
+                    ],
+                ],
+                [
+                    'question_text' => 'Вариант 1. Вопрос 2',
+                    'order' => 2,
                     'type' => 'single',
                     'points' => 1,
                     'variant_number' => 1,
@@ -1130,14 +1181,25 @@ class TeacherWorkflowTest extends TestCase
                     ],
                 ],
                 [
-                    'question_text' => 'Вариант 2. Вопрос 1',
-                    'type' => 'multiple',
-                    'points' => 2,
+                    'question_text' => 'Вариант 1. Вопрос 1',
+                    'order' => 0,
+                    'type' => 'single',
+                    'points' => 1,
+                    'variant_number' => 1,
+                    'answers' => [
+                        ['answer_text' => 'A1', 'is_correct' => true],
+                        ['answer_text' => 'B1', 'is_correct' => false],
+                    ],
+                ],
+                [
+                    'question_text' => 'Вариант 2. Вопрос 2',
+                    'order' => 3,
+                    'type' => 'single',
+                    'points' => 1,
                     'variant_number' => 2,
                     'answers' => [
                         ['answer_text' => 'A2', 'is_correct' => true],
                         ['answer_text' => 'B2', 'is_correct' => false],
-                        ['answer_text' => 'C2', 'is_correct' => true],
                     ],
                 ],
             ],
@@ -1153,16 +1215,20 @@ class TeacherWorkflowTest extends TestCase
         $this->assertSame('Экспорт JSON', $payload['title'] ?? null);
         $this->assertSame('Программирование', $payload['subject_name'] ?? null);
         $this->assertSame(2, $payload['variant_count'] ?? null);
-        $variants = collect($payload['questions'] ?? [])
-            ->pluck('variant')
-            ->map(fn ($value) => (int) $value)
-            ->sort()
-            ->values()
-            ->all();
+        $variants = collect($payload['questions'] ?? [])->pluck('variant')->all();
+        $orders = collect($payload['questions'] ?? [])->pluck('order')->all();
+        $texts = collect($payload['questions'] ?? [])->pluck('question_text')->all();
         $variantTwoQuestion = collect($payload['questions'] ?? [])
             ->first(fn (array $question) => (int) ($question['variant'] ?? 0) === 2);
 
-        $this->assertSame([1, 2], $variants);
+        $this->assertSame([1, 2, 1, 2], $variants);
+        $this->assertSame([1, 2, 3, 4], $orders);
+        $this->assertSame([
+            'Вариант 1. Вопрос 1',
+            'Вариант 2. Вопрос 1',
+            'Вариант 1. Вопрос 2',
+            'Вариант 2. Вопрос 2',
+        ], $texts);
         $this->assertNotNull($variantTwoQuestion);
         $this->assertTrue($variantTwoQuestion['answers'][2]['is_correct'] ?? false);
     }
@@ -1185,7 +1251,20 @@ class TeacherWorkflowTest extends TestCase
             ],
             'questions' => [
                 [
-                    'question_text' => 'Вариант 1. Вопрос 1',
+                    'question_text' => 'Вариант 2. Вопрос 1',
+                    'order' => 1,
+                    'type' => 'multiple',
+                    'points' => 1,
+                    'variant_number' => 2,
+                    'answers' => [
+                        ['answer_text' => 'A2', 'is_correct' => true],
+                        ['answer_text' => 'B2', 'is_correct' => false],
+                        ['answer_text' => 'C2', 'is_correct' => true],
+                    ],
+                ],
+                [
+                    'question_text' => 'Вариант 1. Вопрос 2',
+                    'order' => 2,
                     'type' => 'single',
                     'points' => 1,
                     'variant_number' => 1,
@@ -1195,14 +1274,25 @@ class TeacherWorkflowTest extends TestCase
                     ],
                 ],
                 [
-                    'question_text' => 'Вариант 2. Вопрос 1',
-                    'type' => 'multiple',
-                    'points' => 2,
+                    'question_text' => 'Вариант 1. Вопрос 1',
+                    'order' => 0,
+                    'type' => 'single',
+                    'points' => 1,
+                    'variant_number' => 1,
+                    'answers' => [
+                        ['answer_text' => 'A1', 'is_correct' => true],
+                        ['answer_text' => 'B1', 'is_correct' => false],
+                    ],
+                ],
+                [
+                    'question_text' => 'Вариант 2. Вопрос 2',
+                    'order' => 3,
+                    'type' => 'single',
+                    'points' => 1,
                     'variant_number' => 2,
                     'answers' => [
                         ['answer_text' => 'A2', 'is_correct' => true],
                         ['answer_text' => 'B2', 'is_correct' => false],
-                        ['answer_text' => 'C2', 'is_correct' => true],
                     ],
                 ],
             ],
@@ -1215,15 +1305,28 @@ class TeacherWorkflowTest extends TestCase
 
         $rows = SimpleXlsx::readRows($response->baseResponse->getFile()->getPathname());
         $headerRowIndex = collect($rows)->search(fn (array $row) => ($row[0] ?? null) === 'question_text');
+        $questionRows = collect($rows)
+            ->slice($headerRowIndex + 1)
+            ->filter(fn (array $row) => trim((string) ($row[0] ?? '')) !== '')
+            ->values();
         $variantTwoRowIndex = collect($rows)->search(fn (array $row) => ($row[0] ?? null) === 'Вариант 2. Вопрос 1');
 
         $this->assertSame(['title', 'Экспорт XLSX'], [$rows[0][0] ?? null, $rows[0][1] ?? null]);
         $this->assertSame(['variant_count', '2'], [$rows[4][0] ?? null, $rows[4][1] ?? null]);
         $this->assertNotFalse($headerRowIndex);
-        $this->assertSame('variant', $rows[$headerRowIndex][1] ?? null);
+        $this->assertSame('order', $rows[$headerRowIndex][1] ?? null);
+        $this->assertSame('variant', $rows[$headerRowIndex][2] ?? null);
+        $this->assertSame([
+            'Вариант 1. Вопрос 1',
+            'Вариант 2. Вопрос 1',
+            'Вариант 1. Вопрос 2',
+            'Вариант 2. Вопрос 2',
+        ], $questionRows->pluck(0)->all());
+        $this->assertSame(['1', '2', '3', '4'], $questionRows->pluck(1)->all());
+        $this->assertSame(['1', '2', '1', '2'], $questionRows->pluck(2)->all());
         $this->assertNotFalse($variantTwoRowIndex);
-        $this->assertSame('2', $rows[$variantTwoRowIndex][1] ?? null);
-        $this->assertSame('A,C', $rows[$variantTwoRowIndex][8] ?? null);
+        $this->assertSame('2', $rows[$variantTwoRowIndex][2] ?? null);
+        $this->assertSame('A,C', $rows[$variantTwoRowIndex][9] ?? null);
     }
 
     public function test_gradebook_month_export_returns_xlsx_file(): void

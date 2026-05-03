@@ -14,8 +14,7 @@ class TestImportService
 {
     public function __construct(
         private TestVariantService $testVariantService,
-    ) {
-    }
+    ) {}
 
     public function importFromUploadedFile(UploadedFile $file): array
     {
@@ -40,14 +39,14 @@ class TestImportService
             ]);
         }
 
-        if (!is_array($payload)) {
+        if (! is_array($payload)) {
             throw ValidationException::withMessages([
                 'file' => 'JSON должен содержать массив вопросов или объект с полем questions.',
             ]);
         }
 
         $questionSource = Arr::get($payload, 'questions');
-        if (!is_array($questionSource)) {
+        if (! is_array($questionSource)) {
             $questionSource = array_is_list($payload) ? $payload : [];
         }
 
@@ -102,8 +101,6 @@ class TestImportService
             $questions[] = $this->normalizeQuestionFromSpreadsheet($rowData, count($questions));
         }
 
-        $questions = $this->resequenceQuestions($questions);
-
         if ($questions === []) {
             throw ValidationException::withMessages([
                 'questions' => 'В XLSX-файле не найдено заполненных строк с вопросами.',
@@ -111,6 +108,8 @@ class TestImportService
         }
 
         $variantCount = $this->deriveVariantCount($questions, $metadata['variant_count'] ?? null);
+        $questions = $this->normalizeSpreadsheetQuestionVariants($questions, $variantCount);
+        $questions = $this->resequenceQuestions($questions);
 
         return [
             'title' => $this->nullableString($metadata['title'] ?? null),
@@ -120,7 +119,7 @@ class TestImportService
             'variant_count' => $variantCount,
             'delivery_mode' => $this->normalizeDeliveryMode($metadata['delivery_mode'] ?? null),
             'grade_criteria' => $this->normalizeGradeCriteria($metadata['grade_criteria'] ?? []),
-            'questions' => $this->normalizeSpreadsheetQuestionVariants($questions, $variantCount),
+            'questions' => $questions,
         ];
     }
 
@@ -129,7 +128,7 @@ class TestImportService
         $normalized = [];
 
         foreach ($questions as $index => $question) {
-            if (!is_array($question)) {
+            if (! is_array($question)) {
                 throw ValidationException::withMessages([
                     'questions' => 'Каждый вопрос в файле должен быть объектом.',
                 ]);
@@ -158,9 +157,9 @@ class TestImportService
         }
 
         $answersSource = $question['answers'] ?? $question['options'] ?? $question['variants'] ?? null;
-        if (!is_array($answersSource)) {
+        if (! is_array($answersSource)) {
             throw ValidationException::withMessages([
-                "questions.{$index}.answers" => 'У вопроса "' . Str::limit($questionText, 60) . '" не найден список вариантов ответа.',
+                "questions.{$index}.answers" => 'У вопроса "'.Str::limit($questionText, 60).'" не найден список вариантов ответа.',
             ]);
         }
 
@@ -195,14 +194,14 @@ class TestImportService
         }
 
         $answerTexts = collect(BlankScanLayout::answerLetters())
-            ->map(fn (string $letter) => $this->nullableString($rowData['answer_' . Str::lower($letter)] ?? null))
+            ->map(fn (string $letter) => $this->nullableString($rowData['answer_'.Str::lower($letter)] ?? null))
             ->filter()
             ->values()
             ->all();
 
         if (count($answerTexts) < 2) {
             throw ValidationException::withMessages([
-                'file' => 'У вопроса "' . Str::limit($questionText, 60) . '" должно быть минимум два варианта ответа.',
+                'file' => 'У вопроса "'.Str::limit($questionText, 60).'" должно быть минимум два варианта ответа.',
             ]);
         }
 
@@ -225,9 +224,9 @@ class TestImportService
             ];
         }
 
-        if (!collect($answers)->contains('is_correct', true)) {
+        if (! collect($answers)->contains('is_correct', true)) {
             throw ValidationException::withMessages([
-                'file' => 'У вопроса "' . Str::limit($questionText, 60) . '" не удалось определить правильный ответ по колонке correct.',
+                'file' => 'У вопроса "'.Str::limit($questionText, 60).'" не удалось определить правильный ответ по колонке correct.',
             ]);
         }
 
@@ -273,7 +272,7 @@ class TestImportService
 
             $letter = BlankScanLayout::answerLetters()[$answerIndex] ?? null;
             $matchesToken = $letter ? in_array(Str::lower($letter), $normalizedTokens, true) : false;
-            if (!$matchesToken && $normalizedTokens !== []) {
+            if (! $matchesToken && $normalizedTokens !== []) {
                 $matchesToken = in_array(Str::lower($answerText), $normalizedTokens, true);
             }
 
@@ -292,11 +291,11 @@ class TestImportService
 
         if (count($answers) > BlankScanLayout::ANSWER_OPTION_COUNT) {
             throw ValidationException::withMessages([
-                "questions.{$questionIndex}.answers" => 'У импортируемого вопроса больше ' . BlankScanLayout::ANSWER_OPTION_COUNT . ' вариантов ответа.',
+                "questions.{$questionIndex}.answers" => 'У импортируемого вопроса больше '.BlankScanLayout::ANSWER_OPTION_COUNT.' вариантов ответа.',
             ]);
         }
 
-        if (!collect($answers)->contains('is_correct', true)) {
+        if (! collect($answers)->contains('is_correct', true)) {
             throw ValidationException::withMessages([
                 "questions.{$questionIndex}.answers" => 'У импортируемого вопроса должен быть хотя бы один правильный ответ.',
             ]);
@@ -320,7 +319,7 @@ class TestImportService
     {
         return collect($criteria)
             ->map(function ($criterion) {
-                if (!is_array($criterion)) {
+                if (! is_array($criterion)) {
                     return null;
                 }
 
@@ -408,6 +407,7 @@ class TestImportService
 
             if ($key === 'grade_criteria') {
                 $metadata[$key] = $this->decodeSpreadsheetGradeCriteria($value);
+
                 continue;
             }
 
@@ -448,7 +448,7 @@ class TestImportService
             ]);
         }
 
-        if (!is_array($decoded)) {
+        if (! is_array($decoded)) {
             throw ValidationException::withMessages([
                 'grade_criteria' => 'grade_criteria_json в XLSX должен быть массивом.',
             ]);
@@ -559,7 +559,7 @@ class TestImportService
 
         if ($variantNumber > $variantCount) {
             throw ValidationException::withMessages([
-                'questions' => 'Номер варианта вопроса не может быть больше ' . $variantCount . '.',
+                'questions' => 'Номер варианта вопроса не может быть больше '.$variantCount.'.',
             ]);
         }
 
@@ -584,9 +584,12 @@ class TestImportService
 
                 return $question;
             })
-            ->sortBy([
-                fn (array $question) => (int) ($question['order'] ?? 0),
-                fn (array $question) => (int) ($question['_source_index'] ?? 0),
+            ->sort(fn (array $left, array $right) => [
+                (int) ($left['order'] ?? 0),
+                (int) ($left['_source_index'] ?? 0),
+            ] <=> [
+                (int) ($right['order'] ?? 0),
+                (int) ($right['_source_index'] ?? 0),
             ])
             ->values()
             ->map(function (array $question, int $index) {

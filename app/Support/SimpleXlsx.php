@@ -12,7 +12,7 @@ class SimpleXlsx
     {
         self::ensureZipSupport();
 
-        $zip = new ZipArchive();
+        $zip = new ZipArchive;
         if ($zip->open($path) !== true) {
             throw new RuntimeException('Не удалось открыть XLSX-файл.');
         }
@@ -37,13 +37,13 @@ class SimpleXlsx
         self::ensureZipSupport();
 
         $directory = storage_path('framework/testing/xlsx-temp');
-        if (!is_dir($directory) && !mkdir($directory, 0777, true) && !is_dir($directory)) {
+        if (! is_dir($directory) && ! mkdir($directory, 0777, true) && ! is_dir($directory)) {
             throw new RuntimeException('Не удалось подготовить папку для временных XLSX-файлов.');
         }
 
-        $tempPath = $directory . DIRECTORY_SEPARATOR . uniqid('blanks_xlsx_', true) . '.xlsx';
+        $tempPath = $directory.DIRECTORY_SEPARATOR.uniqid('blanks_xlsx_', true).'.xlsx';
 
-        $zip = new ZipArchive();
+        $zip = new ZipArchive;
         if ($zip->open($tempPath, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) {
             @unlink($tempPath);
             throw new RuntimeException('Не удалось собрать XLSX-файл.');
@@ -67,7 +67,7 @@ class SimpleXlsx
 
     private static function ensureZipSupport(): void
     {
-        if (!class_exists(ZipArchive::class)) {
+        if (! class_exists(ZipArchive::class)) {
             throw new RuntimeException('На сервере недоступна поддержка ZIP, поэтому XLSX сейчас недоступен.');
         }
     }
@@ -112,7 +112,7 @@ class SimpleXlsx
         $workbook->registerXPathNamespace('r', $relationNamespace);
 
         $firstSheet = ($workbook->xpath('//main:sheets/main:sheet[1]') ?: [])[0] ?? null;
-        if (!$firstSheet instanceof SimpleXMLElement) {
+        if (! $firstSheet instanceof SimpleXMLElement) {
             return 'xl/worksheets/sheet1.xml';
         }
 
@@ -134,7 +134,7 @@ class SimpleXlsx
 
             return str_starts_with($target, 'xl/')
                 ? $target
-                : 'xl/' . $target;
+                : 'xl/'.$target;
         }
 
         return 'xl/worksheets/sheet1.xml';
@@ -213,7 +213,7 @@ class SimpleXlsx
 
     private static function extractInlineString(?SimpleXMLElement $node, ?string $namespace): string
     {
-        if (!$node instanceof SimpleXMLElement) {
+        if (! $node instanceof SimpleXMLElement) {
             return '';
         }
 
@@ -248,7 +248,7 @@ class SimpleXlsx
 
         while ($index > 0) {
             $remainder = ($index - 1) % 26;
-            $letters = chr(65 + $remainder) . $letters;
+            $letters = chr(65 + $remainder).$letters;
             $index = intdiv($index - 1, 26);
         }
 
@@ -263,12 +263,12 @@ class SimpleXlsx
             $cellXml = [];
 
             foreach (array_values($row) as $columnIndex => $value) {
-                $reference = self::columnIndexToLetters($columnIndex + 1) . ($rowIndex + 1);
+                $reference = self::columnIndexToLetters($columnIndex + 1).($rowIndex + 1);
                 $escapedValue = self::escapeXml((string) $value);
-                $cellXml[] = '<c r="' . $reference . '" t="inlineStr"><is><t xml:space="preserve">' . $escapedValue . '</t></is></c>';
+                $cellXml[] = '<c r="'.$reference.'" t="inlineStr"><is><t xml:space="preserve">'.$escapedValue.'</t></is></c>';
             }
 
-            $rowXml[] = '<row r="' . ($rowIndex + 1) . '">' . implode('', $cellXml) . '</row>';
+            $rowXml[] = '<row r="'.($rowIndex + 1).'">'.implode('', $cellXml).'</row>';
         }
 
         return implode('', [
@@ -314,9 +314,9 @@ XML;
     private static function workbookXml(string $sheetTitle): string
     {
         return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
-            . '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">'
-            . '<sheets><sheet name="' . $sheetTitle . '" sheetId="1" r:id="rId1"/></sheets>'
-            . '</workbook>';
+            .'<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">'
+            .'<sheets><sheet name="'.$sheetTitle.'" sheetId="1" r:id="rId1"/></sheets>'
+            .'</workbook>';
     }
 
     private static function workbookRelationshipsXml(): string
@@ -358,18 +358,18 @@ XML;
     private static function corePropertiesXml(string $timestamp): string
     {
         return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
-            . '<cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:dcmitype="http://purl.org/dc/dcmitype/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">'
-            . '<dc:creator>Провериум</dc:creator>'
-            . '<cp:lastModifiedBy>Провериум</cp:lastModifiedBy>'
-            . '<dcterms:created xsi:type="dcterms:W3CDTF">' . $timestamp . '</dcterms:created>'
-            . '<dcterms:modified xsi:type="dcterms:W3CDTF">' . $timestamp . '</dcterms:modified>'
-            . '</cp:coreProperties>';
+            .'<cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:dcmitype="http://purl.org/dc/dcmitype/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">'
+            .'<dc:creator>Провериум</dc:creator>'
+            .'<cp:lastModifiedBy>Провериум</cp:lastModifiedBy>'
+            .'<dcterms:created xsi:type="dcterms:W3CDTF">'.$timestamp.'</dcterms:created>'
+            .'<dcterms:modified xsi:type="dcterms:W3CDTF">'.$timestamp.'</dcterms:modified>'
+            .'</cp:coreProperties>';
     }
 
     private static function loadXml(string $contents): SimpleXMLElement
     {
         $xml = simplexml_load_string($contents);
-        if (!$xml instanceof SimpleXMLElement) {
+        if (! $xml instanceof SimpleXMLElement) {
             throw new RuntimeException('Не удалось разобрать XML внутри XLSX-файла.');
         }
 
@@ -378,6 +378,13 @@ XML;
 
     private static function escapeXml(string $value): string
     {
-        return htmlspecialchars($value, ENT_QUOTES | ENT_XML1, 'UTF-8');
+        $normalized = Utf8Normalizer::string($value) ?? '';
+        $normalized = preg_replace(
+            '/[^\x{9}\x{A}\x{D}\x{20}-\x{D7FF}\x{E000}-\x{FFFD}]/u',
+            '',
+            $normalized
+        ) ?? '';
+
+        return htmlspecialchars($normalized, ENT_QUOTES | ENT_XML1 | ENT_SUBSTITUTE, 'UTF-8');
     }
 }
