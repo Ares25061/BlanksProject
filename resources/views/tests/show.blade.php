@@ -1535,13 +1535,15 @@
                 ? `${escapeHtml(blankForm.assigned_grade_value)} • ${formatDate(blankForm.assigned_grade_date)}`
                 : '';
             const variantLabel = `Вариант ${blankForm.variant_number || 1}`;
+            const scoreLabel = blankForm.total_score ?? '—';
+            const gradeLabel = blankForm.grade_label ? escapeHtml(blankForm.grade_label) : '—';
 
             return `
                 <article class="border border-slate-200 rounded-2xl p-4 dark:border-slate-700 dark:bg-slate-950/70">
-                    <div class="flex flex-wrap justify-between gap-3">
-                        <div>
+                    <div class="grid grid-cols-[minmax(0,1fr)_9.5rem] items-start gap-4">
+                        <div class="min-w-0">
                             <div class="flex flex-wrap items-center gap-3">
-                                <h3 class="font-semibold text-slate-900 dark:text-white">${escapeHtml(studentName)}</h3>
+                                <h3 class="min-w-0 break-words font-semibold text-slate-900 dark:text-white">${escapeHtml(studentName)}</h3>
                                 <span class="px-3 py-1 rounded-full text-xs ${statusClass}">${statusLabel}</span>
                                 <span class="px-3 py-1 rounded-full text-xs bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200">${escapeHtml(variantLabel)}</span>
                             </div>
@@ -1549,10 +1551,13 @@
                             <div class="text-xs text-slate-400 mt-2 dark:text-slate-500">${escapeHtml(blankForm.form_number || '')}</div>
                         </div>
 
-                        <div class="text-right">
-                            <div class="text-sm text-slate-500 dark:text-slate-400">Результат</div>
-                            <div class="font-semibold text-slate-900 dark:text-white">${blankForm.total_score ?? '—'} ${blankForm.grade_label ? `• ${escapeHtml(blankForm.grade_label)}` : ''}</div>
-                            ${assignedGrade ? `<div class="text-xs text-slate-500 mt-2 dark:text-slate-400">Поставленная оценка: ${assignedGrade}</div>` : ''}
+                        <div class="min-w-0 text-right">
+                            <div class="text-xs uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500">Результат</div>
+                            <div class="mt-1 text-base font-semibold leading-snug text-slate-900 dark:text-white">${gradeLabel}</div>
+                            <div class="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                                Баллы: <span class="font-semibold text-slate-900 dark:text-white">${scoreLabel}</span>
+                            </div>
+                            ${assignedGrade ? `<div class="text-xs text-slate-500 mt-2 dark:text-slate-400">Оценка учителя: ${assignedGrade}</div>` : ''}
                         </div>
                     </div>
 
