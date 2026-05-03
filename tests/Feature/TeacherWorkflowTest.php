@@ -221,6 +221,120 @@ class TeacherWorkflowTest extends TestCase
         $this->assertNotNull($session->ended_at);
     }
 
+    public function test_electronic_submission_suggests_auto_grade_without_assigning_it(): void
+    {
+        $teacher = User::factory()->create();
+        $this->actingAs($teacher, 'api');
+        Auth::login($teacher);
+
+        $group = app(StudentGroupService::class)->createGroup([
+            'name' => '22ИС4-1',
+            'students' => [
+                'Дудина Софья Романовна',
+            ],
+        ]);
+
+        $test = Test::create([
+            'title' => 'Электронная работа',
+            'subject_name' => 'Программирование',
+            'created_by' => $teacher->id,
+            'is_active' => true,
+            'delivery_mode' => 'electronic',
+            'access_code' => 'AUTO0001',
+            'grade_criteria' => [
+                ['label' => '5 (Отлично)', 'min_points' => 1],
+                ['label' => '2 (Нужно доработать)', 'min_points' => 0],
+            ],
+        ]);
+
+        $question = Question::create([
+            'test_id' => $test->id,
+            'question_text' => 'Выберите правильный ответ',
+            'type' => 'single',
+            'points' => 1,
+            'order' => 0,
+            'variant_number' => 1,
+        ]);
+
+        $correctAnswer = Answer::create([
+            'question_id' => $question->id,
+            'answer_text' => 'Правильно',
+            'is_correct' => true,
+            'order' => 0,
+        ]);
+
+        Answer::create([
+            'question_id' => $question->id,
+            'answer_text' => 'Неправильно',
+            'is_correct' => false,
+            'order' => 1,
+        ]);
+
+        $session = ElectronicTestSession::create([
+            'test_id' => $test->id,
+            'student_group_id' => $group->id,
+            'created_by' => $teacher->id,
+            'access_token' => bin2hex(random_bytes(16)),
+            'is_active' => true,
+            'settings' => [],
+            'started_at' => now(),
+        ]);
+
+        $attempt = ElectronicTestAttempt::create([
+            'electronic_test_session_id' => $session->id,
+            'test_id' => $test->id,
+            'student_group_id' => $group->id,
+            'group_student_id' => $group->students->first()->id,
+            'variant_number' => 1,
+            'access_token' => bin2hex(random_bytes(16)),
+            'access_type' => 'student_list',
+            'student_full_name' => 'Дудина Софья Романовна',
+            'is_manual_student' => false,
+            'status' => 'in_progress',
+            'started_at' => now(),
+        ]);
+
+        $submitResponse = $this->postJson('/api/public/electronic-attempts/' . $attempt->access_token . '/submit', [
+            'answers' => [
+                $question->id => $correctAnswer->id,
+            ],
+        ]);
+
+        $submitResponse->assertOk();
+
+        $attempt->refresh();
+
+        $this->assertSame('submitted', $attempt->status);
+        $this->assertSame('5 (Отлично)', $attempt->grade_label);
+        $this->assertNull($attempt->assigned_grade_value);
+        $this->assertNull($attempt->assigned_grade_date);
+        $this->assertNull($attempt->reviewed_at);
+
+        $dashboardResponse = $this->getJson('/api/tests/' . $test->id . '/electronic-dashboard');
+
+        $dashboardResponse->assertOk();
+        $dashboardResponse->assertJsonPath('data.current_session.unreviewed_count', 1);
+        $dashboardResponse->assertJsonPath('data.current_session.attempts.0.status', 'submitted');
+        $dashboardResponse->assertJsonPath('data.current_session.attempts.0.grade_label', '5 (Отлично)');
+        $dashboardResponse->assertJsonPath('data.current_session.attempts.0.assigned_grade_value', null);
+
+        $assignResponse = $this->patchJson('/api/electronic-attempts/' . $attempt->id . '/assign-grade', [
+            'grade_value' => '5 (Отлично)',
+            'grade_date' => '2026-05-03',
+        ]);
+
+        $assignResponse->assertOk();
+
+        $attempt->refresh();
+
+        $this->assertSame('reviewed', $attempt->status);
+        $this->assertSame('5 (Отлично)', $attempt->assigned_grade_value);
+
+        $this->getJson('/api/tests/' . $test->id . '/electronic-dashboard')
+            ->assertOk()
+            ->assertJsonPath('data.current_session.unreviewed_count', 0);
+    }
+
     public function test_hybrid_print_keeps_sheet_qr_short_for_scanning(): void
     {
         $teacher = User::factory()->create();

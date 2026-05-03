@@ -872,13 +872,10 @@
         }
 
         const payload = await response.json();
-        const previousSubmittedIds = (electronicDashboard?.current_session?.attempts || [])
-            .filter((attempt) => ['submitted', 'reviewed'].includes(attempt.status))
-            .map((attempt) => attempt.id);
 
         electronicDashboard = payload.data || {};
         renderElectronicDashboard();
-        notifyAboutNewElectronicAttempts(previousSubmittedIds);
+        await notifyAboutNewElectronicAttempts();
         startElectronicPolling();
     }
 
@@ -1017,41 +1014,77 @@
                 }
 
                 const payload = await response.json();
-                const previousSubmittedIds = (electronicDashboard?.current_session?.attempts || [])
-                    .filter((attempt) => ['submitted', 'reviewed'].includes(attempt.status))
-                    .map((attempt) => attempt.id);
                 electronicDashboard = payload.data || {};
                 renderElectronicDashboard();
-                notifyAboutNewElectronicAttempts(previousSubmittedIds);
+                await notifyAboutNewElectronicAttempts();
             } catch (error) {
                 console.error('Ошибка обновления электронного тестирования:', error);
             }
         }, 15000);
     }
 
-    function notifyAboutNewElectronicAttempts(previousSubmittedIds = []) {
+    function getElectronicNotificationStorageKey() {
+        return `proverium.electronic.notified.${testId}`;
+    }
+
+    function loadElectronicKnownSubmittedAttemptIds() {
+        try {
+            const raw = localStorage.getItem(getElectronicNotificationStorageKey());
+            const parsed = raw ? JSON.parse(raw) : [];
+
+            return Array.isArray(parsed)
+                ? parsed.map((id) => Number(id)).filter((id) => Number.isInteger(id) && id > 0)
+                : [];
+        } catch (error) {
+            return electronicKnownSubmittedAttemptIds;
+        }
+    }
+
+    function storeElectronicKnownSubmittedAttemptIds(ids) {
+        const normalized = [...new Set((ids || [])
+            .map((id) => Number(id))
+            .filter((id) => Number.isInteger(id) && id > 0))];
+
+        electronicKnownSubmittedAttemptIds = normalized;
+
+        try {
+            localStorage.setItem(getElectronicNotificationStorageKey(), JSON.stringify(normalized));
+        } catch (error) {
+            // В приватном режиме браузер может запретить localStorage; тогда работает память текущей вкладки.
+        }
+    }
+
+    async function notifyAboutNewElectronicAttempts() {
+        const knownSubmittedIds = loadElectronicKnownSubmittedAttemptIds();
         const currentSubmittedAttempts = (electronicDashboard?.current_session?.attempts || [])
-            .filter((attempt) => ['submitted', 'reviewed'].includes(attempt.status));
-        const newAttempts = currentSubmittedAttempts.filter((attempt) => !previousSubmittedIds.includes(attempt.id));
+            .filter((attempt) => attempt.status === 'submitted');
+        const currentSubmittedIds = currentSubmittedAttempts.map((attempt) => attempt.id);
+        const newAttempts = currentSubmittedAttempts.filter((attempt) => !knownSubmittedIds.includes(attempt.id));
 
         if (!newAttempts.length) {
-            electronicKnownSubmittedAttemptIds = currentSubmittedAttempts.map((attempt) => attempt.id);
+            storeElectronicKnownSubmittedAttemptIds([...knownSubmittedIds, ...currentSubmittedIds]);
             return;
         }
 
-        if (window.Notification && Notification.permission === 'default') {
-            Notification.requestPermission().catch(() => {});
+        let canShowBrowserNotification = false;
+        if (window.Notification) {
+            let permission = Notification.permission;
+            if (permission === 'default') {
+                permission = await Notification.requestPermission().catch(() => Notification.permission);
+            }
+
+            canShowBrowserNotification = permission === 'granted';
         }
 
         newAttempts.forEach((attempt) => {
-            if (window.Notification && Notification.permission === 'granted') {
+            if (canShowBrowserNotification) {
                 new Notification('Провериум: новая завершённая работа', {
                     body: `${attempt.student_full_name} завершил(а) тест.`,
                 });
             }
         });
 
-        electronicKnownSubmittedAttemptIds = currentSubmittedAttempts.map((attempt) => attempt.id);
+        storeElectronicKnownSubmittedAttemptIds([...knownSubmittedIds, ...currentSubmittedIds]);
     }
 
     async function startElectronicSession() {

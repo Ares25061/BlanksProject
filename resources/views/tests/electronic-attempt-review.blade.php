@@ -253,7 +253,7 @@
 
         document.getElementById('studentBindingWrap').classList.toggle('hidden', hasBoundStudent);
         document.getElementById('studentFullName').value = hasBoundStudent ? '' : (attempt.student_full_name || '');
-        document.getElementById('gradeValue').value = attempt.assigned_grade_value || '';
+        document.getElementById('gradeValue').value = attempt.assigned_grade_value || attempt.grade_label || '';
         document.getElementById('gradeDate').value = attempt.assigned_grade_date || new Date().toISOString().slice(0, 10);
         document.getElementById('saveReviewButton').textContent = hasBoundStudent
             ? 'Сохранить оценку'
