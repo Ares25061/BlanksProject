@@ -34,35 +34,102 @@ class SimpleXlsx
 
     public static function writeWorkbook(string $sheetName, array $rows): string
     {
-        self::ensureZipSupport();
-
         $directory = storage_path('framework/testing/xlsx-temp');
         if (! is_dir($directory) && ! mkdir($directory, 0777, true) && ! is_dir($directory)) {
             throw new RuntimeException('Не удалось подготовить папку для временных XLSX-файлов.');
         }
 
         $tempPath = $directory.DIRECTORY_SEPARATOR.uniqid('blanks_xlsx_', true).'.xlsx';
+        $timestamp = now()->toIso8601String();
+        $sheetTitle = self::escapeXml(mb_substr(trim($sheetName) ?: 'Sheet1', 0, 31));
+        $entries = self::workbookEntries($timestamp, $sheetTitle, $rows);
 
+        if (class_exists(ZipArchive::class)) {
+            try {
+                self::writeWithZipArchive($tempPath, $entries);
+
+                return $tempPath;
+            } catch (RuntimeException) {
+                @unlink($tempPath);
+            }
+        }
+
+        self::writeStoredZip($tempPath, $entries);
+
+        return $tempPath;
+    }
+
+    private static function writeWithZipArchive(string $path, array $entries): void
+    {
         $zip = new ZipArchive;
-        if ($zip->open($tempPath, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) {
-            @unlink($tempPath);
+        if ($zip->open($path, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) {
+            @unlink($path);
             throw new RuntimeException('Не удалось собрать XLSX-файл.');
         }
 
-        $timestamp = now()->toIso8601String();
-        $sheetTitle = self::escapeXml(mb_substr(trim($sheetName) ?: 'Sheet1', 0, 31));
+        foreach ($entries as $name => $contents) {
+            $zip->addFromString($name, $contents);
+        }
 
-        $zip->addFromString('[Content_Types].xml', self::contentTypesXml());
-        $zip->addFromString('_rels/.rels', self::rootRelationshipsXml());
-        $zip->addFromString('docProps/app.xml', self::appPropertiesXml());
-        $zip->addFromString('docProps/core.xml', self::corePropertiesXml($timestamp));
-        $zip->addFromString('xl/workbook.xml', self::workbookXml($sheetTitle));
-        $zip->addFromString('xl/_rels/workbook.xml.rels', self::workbookRelationshipsXml());
-        $zip->addFromString('xl/styles.xml', self::stylesXml());
-        $zip->addFromString('xl/worksheets/sheet1.xml', self::worksheetXml($rows));
-        $zip->close();
+        if ($zip->close() !== true) {
+            @unlink($path);
+            throw new RuntimeException('Не удалось собрать XLSX-файл.');
+        }
+    }
 
-        return $tempPath;
+    private static function writeStoredZip(string $path, array $entries): void
+    {
+        $localParts = [];
+        $centralParts = [];
+        $offset = 0;
+        [$dosTime, $dosDate] = self::zipDosDateTime();
+
+        foreach ($entries as $name => $contents) {
+            $name = str_replace('\\', '/', (string) $name);
+            $contents = (string) $contents;
+            $crc = (int) hexdec(hash('crc32b', $contents));
+            $size = strlen($contents);
+            $nameLength = strlen($name);
+
+            $localHeader = pack('VvvvvvVVVvv', 0x04034b50, 20, 0, 0, $dosTime, $dosDate, $crc, $size, $size, $nameLength, 0).$name;
+            $centralHeader = pack('VvvvvvvVVVvvvvvVV', 0x02014b50, 20, 20, 0, 0, $dosTime, $dosDate, $crc, $size, $size, $nameLength, 0, 0, 0, 0, 0, $offset).$name;
+
+            $localParts[] = $localHeader.$contents;
+            $centralParts[] = $centralHeader;
+            $offset += strlen($localHeader) + $size;
+        }
+
+        $centralDirectory = implode('', $centralParts);
+        $endOfCentralDirectory = pack('VvvvvVVv', 0x06054b50, 0, 0, count($entries), count($entries), strlen($centralDirectory), $offset, 0);
+        $contents = implode('', $localParts).$centralDirectory.$endOfCentralDirectory;
+
+        if (file_put_contents($path, $contents) === false) {
+            @unlink($path);
+            throw new RuntimeException('Не удалось собрать XLSX-файл.');
+        }
+    }
+
+    private static function workbookEntries(string $timestamp, string $sheetTitle, array $rows): array
+    {
+        return [
+            '[Content_Types].xml' => self::contentTypesXml(),
+            '_rels/.rels' => self::rootRelationshipsXml(),
+            'docProps/app.xml' => self::appPropertiesXml(),
+            'docProps/core.xml' => self::corePropertiesXml($timestamp),
+            'xl/workbook.xml' => self::workbookXml($sheetTitle),
+            'xl/_rels/workbook.xml.rels' => self::workbookRelationshipsXml(),
+            'xl/styles.xml' => self::stylesXml(),
+            'xl/worksheets/sheet1.xml' => self::worksheetXml($rows),
+        ];
+    }
+
+    private static function zipDosDateTime(): array
+    {
+        $year = max(1980, (int) date('Y'));
+        $date = (($year - 1980) << 9) | ((int) date('n') << 5) | (int) date('j');
+        $time = ((int) date('G') << 11) | ((int) date('i') << 5) | intdiv((int) date('s'), 2);
+
+        return [$time, $date];
     }
 
     private static function ensureZipSupport(): void
