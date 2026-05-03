@@ -1089,6 +1089,35 @@ class TeacherWorkflowTest extends TestCase
         @unlink($xlsxPath);
     }
 
+    public function test_api_accepts_xlsx_import_when_mime_is_detected_as_zip(): void
+    {
+        $teacher = User::factory()->create();
+        $xlsxPath = SimpleXlsx::writeWorkbook('Вопросы', [
+            ['question_text', 'type', 'points', 'answer_a', 'answer_b', 'correct'],
+            ['Что означает break?', 'single', '1', 'Выход из цикла', 'Создание переменной', 'A'],
+        ]);
+
+        $file = new UploadedFile(
+            $xlsxPath,
+            'questions-from-export.xlsx',
+            'application/zip',
+            null,
+            true
+        );
+
+        $response = $this->actingAs($teacher, 'api')->post('/api/tests/import-questions', [
+            'file' => $file,
+        ], [
+            'Accept' => 'application/json',
+        ]);
+
+        $response->assertOk();
+        $response->assertJsonPath('data.questions.0.question_text', 'Что означает break?');
+        $response->assertJsonPath('data.questions.0.answers.0.is_correct', true);
+
+        @unlink($xlsxPath);
+    }
+
     public function test_api_can_import_questions_from_exported_xlsx_layout(): void
     {
         $teacher = User::factory()->create();

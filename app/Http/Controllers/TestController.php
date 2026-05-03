@@ -183,7 +183,18 @@ class TestController extends Controller
         $this->authorize('create', Test::class);
 
         $validated = $request->validate([
-            'file' => 'required|file|mimes:json,xlsx|max:5120',
+            'file' => [
+                'required',
+                'file',
+                'max:5120',
+                function (string $attribute, $value, $fail) {
+                    $extension = Str::lower($value->getClientOriginalExtension() ?: $value->extension() ?: '');
+
+                    if (! in_array($extension, ['json', 'xlsx'], true)) {
+                        $fail('Поддерживаются только файлы JSON и XLSX.');
+                    }
+                },
+            ],
         ]);
 
         $imported = $this->testImportService->importFromUploadedFile($validated['file']);
