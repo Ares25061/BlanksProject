@@ -182,9 +182,16 @@
             display: flex;
             flex-direction: column;
             justify-content: center;
-            gap: 0.35mm;
+            gap: 0.45mm;
             width: 100%;
             height: 100%;
+        }
+
+        .service-line-pair {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+            gap: 3mm;
+            width: 100%;
         }
 
         .service-line {
@@ -198,8 +205,8 @@
 
         .service-instruction {
             margin: 0.25mm 0 0;
-            font-size: 1.55mm;
-            line-height: 1.12;
+            font-size: 2.05mm;
+            line-height: 1.13;
             white-space: normal;
             overflow: hidden;
         }
@@ -381,8 +388,10 @@
                 "
             >
                 <div class="service-meta">
-                    <p class="service-line"><span class="service-label">Студент:</span> {{ $serviceZone['student_label'] ?? '' }}</p>
-                    <p class="service-line"><span class="service-label">Тест:</span> {{ $serviceZone['test_label'] ?? $test->title }}</p>
+                    <div class="service-line-pair">
+                        <p class="service-line"><span class="service-label">Ученик:</span> {{ $serviceZone['student_label'] ?? '' }}</p>
+                        <p class="service-line"><span class="service-label">Тест:</span> {{ $serviceZone['test_label'] ?? $test->title }}</p>
+                    </div>
                     <p class="service-line"><span class="service-label">Группа:</span> {{ $serviceZone['group_label'] ?? 'N/A' }} | <span class="service-label">Стр.:</span> {{ $serviceZone['page_label'] ?? (($page['page_number'] ?? 1) . '/' . ($page['page_count'] ?? 1)) }} | <span class="service-label">Вариант:</span> {{ $serviceZone['variant_label'] ?? ($page['variant_number'] ?? 1) }}</p>
                     <p class="service-instruction">{{ $serviceZone['instruction'] ?? $blankFillInstruction }}</p>
                 </div>

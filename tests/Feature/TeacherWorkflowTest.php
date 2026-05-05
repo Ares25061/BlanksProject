@@ -803,7 +803,7 @@ class TeacherWorkflowTest extends TestCase
         $response = $this->get('/tests/' . $test->id . '/print');
         $response->assertOk();
         $response->assertSee('Новый шаблон печатается единым листом', false);
-        $response->assertSee('Студент:', false);
+        $response->assertSee('Ученик:', false);
         $response->assertSee('Тест:', false);
         $response->assertSee('Группа:', false);
         $response->assertSee('Ответ:', false);
