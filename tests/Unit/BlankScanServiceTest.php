@@ -80,9 +80,9 @@ class BlankScanServiceTest extends TestCase
         $this->assertSame(['C'], $result['display_answers'][1]['borderline_selected']);
         $this->assertSame(['D'], $result['display_answers'][2]['borderline_unselected']);
         $this->assertSame([
-            'Question 9 has weak borderline marks that stayed below the threshold: A.',
-            'Question 16 was recognized from weak borderline marks: C.',
-            'Question 17 has weak borderline marks that stayed below the threshold: D.',
+            'В вопросе 9 есть слабые пограничные отметки, оставшиеся ниже порога: A.',
+            'Вопрос 16 распознан по слабым пограничным отметкам: C.',
+            'В вопросе 17 есть слабые пограничные отметки, оставшиеся ниже порога: D.',
         ], $result['warnings']);
         $this->assertSame(['start' => 9, 'end' => 17], $result['question_range']);
     }

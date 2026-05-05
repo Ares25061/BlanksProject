@@ -9,6 +9,8 @@ use Illuminate\Support\Collection;
 
 class UnifiedSheetLayoutService
 {
+    private const BLANK_FILL_INSTRUCTION = 'При выборе варианта ответа полностью закрашивайте клетку выбранного ответа, при ответе в виде галочки или крестика OCR может не засчитать ваш вариант ответа. Также учитывайте тип вопроса: если тип "1", то всегда будет только один правильный ответ, а если тип "М", то для правильного ответа необходимо выбрать несколько вариантов ответа.';
+
     public function __construct(
         private TestVariantService $testVariantService,
         private BlankSheetQrCodeService $blankSheetQrCodeService,
@@ -145,8 +147,10 @@ class UnifiedSheetLayoutService
                         'group_label' => (string) (($identity['group_name'] ?? '') !== '' ? $identity['group_name'] : 'N/A'),
                         'test_label' => (string) $test->title,
                         'version_label' => 'V' . $normalizedVariantNumber,
+                        'variant_label' => (string) $normalizedVariantNumber,
                         'form_label' => (string) ($identity['form_number'] ?? ''),
                         'page_label' => $pageNumber . '/' . $pageCount,
+                        'instruction' => self::BLANK_FILL_INSTRUCTION,
                         'max_score' => $maxScore,
                     ]),
                     'qr_zone' => UnifiedSheetLayout::qrZoneMm(),

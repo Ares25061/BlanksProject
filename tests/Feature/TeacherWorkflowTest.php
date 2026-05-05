@@ -998,6 +998,58 @@ class TeacherWorkflowTest extends TestCase
         ]);
     }
 
+    public function test_test_service_normalizes_multiple_question_with_one_correct_answer_to_single(): void
+    {
+        $teacher = User::factory()->create();
+        $this->actingAs($teacher);
+        Auth::login($teacher);
+
+        $test = app(TestService::class)->createTest([
+            'title' => 'Нормализация типов',
+            'subject_name' => 'Программирование',
+            'variant_count' => 1,
+            'grade_criteria' => [
+                ['label' => '5', 'min_points' => 1],
+                ['label' => '2', 'min_points' => 0],
+            ],
+            'questions' => [
+                [
+                    'question_text' => 'Вопрос с одним правильным ответом',
+                    'type' => 'multiple',
+                    'points' => 1,
+                    'answers' => [
+                        ['answer_text' => 'Верно', 'is_correct' => true],
+                        ['answer_text' => 'Неверно', 'is_correct' => false],
+                    ],
+                ],
+            ],
+        ]);
+
+        $this->assertSame('single', $test->questions->first()->type);
+
+        $updated = app(TestService::class)->updateTest($test, [
+            'title' => $test->title,
+            'subject_name' => $test->subject_name,
+            'variant_count' => 1,
+            'grade_criteria' => $test->grade_criteria,
+            'questions' => [
+                [
+                    'id' => $test->questions->first()->id,
+                    'question_text' => 'Обновленный вопрос с одним правильным ответом',
+                    'type' => 'multiple',
+                    'points' => 1,
+                    'answers' => $test->questions->first()->answers->map(fn (Answer $answer, int $index) => [
+                        'id' => $answer->id,
+                        'answer_text' => $answer->answer_text,
+                        'is_correct' => $index === 0,
+                    ])->all(),
+                ],
+            ],
+        ]);
+
+        $this->assertSame('single', $updated->questions->first()->type);
+    }
+
     public function test_api_can_import_questions_from_json_file(): void
     {
         $teacher = User::factory()->create();

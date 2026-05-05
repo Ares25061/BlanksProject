@@ -6,10 +6,10 @@ use Tests\TestCase;
 
 class ExampleTest extends TestCase
 {
-    public function test_root_redirects_to_registration(): void
+    public function test_root_renders_welcome_page(): void
     {
         $response = $this->get('/');
 
-        $response->assertRedirect('/user/register');
+        $response->assertOk();
     }
 }

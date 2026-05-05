@@ -818,22 +818,32 @@
         return valid;
     }
 
+    function normalizeQuestionTypeForAnswers(requestedType, answers) {
+        const correctCount = answers.filter((answer) => answer.is_correct).length;
+
+        return requestedType === 'multiple' && correctCount <= 1 ? 'single' : requestedType;
+    }
+
     function collectQuestions() {
-        return Array.from(document.querySelectorAll('.question-item')).map((question, index) => ({
-            question_text: question.querySelector('.question-text').value.trim(),
-            type: question.querySelector('.question-type').value,
-            points: parseInt(question.querySelector('.question-points').value, 10) || 1,
-            variant_number: Math.max(1, Math.min(
-                normalizeVariantCountValue(),
-                parseInt(question.querySelector('.question-variant')?.value, 10) || 1
-            )),
-            order: index,
-            answers: Array.from(question.querySelectorAll('.answer-item')).map((answer, answerIndex) => ({
+        return Array.from(document.querySelectorAll('.question-item')).map((question, index) => {
+            const answers = Array.from(question.querySelectorAll('.answer-item')).map((answer, answerIndex) => ({
                 answer_text: answer.querySelector('.answer-text').value.trim(),
                 is_correct: answer.querySelector('.answer-correct').checked,
                 order: answerIndex
-            }))
-        }));
+            }));
+
+            return {
+                question_text: question.querySelector('.question-text').value.trim(),
+                type: normalizeQuestionTypeForAnswers(question.querySelector('.question-type').value, answers),
+                points: parseInt(question.querySelector('.question-points').value, 10) || 1,
+                variant_number: Math.max(1, Math.min(
+                    normalizeVariantCountValue(),
+                    parseInt(question.querySelector('.question-variant')?.value, 10) || 1
+                )),
+                order: index,
+                answers
+            };
+        });
     }
 
     document.getElementById('testForm').addEventListener('submit', async (event) => {

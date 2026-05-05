@@ -8,6 +8,7 @@ use App\Models\Question;
 use App\Models\Test;
 use App\Models\User;
 use App\Services\BlankSheetManifestService;
+use App\Services\TestVariantService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
@@ -78,6 +79,8 @@ class BlankSheetManifestServiceTest extends TestCase
         $this->assertSame(1, data_get($pages, '0.question_range.start'));
         $this->assertSame(1, data_get($pages, '0.question_range.end'));
         $this->assertSame(210.0, data_get($pages, '0.page_width_mm'));
+        $this->assertSame('1', data_get($pages, '0.service_zone.variant_label'));
+        $this->assertStringContainsString('полностью закрашивайте', data_get($pages, '0.service_zone.instruction'));
         $this->assertNotEmpty(data_get($pages, '0.qr_payload.sig'));
     }
 
@@ -195,6 +198,72 @@ class BlankSheetManifestServiceTest extends TestCase
 
         $samePages = $service->ensurePersisted($blankForm->fresh('test.questions.answers'));
         $this->assertSame($printedAnswerIds, collect(data_get($samePages, '0.questions.0.cells', []))->pluck('answer_id')->all());
+    }
+
+    public function test_variant_answers_follow_persisted_print_manifest_order(): void
+    {
+        Storage::fake('local');
+
+        $teacher = User::factory()->create();
+
+        $test = Test::create([
+            'title' => 'Review follows printed order',
+            'subject_name' => 'Programming',
+            'created_by' => $teacher->id,
+            'is_active' => true,
+            'grade_criteria' => [
+                ['label' => '5', 'min_points' => 0],
+            ],
+        ]);
+
+        $question = Question::create([
+            'test_id' => $test->id,
+            'question_text' => 'Какой порядок показывать при ручной проверке?',
+            'type' => 'multiple',
+            'points' => 1,
+            'order' => 0,
+        ]);
+
+        $answers = collect(['A', 'B', 'C', 'D'])
+            ->map(fn (string $letter, int $index) => Answer::create([
+                'question_id' => $question->id,
+                'answer_text' => 'Вариант ' . $letter,
+                'is_correct' => $index < 2,
+                'order' => $index,
+            ]));
+
+        $blankForm = BlankForm::create([
+            'test_id' => $test->id,
+            'form_number' => 'TEST-REVIEW-ORDER-001',
+            'variant_number' => 1,
+            'last_name' => 'Сидоров',
+            'first_name' => 'Павел',
+            'group_name' => '25ИС1-7',
+            'status' => 'generated',
+        ]);
+
+        $service = app(BlankSheetManifestService::class);
+        $pages = $service->ensurePersisted($blankForm->fresh('test.questions.answers'), true);
+        $customAnswerIds = $answers->pluck('id')->reverse()->values()->all();
+        $manifestPath = data_get($blankForm->fresh()->metadata, 'print_layout.pages.0.manifest_path');
+        $page = $pages[0];
+
+        foreach ($page['questions'][0]['cells'] as $index => $cell) {
+            $page['questions'][0]['cells'][$index]['answer_id'] = $customAnswerIds[$index];
+            $page['questions'][0]['cells'][$index]['option_index'] = $index;
+        }
+
+        Storage::disk('local')->put(
+            $manifestPath,
+            json_encode($page, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT)
+        );
+
+        $blankForm = app(TestVariantService::class)->attachVariantAnswers($blankForm->fresh('test.questions.answers'));
+        $displayAnswerIds = collect($blankForm->test->questions->first()->variant_answers)
+            ->pluck('id')
+            ->all();
+
+        $this->assertSame($customAnswerIds, $displayAnswerIds);
     }
 
     public function test_manifest_layout_pushes_answer_row_below_wrapped_text_content(): void

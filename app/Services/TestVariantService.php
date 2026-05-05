@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\BlankForm;
 use App\Models\Test;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 
 class TestVariantService
@@ -70,9 +71,16 @@ class TestVariantService
         $variantQuestions = $this->questionsForVariant($blankForm->test, $variantNumber)->values();
         $shuffleAnswers = (bool) data_get($blankForm->metadata, 'print_options.shuffle_answer_options', false);
         $shuffleIdentity = $this->blankFormShuffleIdentity($blankForm);
+        $printedAnswerOrder = $this->printedAnswerOrderByQuestion($blankForm);
 
-        $variantQuestions->each(function ($question) use ($variantNumber, $shuffleAnswers, $shuffleIdentity) {
-            $variantAnswers = $this->orderedAnswersForQuestion($question, $variantNumber, $shuffleAnswers, $shuffleIdentity)
+        $variantQuestions->each(function ($question) use ($variantNumber, $shuffleAnswers, $shuffleIdentity, $printedAnswerOrder) {
+            $variantAnswers = $this->orderedAnswersForPrintedBlank(
+                $question,
+                $variantNumber,
+                $shuffleAnswers,
+                $shuffleIdentity,
+                $printedAnswerOrder[(int) $question->id] ?? null
+            )
                 ->map(fn ($answer) => $answer->toArray())
                 ->values()
                 ->all();
@@ -106,6 +114,79 @@ class TestVariantService
             'test_id' => (int) $blankForm->test_id,
             'variant_number' => (int) ($blankForm->variant_number ?? 1),
         ];
+    }
+
+    public function printedAnswerOrderByQuestion(BlankForm $blankForm): array
+    {
+        $orders = [];
+
+        foreach (data_get($blankForm->metadata, 'print_layout.pages', []) as $page) {
+            $manifestPath = (string) ($page['manifest_path'] ?? '');
+
+            if ($manifestPath === '' || !Storage::disk('local')->exists($manifestPath)) {
+                continue;
+            }
+
+            $manifest = json_decode((string) Storage::disk('local')->get($manifestPath), true);
+
+            if (!is_array($manifest)) {
+                continue;
+            }
+
+            foreach (($manifest['questions'] ?? []) as $question) {
+                $questionId = (int) ($question['question_id'] ?? 0);
+
+                if ($questionId <= 0) {
+                    continue;
+                }
+
+                $answerIds = collect($question['cells'] ?? [])
+                    ->sortBy(fn (array $cell) => (int) ($cell['option_index'] ?? 0))
+                    ->pluck('answer_id')
+                    ->map(fn ($answerId) => (int) $answerId)
+                    ->filter()
+                    ->values()
+                    ->all();
+
+                if ($answerIds !== []) {
+                    $orders[$questionId] = $answerIds;
+                }
+            }
+        }
+
+        return $orders;
+    }
+
+    private function orderedAnswersForPrintedBlank($question, int $variantNumber, bool $shuffle, array $shuffleIdentity, ?array $printedAnswerIds): Collection
+    {
+        if ($printedAnswerIds !== null) {
+            $orderedAnswers = $this->orderedAnswersByIds($question, $printedAnswerIds);
+
+            if ($orderedAnswers->isNotEmpty()) {
+                return $orderedAnswers;
+            }
+        }
+
+        return $this->orderedAnswersForQuestion($question, $variantNumber, $shuffle, $shuffleIdentity);
+    }
+
+    private function orderedAnswersByIds($question, array $answerIds): Collection
+    {
+        $answers = $question->answers->sortBy('order')->values();
+        $answersById = $answers->keyBy(fn ($answer) => (int) $answer->id);
+        $orderedAnswers = collect($answerIds)
+            ->map(fn ($answerId) => $answersById->get((int) $answerId))
+            ->filter()
+            ->unique(fn ($answer) => (int) $answer->id)
+            ->values();
+
+        $orderedAnswerIds = $orderedAnswers
+            ->map(fn ($answer) => (int) $answer->id)
+            ->all();
+
+        return $orderedAnswers
+            ->concat($answers->reject(fn ($answer) => in_array((int) $answer->id, $orderedAnswerIds, true)))
+            ->values();
     }
 
     private function deterministicallyShuffleAnswers(Collection $answers, $question, int $variantNumber, array $shuffleIdentity): Collection

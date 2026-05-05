@@ -101,12 +101,14 @@ class TestService
         $updatedQuestionIds = [];
 
         foreach ($questions as $index => $questionData) {
+            $questionType = $this->normalizeQuestionType($questionData);
+
             if (isset($questionData['id']) && in_array($questionData['id'], $existingQuestionIds)) {
                 // Обновляем существующий вопрос
                 $question = Question::find($questionData['id']);
                 $question->update([
                     'question_text' => $questionData['question_text'],
-                    'type' => $questionData['type'],
+                    'type' => $questionType,
                     'points' => $questionData['points'] ?? 1,
                     'order' => $index,
                     'variant_number' => $this->normalizeQuestionVariantNumber($questionData, $variantCount),
@@ -120,7 +122,7 @@ class TestService
                 // Создаем новый вопрос
                 $question = $test->questions()->create([
                     'question_text' => $questionData['question_text'],
-                    'type' => $questionData['type'],
+                    'type' => $questionType,
                     'points' => $questionData['points'] ?? 1,
                     'order' => $index,
                     'variant_number' => $this->normalizeQuestionVariantNumber($questionData, $variantCount),
@@ -189,7 +191,7 @@ class TestService
 
         $question = $test->questions()->create([
             'question_text' => $questionData['question_text'],
-            'type' => $questionData['type'],
+            'type' => $this->normalizeQuestionType($questionData),
             'points' => $questionData['points'] ?? 1,
             'order' => $questionData['order'] ?? ($test->questions()->max('order') + 1),
             'variant_number' => $this->normalizeQuestionVariantNumber($questionData, $resolvedVariantCount),
@@ -338,6 +340,23 @@ class TestService
         }
 
         return $variantNumber;
+    }
+
+    protected function normalizeQuestionType(array $questionData): string
+    {
+        $requestedType = in_array(($questionData['type'] ?? 'single'), ['single', 'multiple'], true)
+            ? (string) $questionData['type']
+            : 'single';
+
+        $correctCount = collect($questionData['answers'] ?? [])
+            ->filter(fn ($answer) => is_array($answer) && filter_var($answer['is_correct'] ?? false, FILTER_VALIDATE_BOOLEAN))
+            ->count();
+
+        if ($requestedType === 'multiple' && $correctCount <= 1) {
+            return 'single';
+        }
+
+        return $requestedType;
     }
 
     protected function ensureAllVariantsContainQuestions(array $questions, int $variantCount): void

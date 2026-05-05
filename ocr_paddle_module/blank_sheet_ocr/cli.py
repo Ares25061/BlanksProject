@@ -15,6 +15,7 @@ TARGET_WIDTH_PX = 2480
 TARGET_HEIGHT_PX = 3508
 PAGE_WIDTH_MM = 210.0
 PAGE_HEIGHT_MM = 297.0
+BORDERLINE_SELECTION_GAP = 0.001
 DEFAULT_QR_PADDING_MM = 4.0
 DEFAULT_QR_ZONE_MM = {
     "left_mm": 180.0,
@@ -340,7 +341,13 @@ def fill_ratio(crop: np.ndarray) -> float:
 def is_borderline_ratio(ratio: float, threshold: float, uncertain_margin: float) -> bool:
     if uncertain_margin <= 0:
         return False
-    return abs(float(ratio) - float(threshold)) <= float(uncertain_margin)
+
+    ratio = float(ratio)
+    threshold = float(threshold)
+    lower_bound = threshold - float(uncertain_margin)
+    upper_bound = threshold - BORDERLINE_SELECTION_GAP
+
+    return lower_bound <= ratio <= upper_bound
 
 
 def recognize_questions(image: np.ndarray, manifest: dict[str, Any], threshold: float, uncertain_margin: float) -> dict[str, Any]:

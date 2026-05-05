@@ -182,18 +182,26 @@
             display: flex;
             flex-direction: column;
             justify-content: center;
-            gap: 0.7mm;
+            gap: 0.35mm;
             width: 100%;
             height: 100%;
         }
 
         .service-line {
             margin: 0;
-            font-size: 2.9mm;
+            font-size: 2.65mm;
             line-height: 1.08;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
+        }
+
+        .service-instruction {
+            margin: 0.25mm 0 0;
+            font-size: 1.55mm;
+            line-height: 1.12;
+            white-space: normal;
+            overflow: hidden;
         }
 
         .service-label {
@@ -326,6 +334,7 @@
 <body>
 @php
     $screenMessage = 'Новый шаблон печатается единым листом: вопросы и клетки находятся на одной странице, а OCR проверяет только клетки.';
+    $blankFillInstruction = 'При выборе варианта ответа полностью закрашивайте клетку выбранного ответа, при ответе в виде галочки или крестика OCR может не засчитать ваш вариант ответа. Также учитывайте тип вопроса: если тип "1", то всегда будет только один правильный ответ, а если тип "М", то для правильного ответа необходимо выбрать несколько вариантов ответа.';
 @endphp
 
 <div class="toolbar">
@@ -374,7 +383,8 @@
                 <div class="service-meta">
                     <p class="service-line"><span class="service-label">Студент:</span> {{ $serviceZone['student_label'] ?? '' }}</p>
                     <p class="service-line"><span class="service-label">Тест:</span> {{ $serviceZone['test_label'] ?? $test->title }}</p>
-                    <p class="service-line"><span class="service-label">Группа:</span> {{ $serviceZone['group_label'] ?? 'N/A' }} | <span class="service-label">Стр.:</span> {{ $serviceZone['page_label'] ?? (($page['page_number'] ?? 1) . '/' . ($page['page_count'] ?? 1)) }}</p>
+                    <p class="service-line"><span class="service-label">Группа:</span> {{ $serviceZone['group_label'] ?? 'N/A' }} | <span class="service-label">Стр.:</span> {{ $serviceZone['page_label'] ?? (($page['page_number'] ?? 1) . '/' . ($page['page_count'] ?? 1)) }} | <span class="service-label">Вариант:</span> {{ $serviceZone['variant_label'] ?? ($page['variant_number'] ?? 1) }}</p>
+                    <p class="service-instruction">{{ $serviceZone['instruction'] ?? $blankFillInstruction }}</p>
                 </div>
             </div>
 

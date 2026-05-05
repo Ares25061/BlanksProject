@@ -748,31 +748,38 @@
         }));
     }
 
+    function normalizeQuestionTypeForAnswers(requestedType, answers) {
+        const correctCount = answers.filter((answer) => answer.is_correct).length;
+
+        return requestedType === 'multiple' && correctCount <= 1 ? 'single' : requestedType;
+    }
+
     function collectQuestions() {
         return Array.from(document.querySelectorAll('.question-item')).map((question, index) => {
             const questionId = question.dataset.id;
+            const answers = Array.from(question.querySelectorAll('.answer-item')).map((answer, answerIndex) => {
+                const answerPayload = {
+                    answer_text: answer.querySelector('.answer-text').value.trim(),
+                    is_correct: answer.querySelector('.answer-correct').checked,
+                    order: answerIndex
+                };
+
+                if (answer.dataset.id && !String(answer.dataset.id).startsWith('q_')) {
+                    answerPayload.id = parseInt(answer.dataset.id, 10);
+                }
+
+                return answerPayload;
+            });
             const questionPayload = {
                 question_text: question.querySelector('.question-text').value.trim(),
-                type: question.querySelector('.question-type').value,
+                type: normalizeQuestionTypeForAnswers(question.querySelector('.question-type').value, answers),
                 points: parseInt(question.querySelector('.question-points').value, 10) || 1,
                 variant_number: Math.max(1, Math.min(
                     normalizeVariantCountValue(),
                     parseInt(question.querySelector('.question-variant')?.value, 10) || 1
                 )),
                 order: index,
-                answers: Array.from(question.querySelectorAll('.answer-item')).map((answer, answerIndex) => {
-                    const answerPayload = {
-                        answer_text: answer.querySelector('.answer-text').value.trim(),
-                        is_correct: answer.querySelector('.answer-correct').checked,
-                        order: answerIndex
-                    };
-
-                    if (answer.dataset.id && !String(answer.dataset.id).startsWith('q_')) {
-                        answerPayload.id = parseInt(answer.dataset.id, 10);
-                    }
-
-                    return answerPayload;
-                })
+                answers
             };
 
             if (questionId && !String(questionId).startsWith('q_')) {

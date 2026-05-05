@@ -306,6 +306,10 @@ class TestImportService
 
     private function normalizeType(mixed $typeValue, int $correctCount): string
     {
+        if ($correctCount <= 1) {
+            return 'single';
+        }
+
         $normalized = Str::lower(trim((string) $typeValue));
 
         return match ($normalized) {
