@@ -18,6 +18,7 @@ class UnifiedSheetLayoutService
     public function buildPagesForBlankForm(BlankForm $blankForm): array
     {
         $blankForm->loadMissing('test.questions.answers');
+        $shuffleAnswerOptions = (bool) data_get($blankForm->metadata, 'print_options.shuffle_answer_options', false);
 
         return $this->buildPages(
             $blankForm->test,
@@ -28,7 +29,8 @@ class UnifiedSheetLayoutService
                 'student_name' => $blankForm->student_full_name,
                 'group_name' => (string) ($blankForm->group_name ?? ''),
                 'variant_number' => (int) ($blankForm->variant_number ?? 1),
-            ]
+            ],
+            $shuffleAnswerOptions
         );
     }
 
@@ -43,11 +45,12 @@ class UnifiedSheetLayoutService
                 'student_name' => trim((string) ($payload['student_name'] ?? '')),
                 'group_name' => trim((string) ($payload['group_name'] ?? '')),
                 'variant_number' => (int) ($payload['variant_number'] ?? 1),
-            ]
+            ],
+            (bool) ($payload['shuffle_answer_options'] ?? false)
         );
     }
 
-    protected function buildPages(Test $test, int $variantNumber, array $identity): array
+    protected function buildPages(Test $test, int $variantNumber, array $identity, bool $shuffleAnswerOptions = false): array
     {
         $normalizedVariantNumber = $this->testVariantService->normalizeVariantNumber($test, $variantNumber);
         $questions = $this->testVariantService->questionsForVariant($test, $normalizedVariantNumber)->values();
@@ -59,7 +62,9 @@ class UnifiedSheetLayoutService
 
         foreach ($questions as $index => $question) {
             $questionNumber = $index + 1;
-            $variantAnswers = $this->testVariantService->orderedAnswersForQuestion($question, $normalizedVariantNumber)->values();
+            $variantAnswers = $this->testVariantService
+                ->orderedAnswersForQuestion($question, $normalizedVariantNumber, $shuffleAnswerOptions, $identity)
+                ->values();
             $questionManifest = $this->buildQuestionManifest(
                 $question,
                 $variantAnswers,
@@ -108,7 +113,7 @@ class UnifiedSheetLayoutService
 
         return collect($pages)
             ->values()
-            ->map(function (array $pageQuestions, int $pageIndex) use ($identity, $normalizedVariantNumber, $pageCount, $maxScore, $test) {
+            ->map(function (array $pageQuestions, int $pageIndex) use ($identity, $normalizedVariantNumber, $pageCount, $maxScore, $test, $shuffleAnswerOptions) {
                 $pageNumber = $pageIndex + 1;
                 $firstQuestion = collect($pageQuestions)->first(fn (array $question) => !($question['is_placeholder'] ?? false));
                 $lastQuestion = collect($pageQuestions)->reverse()->first(fn (array $question) => !($question['is_placeholder'] ?? false));
@@ -126,6 +131,7 @@ class UnifiedSheetLayoutService
                     'student_name' => (string) ($identity['student_name'] ?? ''),
                     'group_name' => (string) ($identity['group_name'] ?? ''),
                     'variant_number' => $normalizedVariantNumber,
+                    'shuffle_answer_options' => $shuffleAnswerOptions,
                     'page_number' => $pageNumber,
                     'page_count' => $pageCount,
                     'page_width_mm' => UnifiedSheetLayout::PAGE_WIDTH_MM,

@@ -13,15 +13,28 @@ class BlankSheetManifestService
     ) {
     }
 
-    public function ensurePersisted(BlankForm $blankForm): array
+    public function ensurePersisted(BlankForm $blankForm, ?bool $shuffleAnswerOptions = null): array
     {
         $blankForm->loadMissing('test.questions.answers');
         $metadata = $blankForm->metadata ?? [];
+        $currentShuffleAnswerOptions = (bool) data_get($metadata, 'print_options.shuffle_answer_options', false);
+
+        if ($shuffleAnswerOptions !== null && $currentShuffleAnswerOptions !== $shuffleAnswerOptions) {
+            $metadata['print_options'] = array_merge($metadata['print_options'] ?? [], [
+                'shuffle_answer_options' => $shuffleAnswerOptions,
+            ]);
+            $blankForm->forceFill(['metadata' => $metadata])->save();
+            $blankForm->refresh()->loadMissing('test.questions.answers');
+            $metadata = $blankForm->metadata ?? [];
+            $currentShuffleAnswerOptions = $shuffleAnswerOptions;
+        }
+
         $layoutMetadata = $metadata['print_layout'] ?? [];
         $pageEntries = collect($layoutMetadata['pages'] ?? []);
 
         if (
             ($layoutMetadata['version'] ?? null) === UnifiedSheetLayout::VERSION
+            && (bool) ($layoutMetadata['shuffle_answer_options'] ?? false) === $currentShuffleAnswerOptions
             && $pageEntries->isNotEmpty()
             && $pageEntries->every(fn (array $page) => !empty($page['manifest_path']) && Storage::disk('local')->exists($page['manifest_path']))
         ) {
@@ -54,6 +67,7 @@ class BlankSheetManifestService
         $metadata['print_layout'] = [
             'version' => UnifiedSheetLayout::VERSION,
             'page_count' => count($storedPages),
+            'shuffle_answer_options' => $currentShuffleAnswerOptions,
             'generated_at' => now()->toIso8601String(),
             'pages' => $storedPages,
         ];
@@ -63,14 +77,18 @@ class BlankSheetManifestService
         return $pages;
     }
 
-    public function buildPreview(BlankForm $blankForm): array
+    public function buildPreview(BlankForm $blankForm, ?bool $shuffleAnswerOptions = null): array
     {
+        $resolvedShuffleAnswerOptions = $shuffleAnswerOptions
+            ?? (bool) data_get($blankForm->metadata, 'print_options.shuffle_answer_options', false);
+
         return $this->unifiedSheetLayoutService->buildPagesForPreview($blankForm->test, [
             'blank_form_id' => (int) $blankForm->id,
             'form_number' => (string) $blankForm->form_number,
             'student_name' => $blankForm->student_full_name,
             'group_name' => (string) ($blankForm->group_name ?? ''),
             'variant_number' => (int) ($blankForm->variant_number ?? 1),
+            'shuffle_answer_options' => $resolvedShuffleAnswerOptions,
         ]);
     }
 

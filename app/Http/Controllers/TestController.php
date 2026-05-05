@@ -278,6 +278,7 @@ class TestController extends Controller
             ]);
         }
 
+        $shuffleAnswerOptions = $this->resolveShuffleAnswerOptions($request);
         $documentTitle = $this->buildPrintDocumentTitle($test, $blankForms);
 
         $loadedTest = $test->load('questions.answers');
@@ -287,10 +288,10 @@ class TestController extends Controller
             $electronicAccessUrl = url('/take-test?code=' . urlencode((string) $loadedTest->access_code));
         }
 
-        $sheetPagesByBlankForm = $blankForms->mapWithKeys(function (BlankForm $blankForm) {
+        $sheetPagesByBlankForm = $blankForms->mapWithKeys(function (BlankForm $blankForm) use ($shuffleAnswerOptions) {
             $pages = (int) $blankForm->id > 0
-                ? $this->blankSheetManifestService->ensurePersisted($blankForm->fresh('test.questions.answers'))
-                : $this->blankSheetManifestService->buildPreview($blankForm->loadMissing('test.questions.answers'));
+                ? $this->blankSheetManifestService->ensurePersisted($blankForm->fresh('test.questions.answers'), $shuffleAnswerOptions)
+                : $this->blankSheetManifestService->buildPreview($blankForm->loadMissing('test.questions.answers'), $shuffleAnswerOptions);
 
             $pages = collect($pages)
                 ->map(function (array $page) {
@@ -347,5 +348,18 @@ class TestController extends Controller
             ->squish()
             ->limit(150, '')
             ->value();
+    }
+
+    private function resolveShuffleAnswerOptions(Request $request): ?bool
+    {
+        if ($request->has('shuffle_answer_options')) {
+            return $request->boolean('shuffle_answer_options');
+        }
+
+        if ($request->has('shuffle_answers')) {
+            return $request->boolean('shuffle_answers');
+        }
+
+        return null;
     }
 }

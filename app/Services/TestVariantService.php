@@ -39,9 +39,15 @@ class TestVariantService
         return $normalized;
     }
 
-    public function orderedAnswersForQuestion($question, int $variantNumber): Collection
+    public function orderedAnswersForQuestion($question, int $variantNumber, bool $shuffle = false, array $shuffleIdentity = []): Collection
     {
-        return $question->answers->sortBy('order')->values();
+        $answers = $question->answers->sortBy('order')->values();
+
+        if (!$shuffle || $answers->count() <= 1) {
+            return $answers;
+        }
+
+        return $this->deterministicallyShuffleAnswers($answers, $question, $variantNumber, $shuffleIdentity);
     }
 
     public function questionsForVariant(Test $test, ?int $variantNumber = null): Collection
@@ -62,9 +68,11 @@ class TestVariantService
     {
         $variantNumber = $this->normalizeVariantNumber($blankForm->test, $blankForm->variant_number);
         $variantQuestions = $this->questionsForVariant($blankForm->test, $variantNumber)->values();
+        $shuffleAnswers = (bool) data_get($blankForm->metadata, 'print_options.shuffle_answer_options', false);
+        $shuffleIdentity = $this->blankFormShuffleIdentity($blankForm);
 
-        $variantQuestions->each(function ($question) use ($variantNumber) {
-            $variantAnswers = $this->orderedAnswersForQuestion($question, $variantNumber)
+        $variantQuestions->each(function ($question) use ($variantNumber, $shuffleAnswers, $shuffleIdentity) {
+            $variantAnswers = $this->orderedAnswersForQuestion($question, $variantNumber, $shuffleAnswers, $shuffleIdentity)
                 ->map(fn ($answer) => $answer->toArray())
                 ->values()
                 ->all();
@@ -88,5 +96,39 @@ class TestVariantService
         }
 
         return $assignments;
+    }
+
+    public function blankFormShuffleIdentity(BlankForm $blankForm): array
+    {
+        return [
+            'blank_form_id' => (int) $blankForm->id,
+            'form_number' => (string) $blankForm->form_number,
+            'test_id' => (int) $blankForm->test_id,
+            'variant_number' => (int) ($blankForm->variant_number ?? 1),
+        ];
+    }
+
+    private function deterministicallyShuffleAnswers(Collection $answers, $question, int $variantNumber, array $shuffleIdentity): Collection
+    {
+        $seedBase = json_encode([
+            'identity' => $shuffleIdentity,
+            'variant_number' => $variantNumber,
+            'question_id' => (int) $question->id,
+        ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+
+        $shuffled = $answers
+            ->sortBy(fn ($answer) => sha1($seedBase . '|' . (int) $answer->id))
+            ->values();
+
+        if ($shuffled->pluck('id')->all() !== $answers->pluck('id')->all()) {
+            return $shuffled;
+        }
+
+        $offset = (hexdec(substr(sha1($seedBase . '|fallback'), 0, 8)) % ($answers->count() - 1)) + 1;
+
+        return $answers
+            ->slice($offset)
+            ->concat($answers->slice(0, $offset))
+            ->values();
     }
 }

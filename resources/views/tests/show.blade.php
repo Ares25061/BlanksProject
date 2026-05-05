@@ -266,6 +266,19 @@
                                 </div>
 
                                 <div class="rounded-3xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-950/70">
+                                    <label class="flex items-start gap-3">
+                                        <input id="shuffleAnswerOptions"
+                                               type="checkbox"
+                                               onchange="setShuffleAnswerOptions(this.checked)"
+                                               class="mt-1 h-5 w-5 rounded border-slate-300 text-sky-600 focus:ring-sky-500">
+                                        <span>
+                                            <span class="block font-semibold text-slate-800 dark:text-slate-100">Перемешивать варианты ответов</span>
+                                            <span class="block text-sm text-slate-500 mt-1 dark:text-slate-400">Порядок ответов сохраняется в разметке каждого бланка для проверки сканов.</span>
+                                        </span>
+                                    </label>
+                                </div>
+
+                                <div class="rounded-3xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-950/70">
                                     <div class="flex flex-wrap justify-between items-start gap-3">
                                         <div>
                                             <div class="text-sm uppercase tracking-[0.25em] text-slate-400 dark:text-slate-500">Состав группы</div>
@@ -347,6 +360,7 @@
     let blankVariantDistributionMode = 'same';
     let sharedVariantNumber = 1;
     let customStudentVariants = {};
+    let shuffleAnswerOptions = false;
     let pdfJsLoadingPromise = null;
 
     async function apiFetch(url, options = {}) {
@@ -801,6 +815,10 @@
         sharedVariantNumber = clampVariantNumber(value);
         renderVariantAssignmentSettings();
         renderGroupStudents();
+    }
+
+    function setShuffleAnswerOptions(value) {
+        shuffleAnswerOptions = Boolean(value);
     }
 
     function renderGroups() {
@@ -1656,6 +1674,7 @@
             const payload = {
                 student_group_id: parseInt(groupId, 10),
                 variant_assignment_mode: blankVariantDistributionMode,
+                shuffle_answer_options: shuffleAnswerOptions,
             };
 
             if (blankVariantDistributionMode === 'same') {
@@ -1747,6 +1766,9 @@
         }
         if (!blankFormIds.length && normalizeVariantCount() > 1) {
             params.set('variant_number', String(clampVariantNumber(sharedVariantNumber)));
+        }
+        if (shuffleAnswerOptions) {
+            params.set('shuffle_answers', '1');
         }
 
         const query = params.toString();

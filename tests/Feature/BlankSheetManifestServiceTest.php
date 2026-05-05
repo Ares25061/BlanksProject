@@ -136,6 +136,67 @@ class BlankSheetManifestServiceTest extends TestCase
         $this->assertLessThan(1.0, abs($labelTop - $firstCellTop));
     }
 
+    public function test_manifest_can_shuffle_answer_options_deterministically(): void
+    {
+        Storage::fake('local');
+
+        $teacher = User::factory()->create();
+
+        $test = Test::create([
+            'title' => 'Shuffle answers',
+            'subject_name' => 'Programming',
+            'created_by' => $teacher->id,
+            'is_active' => true,
+            'grade_criteria' => [
+                ['label' => '5', 'min_points' => 0],
+            ],
+        ]);
+
+        $question = Question::create([
+            'test_id' => $test->id,
+            'question_text' => 'Какой порядок ответов будет на бланке?',
+            'type' => 'single',
+            'points' => 1,
+            'order' => 0,
+        ]);
+
+        $answers = collect(['A', 'B', 'C', 'D'])
+            ->map(fn (string $letter, int $index) => Answer::create([
+                'question_id' => $question->id,
+                'answer_text' => 'Вариант ' . $letter,
+                'is_correct' => $index === 0,
+                'order' => $index,
+            ]));
+
+        $blankForm = BlankForm::create([
+            'test_id' => $test->id,
+            'form_number' => 'TEST-SHUFFLE-001',
+            'variant_number' => 1,
+            'last_name' => 'Иванов',
+            'first_name' => 'Иван',
+            'group_name' => '25ИС1-7',
+            'status' => 'generated',
+        ]);
+
+        $service = app(BlankSheetManifestService::class);
+        $pages = $service->ensurePersisted($blankForm->fresh('test.questions.answers'), true);
+        $printedAnswerIds = collect(data_get($pages, '0.questions.0.cells', []))->pluck('answer_id')->all();
+        $originalAnswerIds = $answers->pluck('id')->all();
+
+        $this->assertCount(4, $printedAnswerIds);
+        $this->assertNotSame($originalAnswerIds, $printedAnswerIds);
+        $sortedOriginalAnswerIds = $originalAnswerIds;
+        $sortedPrintedAnswerIds = $printedAnswerIds;
+        sort($sortedOriginalAnswerIds);
+        sort($sortedPrintedAnswerIds);
+        $this->assertSame($sortedOriginalAnswerIds, $sortedPrintedAnswerIds);
+        $this->assertTrue((bool) data_get($blankForm->fresh()->metadata, 'print_options.shuffle_answer_options'));
+        $this->assertTrue((bool) data_get($blankForm->fresh()->metadata, 'print_layout.shuffle_answer_options'));
+
+        $samePages = $service->ensurePersisted($blankForm->fresh('test.questions.answers'));
+        $this->assertSame($printedAnswerIds, collect(data_get($samePages, '0.questions.0.cells', []))->pluck('answer_id')->all());
+    }
+
     public function test_manifest_layout_pushes_answer_row_below_wrapped_text_content(): void
     {
         Storage::fake('local');

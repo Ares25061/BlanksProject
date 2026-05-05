@@ -19,15 +19,16 @@ class BlankFormService
     ) {
     }
 
-    public function generateBlankForm(Test $test, array $studentData = [], ?int $variantNumber = null)
+    public function generateBlankForm(Test $test, array $studentData = [], ?int $variantNumber = null, array $printOptions = [])
     {
-        return DB::transaction(function () use ($test, $studentData, $variantNumber) {
+        return DB::transaction(function () use ($test, $studentData, $variantNumber, $printOptions) {
             $formNumber = $this->generateFormNumber($test);
             $parsedName = StudentName::parse($studentData['full_name'] ?? null);
             $resolvedVariantNumber = $this->testVariantService->normalizeVariantNumber(
                 $test,
                 $variantNumber ?? ($studentData['variant_number'] ?? 1)
             );
+            $resolvedPrintOptions = $this->resolvePrintOptions(array_merge($studentData, $printOptions));
 
             $blankForm = BlankForm::create([
                 'test_id' => $test->id,
@@ -46,6 +47,7 @@ class BlankFormService
                     'generated_by' => auth()->id(),
                     'student_full_name' => $studentData['full_name'] ?? $parsedName['full_name'],
                     'variant_number' => $resolvedVariantNumber,
+                    'print_options' => $resolvedPrintOptions,
                 ]
             ]);
 
@@ -57,9 +59,10 @@ class BlankFormService
     {
         $forms = [];
         $variantNumbers = $this->resolveAnonymousVariantAssignments($test, $count, $variantOptions);
+        $printOptions = $this->resolvePrintOptions($variantOptions);
 
         for ($i = 0; $i < $count; $i++) {
-            $forms[] = $this->generateBlankForm($test, [], $variantNumbers[$i] ?? 1);
+            $forms[] = $this->generateBlankForm($test, [], $variantNumbers[$i] ?? 1, $printOptions);
         }
 
         return $forms;
@@ -94,6 +97,7 @@ class BlankFormService
         }
 
         $variantAssignments = $this->resolveGroupVariantAssignments($test, $students, $variantOptions);
+        $printOptions = $this->resolvePrintOptions($variantOptions);
         $forms = [];
 
         foreach ($students as $student) {
@@ -103,7 +107,7 @@ class BlankFormService
                 'student_group_id' => $group->id,
                 'group_student_id' => $student->id,
                 'variant_number' => $variantAssignments[$student->id] ?? 1,
-            ], $variantAssignments[$student->id] ?? 1);
+            ], $variantAssignments[$student->id] ?? 1, $printOptions);
         }
 
         return $forms;
@@ -344,5 +348,15 @@ class BlankFormService
         return in_array($normalized, ['same', 'balanced', 'custom'], true)
             ? $normalized
             : 'same';
+    }
+
+    protected function resolvePrintOptions(array $options): array
+    {
+        return [
+            'shuffle_answer_options' => filter_var(
+                $options['shuffle_answer_options'] ?? false,
+                FILTER_VALIDATE_BOOLEAN
+            ),
+        ];
     }
 }

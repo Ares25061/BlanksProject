@@ -59,6 +59,7 @@ class BlankFormController extends Controller
             'variant_assignment_mode' => 'nullable|in:same,balanced,custom',
             'variant_number' => 'nullable|integer|min:1|max:10',
             'variant_numbers' => 'nullable|array',
+            'shuffle_answer_options' => 'nullable|boolean',
         ]);
 
         $count = $validated['count'] ?? 1;
@@ -68,6 +69,7 @@ class BlankFormController extends Controller
             'variant_numbers' => collect($request->input('variant_numbers', []))
                 ->mapWithKeys(fn ($variantNumber, $studentId) => [(int) $studentId => (int) $variantNumber])
                 ->all(),
+            'shuffle_answer_options' => (bool) ($validated['shuffle_answer_options'] ?? false),
         ];
 
         if (!empty($validated['student_group_id'])) {
@@ -86,7 +88,8 @@ class BlankFormController extends Controller
                 $forms[] = $this->blankFormService->generateBlankForm(
                     $test,
                     $studentData,
-                    $variantOptions['variant_number'] ?? 1
+                    $variantOptions['variant_number'] ?? 1,
+                    ['shuffle_answer_options' => $variantOptions['shuffle_answer_options']]
                 );
             }
         } else {
