@@ -92,6 +92,32 @@ class BlankSheetManifestService
         ]);
     }
 
+    public function loadPersistedOrEnsure(BlankForm $blankForm): array
+    {
+        $persistedPages = $this->loadPersisted($blankForm);
+
+        return $persistedPages !== [] ? $persistedPages : $this->ensurePersisted($blankForm);
+    }
+
+    public function loadPersisted(BlankForm $blankForm): array
+    {
+        $pageEntries = collect(data_get($blankForm->metadata, 'print_layout.pages', []));
+
+        if ($pageEntries->isEmpty()) {
+            return [];
+        }
+
+        if (! $pageEntries->every(fn (array $page) => !empty($page['manifest_path']) && Storage::disk('local')->exists($page['manifest_path']))) {
+            return [];
+        }
+
+        return $pageEntries
+            ->map(fn (array $page) => $this->loadManifestFromPath((string) $page['manifest_path']))
+            ->filter()
+            ->values()
+            ->all();
+    }
+
     public function loadPageManifest(BlankForm $blankForm, int $pageNumber): ?array
     {
         $blankForm->loadMissing('test.questions.answers');

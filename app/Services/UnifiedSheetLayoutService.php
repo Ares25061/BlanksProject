@@ -191,11 +191,12 @@ class UnifiedSheetLayoutService
         $titleLineCount = max(1, count($titleLines));
         $optionLineCount = max(1, count($optionLines));
         $answerCount = max(1, $variantAnswers->count());
-        $cellStepMm = UnifiedSheetLayout::CHOICE_BOX_SIZE_MM
-            + UnifiedSheetLayout::CHOICE_CELL_GAP_MM
-            + UnifiedSheetLayout::CHOICE_CELL_LABEL_GAP_MM;
+        $answerChoiceWidthMm = UnifiedSheetLayout::CHOICE_LETTER_WIDTH_MM
+            + UnifiedSheetLayout::CHOICE_CELL_LABEL_GAP_MM
+            + UnifiedSheetLayout::CHOICE_BOX_SIZE_MM;
+        $cellStepMm = $answerChoiceWidthMm + UnifiedSheetLayout::CHOICE_CELL_GAP_MM;
         $availableWidthMm = max(
-            UnifiedSheetLayout::CHOICE_BOX_SIZE_MM,
+            $answerChoiceWidthMm,
             $blockWidthMm
                 - (UnifiedSheetLayout::QUESTION_INNER_PADDING_MM * 2)
                 - UnifiedSheetLayout::ANSWER_LABEL_WIDTH_MM
@@ -241,7 +242,10 @@ class UnifiedSheetLayoutService
         foreach ($variantAnswers->values() as $answerIndex => $answer) {
             $row = intdiv($answerIndex, $cellsPerRow);
             $column = $answerIndex % $cellsPerRow;
-            $leftMm = $cellOriginX + ($column * $cellStepMm);
+            $choiceLeftMm = $cellOriginX + ($column * $cellStepMm);
+            $leftMm = $choiceLeftMm
+                + UnifiedSheetLayout::CHOICE_LETTER_WIDTH_MM
+                + UnifiedSheetLayout::CHOICE_CELL_LABEL_GAP_MM;
             $cellTopMm = $cellsTopMm + ($row * (UnifiedSheetLayout::CHOICE_BOX_SIZE_MM + UnifiedSheetLayout::CHOICE_ROW_GAP_MM));
             $letter = UnifiedSheetLayout::answerLetters()[$answerIndex] ?? (string) ($answerIndex + 1);
 
@@ -250,6 +254,8 @@ class UnifiedSheetLayoutService
                 'option_index' => $answerIndex,
                 'option_letter' => $letter,
                 'answer_text' => (string) $answer->answer_text,
+                'letter_left_mm' => round($choiceLeftMm, 2),
+                'letter_top_mm' => round($cellTopMm + 0.85, 2),
                 'left_mm' => round($leftMm, 2),
                 'top_mm' => round($cellTopMm, 2),
                 'width_mm' => UnifiedSheetLayout::CHOICE_BOX_SIZE_MM,

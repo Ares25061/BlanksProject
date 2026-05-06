@@ -26,7 +26,7 @@
                     <button id="backToTestButton" class="hidden bg-sky-600 text-white px-4 py-3 rounded-2xl hover:bg-sky-500 transition">
                         Вернуться к тесту
                     </button>
-                    <button onclick="window.history.back()" class="bg-white border border-slate-200 text-slate-700 px-4 py-3 rounded-2xl hover:border-sky-300 hover:text-sky-700 transition dark:bg-slate-950 dark:border-slate-700 dark:text-slate-200 dark:hover:border-sky-400 dark:hover:text-sky-300">
+                    <button onclick="navigateBackFromResults()" class="bg-white border border-slate-200 text-slate-700 px-4 py-3 rounded-2xl hover:border-sky-300 hover:text-sky-700 transition dark:bg-slate-950 dark:border-slate-700 dark:text-slate-200 dark:hover:border-sky-400 dark:hover:text-sky-300">
                         Назад
                     </button>
                 </div>
@@ -48,6 +48,36 @@
         .map((value) => value.trim())
         .filter(Boolean);
     const testId = params.get('test_id');
+    const testPageStateKey = testId ? `proverium:test-page:${testId}` : null;
+
+    function rememberTestPageNeedsRefresh() {
+        if (!testPageStateKey) {
+            return;
+        }
+
+        try {
+            const raw = sessionStorage.getItem(testPageStateKey);
+            const current = raw ? (JSON.parse(raw) || {}) : {};
+            sessionStorage.setItem(testPageStateKey, JSON.stringify({
+                ...current,
+                refreshBlankForms: true,
+                returnSectionId: 'blankFormsSection',
+                updatedAt: Date.now(),
+            }));
+        } catch (error) {
+        }
+    }
+
+    function navigateBackFromResults() {
+        rememberTestPageNeedsRefresh();
+
+        if (testId) {
+            window.location.href = `/tests/${testId}#blankFormsSection`;
+            return;
+        }
+
+        window.history.back();
+    }
 
     async function authorizedFetch(url, options = {}) {
         return authApiFetch(url, options, {
@@ -109,7 +139,7 @@
                 const button = document.getElementById('backToTestButton');
                 button.classList.remove('hidden');
                 button.onclick = () => {
-                    window.location.href = `/tests/${testId}#workflow`;
+                    navigateBackFromResults();
                 };
             }
         } catch (error) {
@@ -414,6 +444,7 @@
                 throw new Error(error.message || 'Не удалось сохранить оценку');
             }
 
+            rememberTestPageNeedsRefresh();
             await loadResults();
         } catch (error) {
             alert(error.message || 'Ошибка сохранения оценки');
@@ -439,8 +470,9 @@
             const params = new URLSearchParams(window.location.search);
 
             if (!nextIds.length) {
+                rememberTestPageNeedsRefresh();
                 if (testId) {
-                    window.location.href = `/tests/${testId}#workflow`;
+                    window.location.href = `/tests/${testId}#blankFormsSection`;
                     return;
                 }
 
@@ -449,6 +481,7 @@
             }
 
             params.set('ids', nextIds.join(','));
+            rememberTestPageNeedsRefresh();
             window.location.search = params.toString();
         } catch (error) {
             alert(error.message || 'Ошибка удаления работы');

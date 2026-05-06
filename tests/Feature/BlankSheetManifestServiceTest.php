@@ -9,6 +9,7 @@ use App\Models\Test;
 use App\Models\User;
 use App\Services\BlankSheetManifestService;
 use App\Services\TestVariantService;
+use App\Support\UnifiedSheetLayout;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
@@ -69,13 +70,17 @@ class BlankSheetManifestServiceTest extends TestCase
         $blankForm = $blankForm->fresh();
 
         $this->assertCount(1, $pages);
-        $this->assertSame('unified-sheet-v11', data_get($blankForm->metadata, 'print_layout.version'));
+        $this->assertSame(UnifiedSheetLayout::VERSION, data_get($blankForm->metadata, 'print_layout.version'));
         $this->assertSame(1, data_get($blankForm->metadata, 'print_layout.page_count'));
 
         $manifestPath = data_get($blankForm->metadata, 'print_layout.pages.0.manifest_path');
         Storage::disk('local')->assertExists($manifestPath);
         $this->assertSame($answerA->id, data_get($pages, '0.questions.0.cells.0.answer_id'));
         $this->assertSame('A', data_get($pages, '0.questions.0.cells.0.option_letter'));
+        $this->assertLessThan(
+            data_get($pages, '0.questions.0.cells.0.left_mm'),
+            data_get($pages, '0.questions.0.cells.0.letter_left_mm')
+        );
         $this->assertSame(1, data_get($pages, '0.question_range.start'));
         $this->assertSame(1, data_get($pages, '0.question_range.end'));
         $this->assertSame(210.0, data_get($pages, '0.page_width_mm'));
@@ -290,11 +295,18 @@ class BlankSheetManifestServiceTest extends TestCase
             'order' => 0,
         ]);
 
-        foreach (['Класс', 'Переменная', 'Цикл', 'Функция'] as $index => $answerText) {
+        $answers = [
+            'Отношение находится в третьей нормальной форме, если оно находится во второй нормальной форме и каждый неключевой атрибут не зависит от первичного ключа',
+            'Переменная хранит именованное значение в памяти программы и может использоваться в выражениях после объявления',
+            'Цикл повторяет блок инструкций, пока выполняется заданное условие, и не является областью хранения данных',
+            'Функция объединяет несколько инструкций под одним именем и возвращает результат вычисления',
+        ];
+
+        foreach ($answers as $index => $answerText) {
             Answer::create([
                 'question_id' => $question->id,
                 'answer_text' => $answerText,
-                'is_correct' => $answerText === 'Переменная',
+                'is_correct' => $index === 1,
                 'order' => $index,
             ]);
         }
@@ -320,6 +332,7 @@ class BlankSheetManifestServiceTest extends TestCase
             + (count($questionPayload['option_lines'] ?? []) * \App\Support\UnifiedSheetLayout::OPTION_LINE_HEIGHT_MM);
 
         $this->assertGreaterThanOrEqual(2, count($questionPayload['title_lines'] ?? []));
+        $this->assertGreaterThan(6, count($questionPayload['option_lines'] ?? []));
         $this->assertGreaterThan(
             $contentBottom + 1.0,
             $labelTop

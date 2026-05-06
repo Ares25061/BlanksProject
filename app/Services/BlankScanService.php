@@ -55,7 +55,7 @@ class BlankScanService
 
             $blankForm = BlankForm::with(['test.questions.answers', 'studentGroup', 'groupStudent'])
                 ->findOrFail($pagePayload['blank_form_id']);
-            $pages = $this->blankSheetManifestService->ensurePersisted($blankForm);
+            $pages = $this->blankSheetManifestService->loadPersistedOrEnsure($blankForm);
             $expectedPageCount = max(1, count($pages));
             $pageNumber = max(1, min((int) $pagePayload['page_number'], $expectedPageCount));
             $manifest = collect($pages)

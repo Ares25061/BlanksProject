@@ -16,7 +16,6 @@
     "build": {
       "commands": [
         "...",
-        "rm -rf .venv",
         "python -m venv .venv",
         ".venv/bin/python -m pip install --upgrade pip setuptools wheel",
         ".venv/bin/python -m pip install -r ocr_paddle_module/requirements.txt"

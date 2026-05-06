@@ -4,7 +4,7 @@ namespace App\Support;
 
 class UnifiedSheetLayout
 {
-    public const VERSION = 'unified-sheet-v11';
+    public const VERSION = 'unified-sheet-v12';
 
     public const PAGE_WIDTH_MM = 210.0;
     public const PAGE_HEIGHT_MM = 297.0;
@@ -34,6 +34,7 @@ class UnifiedSheetLayout
     public const QUESTION_BORDER_RADIUS_MM = 3.0;
 
     public const CHOICE_BOX_SIZE_MM = 5.5;
+    public const CHOICE_LETTER_WIDTH_MM = 3.0;
     public const CHOICE_CELL_GAP_MM = 2.4;
     public const CHOICE_CELL_LABEL_GAP_MM = 2.0;
     public const CHOICE_ROW_GAP_MM = 2.8;
@@ -42,16 +43,16 @@ class UnifiedSheetLayout
     public const ANSWER_LABEL_WIDTH_MM = 14.0;
     public const ANSWER_GAP_MM = 1.8;
 
-    public const TITLE_CHAR_WIDTH_MM = 2.35;
-    public const TITLE_LINE_HEIGHT_MM = 4.25;
-    public const OPTION_CHAR_WIDTH_MM = 1.95;
-    public const OPTION_LINE_HEIGHT_MM = 3.7;
-    public const WRAP_SAFETY_CHARS = 2;
+    public const TITLE_CHAR_WIDTH_MM = 2.55;
+    public const TITLE_LINE_HEIGHT_MM = 4.35;
+    public const OPTION_CHAR_WIDTH_MM = 2.25;
+    public const OPTION_LINE_HEIGHT_MM = 3.85;
+    public const WRAP_SAFETY_CHARS = 3;
     public const LABEL_LINE_HEIGHT_MM = 4.0;
     public const LABEL_TOP_GAP_MM = 1.8;
     public const TITLE_TO_OPTIONS_GAP_MM = 1.0;
     public const OPTIONS_TO_LABEL_GAP_MM = 2.2;
-    public const BOTTOM_BUFFER_MM = 1.6;
+    public const BOTTOM_BUFFER_MM = 2.6;
 
     public static function columnWidthMm(): float
     {

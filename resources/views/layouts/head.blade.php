@@ -14,6 +14,7 @@
 <link rel="icon" type="image/png" sizes="32x32" href="/favicon.png?v={{ $faviconVersion }}">
 <link rel="shortcut icon" href="/favicon.ico?v={{ $faviconVersion }}">
 <link rel="apple-touch-icon" href="/favicon.png?v={{ $faviconVersion }}">
+@vite(['resources/css/app.css', 'resources/js/app.js'])
 <script>
     (() => {
         const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
@@ -56,40 +57,6 @@
         }
     })();
 </script>
-<script>
-    window.tailwind = window.tailwind || {};
-    window.tailwind.config = {
-        darkMode: 'class',
-        theme: {
-            extend: {
-                colors: {
-                    brand: {
-                        50: '#eef4ff',
-                        100: '#dbe8ff',
-                        200: '#bed3ff',
-                        300: '#92b0ff',
-                        400: '#6687ff',
-                        500: '#5564f0',
-                        600: '#4b4dd6',
-                        700: '#4241af',
-                        800: '#34357d',
-                        900: '#21244d',
-                    },
-                    mist: {
-                        100: '#eef2ff',
-                        200: '#dbe4ff',
-                        300: '#c5d3ff',
-                        700: '#394a7a',
-                    }
-                },
-                boxShadow: {
-                    halo: '0 20px 48px -28px rgba(74, 78, 214, 0.28)',
-                }
-            }
-        }
-    };
-</script>
-<script src="https://cdn.tailwindcss.com"></script>
 <style>
     :root {
         --proverium-page-light:

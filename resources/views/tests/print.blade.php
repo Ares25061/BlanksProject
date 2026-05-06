@@ -246,8 +246,8 @@
             font-size: 3.45mm;
             line-height: 1.22;
             font-weight: 700;
-            white-space: pre-wrap;
-            word-break: break-word;
+            white-space: nowrap;
+            overflow: hidden;
         }
 
         .question-type-badge {
@@ -264,8 +264,8 @@
             margin: 0.4mm 0 0;
             font-size: 3.05mm;
             line-height: 1.2;
-            white-space: pre-wrap;
-            word-break: break-word;
+            white-space: nowrap;
+            overflow: hidden;
         }
 
         .question-cells-label {
@@ -450,24 +450,30 @@
                     @endif
 
                     @foreach(($question['cells'] ?? []) as $cell)
-                        <div
-                            class="answer-cell"
-                            style="
-                                left: {{ ($cell['left_mm'] ?? 0) - ($block['left_mm'] ?? 0) }}mm;
-                                top: {{ ($cell['top_mm'] ?? 0) - ($block['top_mm'] ?? 0) }}mm;
-                                width: {{ $cell['width_mm'] ?? 0 }}mm;
-                                height: {{ $cell['height_mm'] ?? 0 }}mm;
-                            "
-                        ></div>
+                        @php
+                            $cellLeftMm = ($cell['left_mm'] ?? 0) - ($block['left_mm'] ?? 0);
+                            $cellTopMm = ($cell['top_mm'] ?? 0) - ($block['top_mm'] ?? 0);
+                            $letterLeftMm = ($cell['letter_left_mm'] ?? (($cell['left_mm'] ?? 0) - 5.0)) - ($block['left_mm'] ?? 0);
+                            $letterTopMm = ($cell['letter_top_mm'] ?? (($cell['top_mm'] ?? 0) + 0.85)) - ($block['top_mm'] ?? 0);
+                        @endphp
                         <div
                             class="answer-cell-letter"
                             style="
-                                left: {{ (($cell['left_mm'] ?? 0) - ($block['left_mm'] ?? 0)) + ($cell['width_mm'] ?? 0) + 1.4 }}mm;
-                                top: {{ (($cell['top_mm'] ?? 0) - ($block['top_mm'] ?? 0)) + 0.85 }}mm;
+                                left: {{ $letterLeftMm }}mm;
+                                top: {{ $letterTopMm }}mm;
                             "
                         >
                             {{ $cell['option_letter'] ?? '' }}
                         </div>
+                        <div
+                            class="answer-cell"
+                            style="
+                                left: {{ $cellLeftMm }}mm;
+                                top: {{ $cellTopMm }}mm;
+                                width: {{ $cell['width_mm'] ?? 0 }}mm;
+                                height: {{ $cell['height_mm'] ?? 0 }}mm;
+                            "
+                        ></div>
                     @endforeach
                 </article>
             @endforeach

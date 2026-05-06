@@ -376,9 +376,95 @@
     let electronicShuffleAnswerOptions = false;
     let shuffleAnswerOptions = false;
     let pdfJsLoadingPromise = null;
+    let pageHasLoaded = false;
+    let historyRestoreInProgress = false;
+    const testPageStateKey = `proverium:test-page:${testId}`;
 
     async function apiFetch(url, options = {}) {
         return authApiFetch(url, options);
+    }
+
+    function readTestPageState() {
+        try {
+            const raw = sessionStorage.getItem(testPageStateKey);
+            return raw ? (JSON.parse(raw) || {}) : {};
+        } catch (error) {
+            return {};
+        }
+    }
+
+    function rememberTestPageState(patch = {}) {
+        try {
+            const current = readTestPageState();
+            sessionStorage.setItem(testPageStateKey, JSON.stringify({
+                ...current,
+                ...patch,
+                scrollY: Math.max(0, Math.round(window.scrollY || 0)),
+                updatedAt: Date.now(),
+            }));
+        } catch (error) {
+            // sessionStorage может быть недоступен в приватном режиме; страница продолжит работать без восстановления позиции.
+        }
+    }
+
+    function restoreTestPagePosition() {
+        const state = readTestPageState();
+        const hashTarget = decodeURIComponent((window.location.hash || '').replace(/^#/, ''));
+        const targetId = hashTarget || state.returnSectionId || '';
+        const savedScrollY = Number(state.scrollY);
+        const shouldRestoreSavedScroll = Number.isFinite(savedScrollY)
+            && savedScrollY > 0
+            && (!hashTarget || state.returnSectionId === hashTarget);
+
+        requestAnimationFrame(() => {
+            if (shouldRestoreSavedScroll) {
+                window.scrollTo({
+                    top: savedScrollY,
+                    left: 0,
+                    behavior: 'auto',
+                });
+                return;
+            }
+
+            if (targetId && document.getElementById(targetId)) {
+                document.getElementById(targetId).scrollIntoView({
+                    behavior: 'auto',
+                    block: 'start',
+                });
+                return;
+            }
+
+            return;
+        });
+    }
+
+    function markBlankFormsFresh() {
+        try {
+            sessionStorage.setItem(testPageStateKey, JSON.stringify({
+                ...readTestPageState(),
+                refreshBlankForms: false,
+                updatedAt: Date.now(),
+            }));
+        } catch (error) {
+        }
+    }
+
+    async function refreshAfterHistoryRestore() {
+        if (historyRestoreInProgress) {
+            return;
+        }
+
+        historyRestoreInProgress = true;
+
+        try {
+            await loadBlankForms();
+            markBlankFormsFresh();
+            restoreTestPagePosition();
+        } catch (error) {
+            console.error('Не удалось обновить бланки после возврата:', error);
+        } finally {
+            historyRestoreInProgress = false;
+        }
     }
 
     function getTestStatusValue(test = currentTest) {
@@ -563,10 +649,9 @@
 
             document.getElementById('loading').classList.add('hidden');
             document.getElementById('pageContent').classList.remove('hidden');
-
-            if (window.location.hash === '#workflow') {
-                document.getElementById('workflow').scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }
+            pageHasLoaded = true;
+            markBlankFormsFresh();
+            restoreTestPagePosition();
         } catch (error) {
             console.error(error);
             alert(error.message || 'Ошибка загрузки страницы');
@@ -1839,10 +1924,17 @@
             params.set('preview_tokens', tokens.join(','));
         }
 
+        rememberTestPageState({
+            refreshBlankForms: true,
+            returnSectionId: 'blankFormsSection',
+        });
         window.location.href = `/blank-forms/results?${params.toString()}`;
     }
 
     function scrollToTestSection(sectionId) {
+        rememberTestPageState({
+            returnSectionId: sectionId,
+        });
         document.getElementById(sectionId)?.scrollIntoView({
             behavior: 'smooth',
             block: 'start',
@@ -2089,6 +2181,18 @@
 
         return new Date(value).toLocaleDateString('ru-RU');
     }
+
+    window.addEventListener('pagehide', () => {
+        rememberTestPageState();
+    });
+
+    window.addEventListener('pageshow', (event) => {
+        if (!pageHasLoaded || !event.persisted) {
+            return;
+        }
+
+        refreshAfterHistoryRestore();
+    });
 
     document.addEventListener('DOMContentLoaded', async () => {
         if (!await ensureAuthenticatedPage()) {
