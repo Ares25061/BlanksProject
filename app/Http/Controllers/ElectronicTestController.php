@@ -47,6 +47,8 @@ class ElectronicTestController extends Controller
             'variant_assignment_mode' => 'nullable|in:same,balanced,custom',
             'variant_number' => 'nullable|integer|min:1|max:10',
             'variant_numbers' => 'nullable|array',
+            'shuffle_answer_options' => 'nullable|boolean',
+            'shuffle_answers' => 'nullable|boolean',
         ]);
 
         $group = StudentGroup::query()->findOrFail((int) $validated['student_group_id']);

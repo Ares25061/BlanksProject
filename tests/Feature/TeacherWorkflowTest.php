@@ -335,6 +335,114 @@ class TeacherWorkflowTest extends TestCase
             ->assertJsonPath('data.current_session.unreviewed_count', 0);
     }
 
+    public function test_electronic_launch_can_shuffle_answer_options_per_attempt(): void
+    {
+        $teacher = User::factory()->create();
+        $this->actingAs($teacher, 'api');
+        Auth::login($teacher);
+
+        $group = app(StudentGroupService::class)->createGroup([
+            'name' => '22ИС4-1',
+            'students' => [
+                'Петров Иван Сергеевич',
+            ],
+        ]);
+
+        $test = Test::create([
+            'title' => 'Электронное перемешивание',
+            'subject_name' => 'Физика',
+            'created_by' => $teacher->id,
+            'is_active' => true,
+            'delivery_mode' => 'electronic',
+            'access_code' => 'SHUF0001',
+            'grade_criteria' => [
+                ['label' => '5', 'min_points' => 1],
+                ['label' => '2', 'min_points' => 0],
+            ],
+        ]);
+
+        $question = Question::create([
+            'test_id' => $test->id,
+            'question_text' => 'Выберите правильный ответ',
+            'type' => 'single',
+            'points' => 1,
+            'order' => 0,
+            'variant_number' => 1,
+        ]);
+
+        $answerOne = Answer::create([
+            'question_id' => $question->id,
+            'answer_text' => 'Первый ответ',
+            'is_correct' => false,
+            'order' => 0,
+        ]);
+
+        $correctAnswer = Answer::create([
+            'question_id' => $question->id,
+            'answer_text' => 'Правильный ответ',
+            'is_correct' => true,
+            'order' => 1,
+        ]);
+
+        $answerThree = Answer::create([
+            'question_id' => $question->id,
+            'answer_text' => 'Третий ответ',
+            'is_correct' => false,
+            'order' => 2,
+        ]);
+
+        $launchResponse = $this->postJson('/api/tests/' . $test->id . '/electronic-launch', [
+            'student_group_id' => $group->id,
+            'variant_assignment_mode' => 'same',
+            'variant_number' => 1,
+            'shuffle_answer_options' => true,
+        ]);
+
+        $launchResponse
+            ->assertOk()
+            ->assertJsonPath('data.shuffle_answer_options', true);
+
+        $session = ElectronicTestSession::query()->with('members')->firstOrFail();
+        $this->assertTrue((bool) data_get($session->settings, 'shuffle_answer_options'));
+
+        $member = $session->members->first();
+        $startResponse = $this->postJson('/api/public/electronic-members/' . $member->access_token . '/start');
+
+        $startResponse->assertOk();
+
+        $attemptPayload = $startResponse->json('data.attempt');
+        $answerIds = collect($attemptPayload['questions'][0]['answers'] ?? [])
+            ->pluck('id')
+            ->values()
+            ->all();
+
+        $this->assertNotSame([$answerOne->id, $correctAnswer->id, $answerThree->id], $answerIds);
+
+        $attempt = ElectronicTestAttempt::query()
+            ->where('access_token', $attemptPayload['token'])
+            ->firstOrFail();
+
+        $this->assertTrue((bool) data_get($attempt->metadata, 'shuffle_answer_options'));
+
+        $resumeResponse = $this->getJson('/api/public/electronic-attempts/' . $attempt->access_token);
+        $resumeResponse->assertOk();
+
+        $resumedAnswerIds = collect($resumeResponse->json('data.attempt.questions.0.answers') ?? [])
+            ->pluck('id')
+            ->values()
+            ->all();
+
+        $this->assertSame($answerIds, $resumedAnswerIds);
+
+        $this->postJson('/api/public/electronic-attempts/' . $attempt->access_token . '/submit', [
+            'answers' => [
+                $question->id => $correctAnswer->id,
+            ],
+        ])->assertOk();
+
+        $this->assertSame(1, $attempt->fresh()->total_score);
+    }
+
     public function test_hybrid_print_keeps_sheet_qr_short_for_scanning(): void
     {
         $teacher = User::factory()->create();

@@ -79,6 +79,7 @@ class ElectronicTestService
                 'settings' => [
                     'variant_assignment_mode' => $this->normalizeVariantAssignmentMode($data['variant_assignment_mode'] ?? null),
                     'default_variant_number' => $this->resolveDefaultVariantNumber($test, $data),
+                    'shuffle_answer_options' => $this->resolveShuffleAnswerOptions($data),
                     'anti_cheat' => [
                         'fullscreen_required' => true,
                         'log_focus_events' => true,
@@ -332,6 +333,7 @@ class ElectronicTestService
             'status' => 'in_progress',
             'metadata' => [
                 'session_started_via' => $accessType,
+                'shuffle_answer_options' => $this->sessionShuffleAnswerOptions($session),
             ],
             'started_at' => now(),
         ]);
@@ -372,6 +374,8 @@ class ElectronicTestService
         $questions = $this->testVariantService
             ->questionsForVariant($test, $attempt->variant_number)
             ->values();
+        $shuffleAnswers = $this->attemptShuffleAnswerOptions($attempt);
+        $shuffleIdentity = $this->electronicAttemptShuffleIdentity($attempt);
 
         $answerMap = $attempt->answers
             ->mapWithKeys(function (ElectronicTestAnswer $answer) {
@@ -393,16 +397,20 @@ class ElectronicTestService
                 'resumed' => $resumed,
                 'group_name' => $attempt->session->studentGroup?->name,
                 'is_manual_student' => $attempt->is_manual_student,
-                'questions' => $questions->map(function ($question) use ($answerMap) {
+                'questions' => $questions->map(function ($question) use ($attempt, $answerMap, $shuffleAnswers, $shuffleIdentity) {
                     return [
                         'id' => $question->id,
                         'question_text' => $question->question_text,
                         'type' => $question->type,
                         'points' => (int) $question->points,
-                        'answers' => $question->answers->map(fn ($answer) => [
-                            'id' => $answer->id,
-                            'answer_text' => $answer->answer_text,
-                        ])->values()->all(),
+                        'answers' => $this->testVariantService
+                            ->orderedAnswersForQuestion($question, (int) $attempt->variant_number, $shuffleAnswers, $shuffleIdentity)
+                            ->map(fn ($answer) => [
+                                'id' => $answer->id,
+                                'answer_text' => $answer->answer_text,
+                            ])
+                            ->values()
+                            ->all(),
                         'selected_answers' => $answerMap[(int) $question->id] ?? [],
                     ];
                 })->all(),
@@ -621,6 +629,7 @@ class ElectronicTestService
             })->values()->all(),
             'attempts' => $attempts,
             'unreviewed_count' => collect($attempts)->whereIn('status', ['submitted'])->count(),
+            'shuffle_answer_options' => $this->sessionShuffleAnswerOptions($session),
         ];
     }
 
@@ -1023,6 +1032,48 @@ class ElectronicTestService
         }
 
         return 1;
+    }
+
+    private function resolveShuffleAnswerOptions(array $data): bool
+    {
+        return filter_var(
+            $data['shuffle_answer_options'] ?? $data['shuffle_answers'] ?? false,
+            FILTER_VALIDATE_BOOLEAN
+        );
+    }
+
+    private function sessionShuffleAnswerOptions(ElectronicTestSession $session): bool
+    {
+        return filter_var(
+            data_get($session->settings, 'shuffle_answer_options', false),
+            FILTER_VALIDATE_BOOLEAN
+        );
+    }
+
+    private function attemptShuffleAnswerOptions(ElectronicTestAttempt $attempt): bool
+    {
+        if (array_key_exists('shuffle_answer_options', $attempt->metadata ?? [])) {
+            return filter_var(
+                data_get($attempt->metadata, 'shuffle_answer_options', false),
+                FILTER_VALIDATE_BOOLEAN
+            );
+        }
+
+        return $attempt->session
+            ? $this->sessionShuffleAnswerOptions($attempt->session)
+            : false;
+    }
+
+    private function electronicAttemptShuffleIdentity(ElectronicTestAttempt $attempt): array
+    {
+        return [
+            'electronic_test_session_id' => (int) $attempt->electronic_test_session_id,
+            'electronic_test_session_member_id' => (int) ($attempt->electronic_test_session_member_id ?? 0),
+            'electronic_test_attempt_id' => (int) $attempt->id,
+            'attempt_token' => (string) $attempt->access_token,
+            'test_id' => (int) $attempt->test_id,
+            'variant_number' => (int) ($attempt->variant_number ?? 1),
+        ];
     }
 
     private function normalizeVariantAssignmentMode(?string $mode): string

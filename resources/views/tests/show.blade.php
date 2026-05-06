@@ -177,6 +177,19 @@
                                     <select id="electronicVariantNumber" class="w-full rounded-2xl border border-slate-300 px-4 py-3 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 dark:border-slate-700"></select>
                                 </div>
 
+                                <div class="mt-4 rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900">
+                                    <label class="flex items-start gap-3">
+                                        <input id="electronicShuffleAnswerOptions"
+                                               type="checkbox"
+                                               onchange="setElectronicShuffleAnswerOptions(this.checked)"
+                                               class="mt-1 h-5 w-5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
+                                        <span>
+                                            <span class="block font-semibold text-slate-800 dark:text-slate-100">Перемешивать варианты ответов</span>
+                                            <span class="block text-sm text-slate-500 mt-1 dark:text-slate-400">Порядок ответов будет зафиксирован для каждой электронной попытки.</span>
+                                        </span>
+                                    </label>
+                                </div>
+
                                 <div class="mt-5 flex flex-wrap gap-3">
                                     <button id="startElectronicSessionButton" type="button" onclick="startElectronicSession()" class="rounded-2xl bg-indigo-600 px-5 py-3 font-medium text-white transition hover:bg-indigo-500">
                                         Запустить по группе
@@ -360,6 +373,7 @@
     let blankVariantDistributionMode = 'same';
     let sharedVariantNumber = 1;
     let customStudentVariants = {};
+    let electronicShuffleAnswerOptions = false;
     let shuffleAnswerOptions = false;
     let pdfJsLoadingPromise = null;
 
@@ -499,6 +513,7 @@
 
         setControlDisabledState(document.getElementById('launchElectronicButton'), isClosed, closedElectronicTitle);
         setControlDisabledState(document.getElementById('startElectronicSessionButton'), isClosed, closedElectronicTitle);
+        setControlDisabledState(document.getElementById('electronicShuffleAnswerOptions'), isClosed, closedElectronicTitle);
         setControlDisabledState(document.getElementById('generateBlankFormsButton'), isClosed, closedBlankTitle);
 
         const description = document.getElementById('electronicSectionDescription');
@@ -821,6 +836,10 @@
         shuffleAnswerOptions = Boolean(value);
     }
 
+    function setElectronicShuffleAnswerOptions(value) {
+        electronicShuffleAnswerOptions = Boolean(value);
+    }
+
     function renderGroups() {
         const select = document.getElementById('groupSelect');
 
@@ -1134,6 +1153,7 @@
         const payload = {
             student_group_id: studentGroupId,
             variant_assignment_mode: variantAssignmentMode,
+            shuffle_answer_options: electronicShuffleAnswerOptions,
         };
 
         if (variantAssignmentMode === 'same') {
