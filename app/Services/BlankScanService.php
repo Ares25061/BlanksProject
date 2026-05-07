@@ -27,10 +27,18 @@ class BlankScanService
     {
         $this->prepareLongRunningScan();
 
-        $results = collect($files)
-            ->map(fn (UploadedFile $file) => $this->scanUploadedPage($test, $file))
+        $pageScans = collect($files)
+            ->map(fn (UploadedFile $file) => $this->scanUploadedPage($test, $file));
+
+        $skippedPages = $pageScans
+            ->filter(fn (array $pageScan) => ($pageScan['processing_mode'] ?? null) === 'skipped_qr')
+            ->values();
+
+        $results = $pageScans
+            ->reject(fn (array $pageScan) => ($pageScan['processing_mode'] ?? null) === 'skipped_qr')
             ->groupBy('processing_key')
             ->map(fn ($pageScans) => $this->finalizeGroupedScan($pageScans))
+            ->merge($skippedPages)
             ->values()
             ->all();
 
@@ -48,9 +56,7 @@ class BlankScanService
             $pagePayload = $this->blankSheetQrCodeService->normalizePayload($identified['qr_payload'] ?? null);
 
             if (!$pagePayload) {
-                throw ValidationException::withMessages([
-                    'scan' => 'Не удалось распознать QR-код страницы. Убедитесь, что маркеры листа и верхний QR-код хорошо видны.',
-                ]);
+                return $this->buildSkippedQrPageResult($file, $identified['warnings'] ?? []);
             }
 
             $blankForm = BlankForm::with(['test.questions.answers', 'studentGroup', 'groupStudent'])
@@ -211,6 +217,14 @@ class BlankScanService
 
         if ($missingPages !== []) {
             $warnings[] = 'Загружены не все страницы бланка. Отсутствуют страницы: ' . implode(', ', $missingPages) . '.';
+            $mergedPageData = $this->mergePageScanData($pagesByNumber);
+            $partialScanToken = $this->createPartialScanToken(
+                $blankForm,
+                $pagesByNumber,
+                $mergedPageData,
+                array_values(array_unique($warnings)),
+                $missingPages
+            );
 
             return [
                 'file_name' => $this->summarizeFileNames($pagesByNumber),
@@ -219,11 +233,7 @@ class BlankScanService
                 'student_name' => Utf8Normalizer::string($blankForm->student_full_name),
                 'group_name' => Utf8Normalizer::string($blankForm->group_name),
                 'variant_number' => $blankForm->variant_number ?? 1,
-                'recognized_answers' => collect($pagesByNumber)
-                    ->flatMap(fn ($pageScan) => $pageScan['recognized_answers'] ?? [])
-                    ->sortBy('question_number')
-                    ->values()
-                    ->all(),
+                'recognized_answers' => $mergedPageData['display_answers'],
                 'warnings' => array_values(array_unique($warnings)),
                 'score' => null,
                 'max_score' => (int) $this->testVariantService
@@ -231,41 +241,25 @@ class BlankScanService
                     ->sum('points'),
                 'grade' => null,
                 'status' => 'incomplete_scan',
+                'partial_scan_token' => $partialScanToken,
+                'can_process_partial' => $partialScanToken !== null,
                 'pages_processed' => $receivedPages,
                 'expected_pages' => $expectedPageCount,
             ];
         }
 
-        $mergedAnswers = [];
-        $displayAnswers = [];
-        $pageMetadata = [];
-
-        foreach ($pagesByNumber as $pageNumber => $pageScan) {
-            foreach ($pageScan['question_answers'] as $questionId => $answerIds) {
-                $mergedAnswers[$questionId] = $answerIds;
-            }
-
-            $displayAnswers = array_merge($displayAnswers, $pageScan['recognized_answers'] ?? []);
-            $pageMetadata[] = [
-                'page_number' => $pageNumber,
-                'file_name' => $pageScan['file_name'] ?? null,
-                'scan_path' => $pageScan['scan_path'] ?? null,
-                'question_range' => $pageScan['question_range'] ?? null,
-            ];
-        }
-
-        usort($displayAnswers, fn (array $left, array $right) => ($left['question_number'] ?? 0) <=> ($right['question_number'] ?? 0));
+        $mergedPageData = $this->mergePageScanData($pagesByNumber);
 
         $blankForm = $this->blankFormService->replaceStudentAnswersFromScan(
             $blankForm,
-            $mergedAnswers,
+            $mergedPageData['question_answers'],
             [
                 'file_name' => $this->summarizeFileNames($pagesByNumber),
                 'files' => array_values(array_map(fn (array $pageScan) => $pageScan['file_name'] ?? '', $pagesByNumber)),
                 'scan_path' => $pagesByNumber[1]['scan_path'] ?? ($firstPage['scan_path'] ?? null),
                 'warnings' => array_values(array_unique($warnings)),
-                'recognized_answers' => $displayAnswers,
-                'pages' => $pageMetadata,
+                'recognized_answers' => $mergedPageData['display_answers'],
+                'pages' => $mergedPageData['page_metadata'],
             ]
         );
 
@@ -279,7 +273,7 @@ class BlankScanService
             'student_name' => Utf8Normalizer::string($blankForm->student_full_name),
             'group_name' => Utf8Normalizer::string($blankForm->group_name),
             'variant_number' => $blankForm->variant_number ?? 1,
-            'recognized_answers' => $displayAnswers,
+            'recognized_answers' => $mergedPageData['display_answers'],
             'warnings' => array_values(array_unique($warnings)),
             'score' => $grade['score'],
             'max_score' => $grade['max_score'],
@@ -419,6 +413,178 @@ class BlankScanService
         $normalized = Utf8Normalizer::string($fileName) ?? 'scan-file';
 
         return trim($normalized) !== '' ? $normalized : 'scan-file';
+    }
+
+    protected function buildSkippedQrPageResult(UploadedFile $file, array $pythonWarnings = []): array
+    {
+        $fileName = $this->normalizeFileName($file->getClientOriginalName());
+        $pdfPageNumber = $this->extractPdfPageNumber($fileName);
+        $pageLabel = $pdfPageNumber !== null
+            ? 'Страница PDF ' . $pdfPageNumber
+            : 'Файл "' . $fileName . '"';
+
+        $warnings = collect($pythonWarnings)
+            ->map(fn ($warning) => trim((string) Utf8Normalizer::string((string) $warning)))
+            ->filter(fn (string $warning) => $warning !== '' && $warning !== 'QR code not detected')
+            ->values()
+            ->all();
+
+        array_unshift(
+            $warnings,
+            $pageLabel . ': не удалось распознать QR-код страницы. Страница пропущена, остальные листы обработаны.'
+        );
+
+        return [
+            'file_name' => $fileName,
+            'processing_key' => 'skipped-qr:' . (string) Str::uuid(),
+            'processing_mode' => 'skipped_qr',
+            'blank_form_id' => null,
+            'form_number' => null,
+            'student_name' => 'Страница пропущена',
+            'group_name' => null,
+            'variant_number' => null,
+            'recognized_answers' => [],
+            'warnings' => array_values(array_unique($warnings)),
+            'score' => null,
+            'max_score' => null,
+            'grade' => null,
+            'status' => 'skipped_scan_page',
+            'pdf_page_number' => $pdfPageNumber,
+            'pages_processed' => [],
+            'expected_pages' => null,
+        ];
+    }
+
+    protected function extractPdfPageNumber(string $fileName): ?int
+    {
+        if (preg_match('/(?:^|[-_\s])page\s*(\d+)(?=\D|$)/iu', $fileName, $matches) !== 1) {
+            return null;
+        }
+
+        $pageNumber = (int) $matches[1];
+
+        return $pageNumber > 0 ? $pageNumber : null;
+    }
+
+    protected function mergePageScanData(array $pagesByNumber): array
+    {
+        $mergedAnswers = [];
+        $displayAnswers = [];
+        $pageMetadata = [];
+
+        foreach ($pagesByNumber as $pageNumber => $pageScan) {
+            foreach (($pageScan['question_answers'] ?? []) as $questionId => $answerIds) {
+                $mergedAnswers[(int) $questionId] = $answerIds;
+            }
+
+            $displayAnswers = array_merge($displayAnswers, $pageScan['recognized_answers'] ?? []);
+            $pageMetadata[] = [
+                'page_number' => (int) $pageNumber,
+                'file_name' => $pageScan['file_name'] ?? null,
+                'scan_path' => $pageScan['scan_path'] ?? null,
+                'question_range' => $pageScan['question_range'] ?? null,
+            ];
+        }
+
+        usort($displayAnswers, fn (array $left, array $right) => ($left['question_number'] ?? 0) <=> ($right['question_number'] ?? 0));
+
+        return [
+            'question_answers' => $mergedAnswers,
+            'display_answers' => $displayAnswers,
+            'page_metadata' => $pageMetadata,
+        ];
+    }
+
+    protected function createPartialScanToken(BlankForm $blankForm, array $pagesByNumber, array $mergedPageData, array $warnings, array $missingPages): ?string
+    {
+        $userId = (int) auth()->id();
+        if ($userId <= 0) {
+            return null;
+        }
+
+        $preview = $this->scanPreviewService->createPreview($userId, [
+            'data' => [
+                'type' => 'partial_scan',
+                'blank_form_id' => (int) $blankForm->id,
+                'test_id' => (int) $blankForm->test_id,
+                'question_answers' => $mergedPageData['question_answers'],
+                'scan_metadata' => [
+                    'file_name' => $this->summarizeFileNames($pagesByNumber),
+                    'files' => array_values(array_map(fn (array $pageScan) => $pageScan['file_name'] ?? '', $pagesByNumber)),
+                    'scan_path' => $pagesByNumber[1]['scan_path'] ?? (collect($pagesByNumber)->first()['scan_path'] ?? null),
+                    'warnings' => $warnings,
+                    'recognized_answers' => $mergedPageData['display_answers'],
+                    'pages' => $mergedPageData['page_metadata'],
+                    'missing_pages' => array_values($missingPages),
+                    'processed_partial' => false,
+                ],
+            ],
+            'grade' => null,
+        ]);
+
+        return $preview['token'] ?? null;
+    }
+
+    public function applyPartialScan(string $token, int $userId): array
+    {
+        $preview = $this->scanPreviewService->getPreview($token, $userId);
+        $data = $preview['data'] ?? [];
+
+        if (($data['type'] ?? null) !== 'partial_scan') {
+            throw ValidationException::withMessages([
+                'preview' => 'Этот временный результат нельзя применить как неполный скан.',
+            ]);
+        }
+
+        $blankForm = BlankForm::with(['test.questions.answers', 'studentGroup', 'groupStudent'])
+            ->findOrFail((int) ($data['blank_form_id'] ?? 0));
+        $scanMetadata = (array) ($data['scan_metadata'] ?? []);
+        $missingPages = collect($scanMetadata['missing_pages'] ?? [])
+            ->map(fn ($pageNumber) => (int) $pageNumber)
+            ->filter(fn (int $pageNumber) => $pageNumber > 0)
+            ->values()
+            ->all();
+        $warnings = collect($scanMetadata['warnings'] ?? [])
+            ->map(fn ($warning) => trim((string) Utf8Normalizer::string((string) $warning)))
+            ->filter()
+            ->values()
+            ->all();
+
+        if ($missingPages !== []) {
+            $warnings[] = 'Работа разобрана по имеющимся страницам. Отсутствующие страницы: '
+                . implode(', ', $missingPages)
+                . '. Ответы на их вопросы отмечены как "Нет ответа".';
+        }
+
+        $scanMetadata['warnings'] = array_values(array_unique($warnings));
+        $scanMetadata['processed_partial'] = true;
+        $scanMetadata['partial_scan_token'] = $token;
+
+        $blankForm = $this->blankFormService->replaceStudentAnswersFromScan(
+            $blankForm,
+            (array) ($data['question_answers'] ?? []),
+            $scanMetadata
+        );
+
+        $blankForm = $this->gradingService->checkBlankForm($blankForm);
+        $grade = $this->gradingService->getStudentGrade($blankForm->fresh('test.questions'));
+
+        return [
+            'file_name' => Utf8Normalizer::string((string) ($scanMetadata['file_name'] ?? '')),
+            'blank_form_id' => $blankForm->id,
+            'form_number' => Utf8Normalizer::string($blankForm->form_number),
+            'student_name' => Utf8Normalizer::string($blankForm->student_full_name),
+            'group_name' => Utf8Normalizer::string($blankForm->group_name),
+            'variant_number' => $blankForm->variant_number ?? 1,
+            'recognized_answers' => $scanMetadata['recognized_answers'] ?? [],
+            'warnings' => $scanMetadata['warnings'],
+            'score' => $grade['score'],
+            'max_score' => $grade['max_score'],
+            'grade' => $grade['grade'],
+            'status' => $blankForm->status,
+            'pages_processed' => collect($scanMetadata['pages'] ?? [])->pluck('page_number')->values()->all(),
+            'expected_pages' => count($scanMetadata['pages'] ?? []) + count($missingPages),
+        ];
     }
 
     protected function prepareLongRunningScan(): void

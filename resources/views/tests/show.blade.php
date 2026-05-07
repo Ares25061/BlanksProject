@@ -2112,19 +2112,19 @@
         }
 
         container.innerHTML = results.map((result) => `
-            <article class="rounded-2xl border ${result.status === 'incomplete_scan' ? 'border-amber-200 bg-amber-50 dark:border-amber-900/50 dark:bg-amber-950/30' : result.status === 'foreign_preview' ? 'border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-950/70' : 'border-emerald-200 bg-emerald-50 dark:border-emerald-900/50 dark:bg-emerald-950/20'} p-4">
+            <article class="rounded-2xl border ${scanResultContainerClass(result)} p-4">
                 <div class="flex flex-wrap justify-between gap-3">
                     <div>
-                        <div class="font-semibold ${result.status === 'incomplete_scan' ? 'text-amber-900 dark:text-amber-100' : result.status === 'foreign_preview' ? 'text-slate-900 dark:text-white' : 'text-emerald-900 dark:text-emerald-200'}">${escapeHtml(result.student_name || 'Без имени')}</div>
-                        <div class="text-sm ${result.status === 'incomplete_scan' ? 'text-amber-800 dark:text-amber-200' : result.status === 'foreign_preview' ? 'text-slate-700 dark:text-slate-300' : 'text-emerald-800 dark:text-emerald-300'} mt-1">${escapeHtml(result.file_name || '')}</div>
-                        <div class="text-xs mt-2 ${result.status === 'incomplete_scan' ? 'text-amber-700 dark:text-amber-300' : result.status === 'foreign_preview' ? 'text-slate-600 dark:text-slate-400' : 'text-emerald-700 dark:text-emerald-300'}">
+                        <div class="font-semibold ${scanResultTitleClass(result)}">${escapeHtml(result.student_name || 'Без имени')}</div>
+                        <div class="text-sm ${scanResultTextClass(result)} mt-1">${escapeHtml(result.file_name || '')}</div>
+                        <div class="text-xs mt-2 ${scanResultMutedClass(result)}">
                             ${escapeHtml(result.variant_number ? `Вариант ${result.variant_number}` : '')}
                             ${result.expected_pages ? `${result.variant_number ? ' • ' : ''}Листы: ${(result.pages_processed || []).join(', ') || '—'} из ${result.expected_pages}` : ''}
                         </div>
                     </div>
                     <div class="text-right">
-                        <div class="font-semibold ${result.status === 'incomplete_scan' ? 'text-amber-900 dark:text-amber-100' : result.status === 'foreign_preview' ? 'text-slate-900 dark:text-white' : 'text-emerald-900 dark:text-emerald-200'}">${result.score ?? '—'} / ${result.max_score ?? '—'}</div>
-                        <div class="text-sm ${result.status === 'incomplete_scan' ? 'text-amber-800 dark:text-amber-200' : result.status === 'foreign_preview' ? 'text-slate-700 dark:text-slate-300' : 'text-emerald-800 dark:text-emerald-300'}">${escapeHtml(result.grade || (result.status === 'incomplete_scan' ? 'Нужно загрузить все листы' : result.status === 'foreign_preview' ? 'Чужой бланк • без оценки' : ''))}</div>
+                        <div class="font-semibold ${scanResultTitleClass(result)}">${result.score ?? '—'} / ${result.max_score ?? '—'}</div>
+                        <div class="text-sm ${scanResultTextClass(result)}">${escapeHtml(scanResultStatusLabel(result))}</div>
                     </div>
                 </div>
                 ${result.warnings?.length ? `
@@ -2132,15 +2132,131 @@
                         ${result.warnings.map((warning) => escapeHtml(warning)).join('<br>')}
                     </div>
                 ` : ''}
-                ${result.preview_token ? `
-                    <div class="mt-3 flex justify-end">
+                ${(result.preview_token || result.partial_scan_token) ? `
+                    <div class="mt-3 flex flex-wrap justify-end gap-2">
+                        ${result.partial_scan_token ? `
+                            <button onclick="applyPartialScan('${result.partial_scan_token}')" class="bg-amber-600 text-white px-4 py-2 rounded-xl hover:bg-amber-500 transition text-sm">
+                                Провести разбор имеющихся страниц
+                            </button>
+                        ` : ''}
+                        ${result.preview_token ? `
                         <button onclick="openResultsPage([], ['${result.preview_token}'])" class="bg-sky-600 text-white px-4 py-2 rounded-xl hover:bg-sky-500 transition text-sm">
                             Открыть OCR-разбор
                         </button>
+                        ` : ''}
                     </div>
                 ` : ''}
             </article>
         `).join('');
+    }
+
+    function isWarningScanResult(result) {
+        return result.status === 'incomplete_scan' || result.status === 'skipped_scan_page';
+    }
+
+    function scanResultContainerClass(result) {
+        if (isWarningScanResult(result)) {
+            return 'border-amber-200 bg-amber-50 dark:border-amber-900/50 dark:bg-amber-950/30';
+        }
+
+        if (result.status === 'foreign_preview') {
+            return 'border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-950/70';
+        }
+
+        return 'border-emerald-200 bg-emerald-50 dark:border-emerald-900/50 dark:bg-emerald-950/20';
+    }
+
+    function scanResultTitleClass(result) {
+        if (isWarningScanResult(result)) {
+            return 'text-amber-900 dark:text-amber-100';
+        }
+
+        if (result.status === 'foreign_preview') {
+            return 'text-slate-900 dark:text-white';
+        }
+
+        return 'text-emerald-900 dark:text-emerald-200';
+    }
+
+    function scanResultTextClass(result) {
+        if (isWarningScanResult(result)) {
+            return 'text-amber-800 dark:text-amber-200';
+        }
+
+        if (result.status === 'foreign_preview') {
+            return 'text-slate-700 dark:text-slate-300';
+        }
+
+        return 'text-emerald-800 dark:text-emerald-300';
+    }
+
+    function scanResultMutedClass(result) {
+        if (isWarningScanResult(result)) {
+            return 'text-amber-700 dark:text-amber-300';
+        }
+
+        if (result.status === 'foreign_preview') {
+            return 'text-slate-600 dark:text-slate-400';
+        }
+
+        return 'text-emerald-700 dark:text-emerald-300';
+    }
+
+    function scanResultStatusLabel(result) {
+        if (result.grade) {
+            return result.grade;
+        }
+
+        if (result.status === 'incomplete_scan') {
+            return 'Можно разобрать имеющиеся листы';
+        }
+
+        if (result.status === 'skipped_scan_page') {
+            return 'Страница пропущена';
+        }
+
+        if (result.status === 'foreign_preview') {
+            return 'Чужой бланк • без оценки';
+        }
+
+        return '';
+    }
+
+    async function applyPartialScan(token) {
+        if (!token) {
+            return;
+        }
+
+        if (!confirm('Провести разбор по загруженным страницам? Вопросы с отсутствующих листов будут отмечены как "Нет ответа".')) {
+            return;
+        }
+
+        try {
+            const response = await authApiFetch(`/api/scan-previews/${encodeURIComponent(token)}/apply-partial`, {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json'
+                }
+            });
+
+            if (!response.ok) {
+                const error = await response.json().catch(() => ({}));
+                throw new Error(error.message || 'Не удалось разобрать неполный скан');
+            }
+
+            const payload = await response.json();
+            const blankFormId = Number(payload.data?.blank_form_id);
+
+            if (Number.isInteger(blankFormId) && blankFormId > 0) {
+                openResultsPage([blankFormId]);
+                return;
+            }
+
+            renderScanResults([payload.data]);
+            await loadBlankForms();
+        } catch (error) {
+            alert(error.message || 'Ошибка разбора неполного скана');
+        }
     }
 
     function escapeHtml(text) {

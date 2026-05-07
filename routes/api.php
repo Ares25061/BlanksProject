@@ -50,6 +50,7 @@ Route::middleware('auth:api')->group(function () {
     Route::get('blank-forms/{blank_form}/scan-image', [BlankFormController::class, 'scanImage']);
     Route::get('scan-previews/{token}', [ScanPreviewController::class, 'show']);
     Route::get('scan-previews/{token}/scan-image', [ScanPreviewController::class, 'scanImage']);
+    Route::post('scan-previews/{token}/apply-partial', [ScanPreviewController::class, 'applyPartialScan']);
     Route::post('blank-forms/{blank_form}/submit', [BlankFormController::class, 'submitAnswers']);
     Route::post('blank-forms/{blank_form}/check', [BlankFormController::class, 'check']);
     Route::post('blank-forms/check-multiple', [BlankFormController::class, 'checkMultiple']);

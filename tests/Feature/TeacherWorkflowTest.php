@@ -15,6 +15,8 @@ use App\Services\TestService;
 use App\Services\BlankSheetQrCodeService;
 use App\Services\BlankFormService;
 use App\Services\GradingService;
+use App\Services\PythonCellOcrService;
+use App\Services\ScanPreviewService;
 use App\Services\StudentGradeService;
 use App\Services\StudentGroupService;
 use App\Services\TestPrintLayoutService;
@@ -131,6 +133,187 @@ class TeacherWorkflowTest extends TestCase
         $response->assertStatus(422);
         $response->assertJsonValidationErrors(['delivery_mode']);
         $response->assertJsonPath('errors.delivery_mode.0', 'Для этого теста сейчас включён только электронный режим. Сканирование бланков доступно только в режиме бланков или совмещённом.');
+    }
+
+    public function test_scan_upload_skips_page_when_qr_is_not_recognized(): void
+    {
+        Storage::fake('local');
+
+        $teacher = User::factory()->create();
+        $test = Test::create([
+            'title' => 'OCR без QR',
+            'subject_name' => 'Программирование',
+            'created_by' => $teacher->id,
+            'is_active' => true,
+            'test_status' => 'active',
+            'delivery_mode' => 'blank',
+            'variant_count' => 1,
+        ]);
+
+        $pythonCellOcrService = $this->createMock(PythonCellOcrService::class);
+        $pythonCellOcrService->expects($this->once())
+            ->method('identifyPage')
+            ->willReturn([
+                'qr_payload' => null,
+                'warnings' => ['QR code not detected'],
+            ]);
+        $pythonCellOcrService->expects($this->never())
+            ->method('recognize');
+        $this->app->instance(PythonCellOcrService::class, $pythonCellOcrService);
+
+        $response = $this->actingAs($teacher, 'api')->post('/api/tests/' . $test->id . '/scan-blank-forms', [
+            'scans' => [
+                UploadedFile::fake()->image('algebra-page7.jpg', 900, 1200),
+            ],
+        ], [
+            'Accept' => 'application/json',
+        ]);
+
+        $response->assertOk()
+            ->assertJsonPath('data.0.status', 'skipped_scan_page')
+            ->assertJsonPath('data.0.pdf_page_number', 7);
+
+        $this->assertStringContainsString(
+            'Страница PDF 7: не удалось распознать QR-код страницы.',
+            $response->json('data.0.warnings.0')
+        );
+    }
+
+    public function test_partial_scan_token_can_be_applied_with_missing_answers(): void
+    {
+        Storage::fake('local');
+
+        $teacher = User::factory()->create();
+        $this->actingAs($teacher);
+        Auth::login($teacher);
+
+        $test = Test::create([
+            'title' => 'Неполный OCR',
+            'subject_name' => 'Программирование',
+            'created_by' => $teacher->id,
+            'is_active' => true,
+            'test_status' => 'active',
+            'delivery_mode' => 'blank',
+            'variant_count' => 1,
+            'grade_criteria' => [
+                ['label' => '5', 'min_points' => 2],
+                ['label' => '3', 'min_points' => 1],
+                ['label' => '2', 'min_points' => 0],
+            ],
+        ]);
+
+        $firstQuestion = Question::create([
+            'test_id' => $test->id,
+            'question_text' => 'Первый вопрос',
+            'type' => 'single',
+            'points' => 1,
+            'order' => 0,
+            'variant_number' => 1,
+        ]);
+        $firstCorrectAnswer = Answer::create([
+            'question_id' => $firstQuestion->id,
+            'answer_text' => 'Верно',
+            'is_correct' => true,
+            'order' => 0,
+        ]);
+        Answer::create([
+            'question_id' => $firstQuestion->id,
+            'answer_text' => 'Неверно',
+            'is_correct' => false,
+            'order' => 1,
+        ]);
+
+        $secondQuestion = Question::create([
+            'test_id' => $test->id,
+            'question_text' => 'Второй вопрос',
+            'type' => 'single',
+            'points' => 1,
+            'order' => 1,
+            'variant_number' => 1,
+        ]);
+        Answer::create([
+            'question_id' => $secondQuestion->id,
+            'answer_text' => 'Верно',
+            'is_correct' => true,
+            'order' => 0,
+        ]);
+        Answer::create([
+            'question_id' => $secondQuestion->id,
+            'answer_text' => 'Неверно',
+            'is_correct' => false,
+            'order' => 1,
+        ]);
+
+        $blankForm = BlankForm::create([
+            'test_id' => $test->id,
+            'form_number' => 'TEST-PARTIAL-SCAN',
+            'variant_number' => 1,
+            'last_name' => 'Иванов',
+            'first_name' => 'Иван',
+            'group_name' => '22ИС4-1',
+            'status' => 'generated',
+        ]);
+
+        Storage::disk('local')->put('scans/partial-page1.jpg', 'scan');
+        $preview = app(ScanPreviewService::class)->createPreview($teacher->id, [
+            'data' => [
+                'type' => 'partial_scan',
+                'blank_form_id' => $blankForm->id,
+                'test_id' => $test->id,
+                'question_answers' => [
+                    $firstQuestion->id => [$firstCorrectAnswer->id],
+                ],
+                'scan_metadata' => [
+                    'file_name' => 'partial-page1.jpg',
+                    'scan_path' => 'scans/partial-page1.jpg',
+                    'warnings' => [
+                        'Загружены не все страницы бланка. Отсутствуют страницы: 2.',
+                    ],
+                    'recognized_answers' => [
+                        ['question_number' => 1, 'selected' => ['A']],
+                    ],
+                    'pages' => [
+                        [
+                            'page_number' => 1,
+                            'file_name' => 'partial-page1.jpg',
+                            'scan_path' => 'scans/partial-page1.jpg',
+                            'question_range' => ['start' => 1, 'end' => 1],
+                        ],
+                    ],
+                    'missing_pages' => [2],
+                ],
+            ],
+            'grade' => null,
+        ]);
+
+        $response = $this->actingAs($teacher, 'api')
+            ->postJson('/api/scan-previews/' . $preview['token'] . '/apply-partial');
+
+        $response->assertOk()
+            ->assertJsonPath('data.blank_form_id', $blankForm->id)
+            ->assertJsonPath('data.status', 'checked')
+            ->assertJsonPath('data.score', 1)
+            ->assertJsonPath('data.max_score', 2);
+
+        $blankForm->refresh();
+        $this->assertSame('checked', $blankForm->status);
+        $this->assertSame(1, $blankForm->total_score);
+        $this->assertSame('3', $blankForm->grade_label);
+        $this->assertDatabaseHas('student_answers', [
+            'blank_form_id' => $blankForm->id,
+            'question_id' => $firstQuestion->id,
+            'answer_id' => $firstCorrectAnswer->id,
+            'is_correct' => true,
+        ]);
+        $this->assertDatabaseMissing('student_answers', [
+            'blank_form_id' => $blankForm->id,
+            'question_id' => $secondQuestion->id,
+        ]);
+        $this->assertTrue((bool) data_get($blankForm->metadata, 'scan.processed_partial'));
+        $this->assertContains(
+            'Работа разобрана по имеющимся страницам. Отсутствующие страницы: 2. Ответы на их вопросы отмечены как "Нет ответа".',
+            data_get($blankForm->metadata, 'scan.warnings', [])
+        );
     }
 
     public function test_api_switch_to_blank_closes_active_electronic_session(): void

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\BlankScanService;
 use App\Services\ScanPreviewService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -11,6 +12,7 @@ class ScanPreviewController extends Controller
 {
     public function __construct(
         private ScanPreviewService $scanPreviewService,
+        private BlankScanService $blankScanService,
     ) {
     }
 
@@ -44,5 +46,16 @@ class ScanPreviewController extends Controller
             [],
             'inline'
         );
+    }
+
+    public function applyPartialScan(Request $request, string $token)
+    {
+        $result = $this->blankScanService->applyPartialScan($token, (int) $request->user()->id);
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Работа разобрана по имеющимся страницам.',
+            'data' => $result,
+        ]);
     }
 }
