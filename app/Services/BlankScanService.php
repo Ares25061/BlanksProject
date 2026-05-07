@@ -106,6 +106,7 @@ class BlankScanService
                 'warnings' => array_values(array_unique(array_filter($warnings))),
                 'scan_path' => $scanPath,
                 'question_range' => $recognized['question_range'],
+                'answer_order_by_question' => $this->testVariantService->answerOrderByQuestionFromPages([$manifest]),
             ];
         } finally {
             \imagedestroy($image);
@@ -259,6 +260,7 @@ class BlankScanService
                 'scan_path' => $pagesByNumber[1]['scan_path'] ?? ($firstPage['scan_path'] ?? null),
                 'warnings' => array_values(array_unique($warnings)),
                 'recognized_answers' => $mergedPageData['display_answers'],
+                'answer_order_by_question' => $mergedPageData['answer_order_by_question'],
                 'pages' => $mergedPageData['page_metadata'],
             ]
         );
@@ -338,36 +340,19 @@ class BlankScanService
             ];
         }
 
-        $mergedAnswers = [];
-        $displayAnswers = [];
-        $pageMetadata = [];
-
-        foreach ($pagesByNumber as $pageNumber => $pageScan) {
-            foreach ($pageScan['question_answers'] as $questionId => $answerIds) {
-                $mergedAnswers[$questionId] = $answerIds;
-            }
-
-            $displayAnswers = array_merge($displayAnswers, $pageScan['recognized_answers'] ?? []);
-            $pageMetadata[] = [
-                'page_number' => $pageNumber,
-                'file_name' => $pageScan['file_name'] ?? null,
-                'scan_path' => $pageScan['scan_path'] ?? null,
-                'question_range' => $pageScan['question_range'] ?? null,
-            ];
-        }
-
-        usort($displayAnswers, fn (array $left, array $right) => ($left['question_number'] ?? 0) <=> ($right['question_number'] ?? 0));
+        $mergedPageData = $this->mergePageScanData($pagesByNumber);
 
         $preview = $this->scanPreviewService->createPreview((int) auth()->id(), $this->gradingService->buildTransientScanReview(
             $blankForm,
-            $mergedAnswers,
+            $mergedPageData['question_answers'],
             [
                 'file_name' => $this->summarizeFileNames($pagesByNumber),
                 'files' => array_values(array_map(fn (array $pageScan) => $pageScan['file_name'] ?? '', $pagesByNumber)),
                 'scan_path' => $pagesByNumber[1]['scan_path'] ?? ($firstPage['scan_path'] ?? null),
                 'warnings' => array_values(array_unique($warnings)),
-                'recognized_answers' => $displayAnswers,
-                'pages' => $pageMetadata,
+                'recognized_answers' => $mergedPageData['display_answers'],
+                'answer_order_by_question' => $mergedPageData['answer_order_by_question'],
+                'pages' => $mergedPageData['page_metadata'],
             ]
         ));
 
@@ -379,7 +364,7 @@ class BlankScanService
             'student_name' => Utf8Normalizer::string($blankForm->student_full_name),
             'group_name' => Utf8Normalizer::string($blankForm->group_name),
             'variant_number' => $blankForm->variant_number ?? 1,
-            'recognized_answers' => $displayAnswers,
+            'recognized_answers' => $mergedPageData['display_answers'],
             'warnings' => array_values(array_unique($warnings)),
             'score' => data_get($preview, 'grade.score'),
             'max_score' => data_get($preview, 'grade.max_score'),
@@ -471,6 +456,7 @@ class BlankScanService
         $mergedAnswers = [];
         $displayAnswers = [];
         $pageMetadata = [];
+        $answerOrderByQuestion = [];
 
         foreach ($pagesByNumber as $pageNumber => $pageScan) {
             foreach (($pageScan['question_answers'] ?? []) as $questionId => $answerIds) {
@@ -478,11 +464,16 @@ class BlankScanService
             }
 
             $displayAnswers = array_merge($displayAnswers, $pageScan['recognized_answers'] ?? []);
+            $answerOrderByQuestion = array_replace(
+                $answerOrderByQuestion,
+                (array) ($pageScan['answer_order_by_question'] ?? [])
+            );
             $pageMetadata[] = [
                 'page_number' => (int) $pageNumber,
                 'file_name' => $pageScan['file_name'] ?? null,
                 'scan_path' => $pageScan['scan_path'] ?? null,
                 'question_range' => $pageScan['question_range'] ?? null,
+                'answer_order_by_question' => (array) ($pageScan['answer_order_by_question'] ?? []),
             ];
         }
 
@@ -491,6 +482,7 @@ class BlankScanService
         return [
             'question_answers' => $mergedAnswers,
             'display_answers' => $displayAnswers,
+            'answer_order_by_question' => $answerOrderByQuestion,
             'page_metadata' => $pageMetadata,
         ];
     }
@@ -514,6 +506,7 @@ class BlankScanService
                     'scan_path' => $pagesByNumber[1]['scan_path'] ?? (collect($pagesByNumber)->first()['scan_path'] ?? null),
                     'warnings' => $warnings,
                     'recognized_answers' => $mergedPageData['display_answers'],
+                    'answer_order_by_question' => $mergedPageData['answer_order_by_question'],
                     'pages' => $mergedPageData['page_metadata'],
                     'missing_pages' => array_values($missingPages),
                     'processed_partial' => false,

@@ -200,9 +200,71 @@ class BlankSheetManifestServiceTest extends TestCase
         $this->assertSame($sortedOriginalAnswerIds, $sortedPrintedAnswerIds);
         $this->assertTrue((bool) data_get($blankForm->fresh()->metadata, 'print_options.shuffle_answer_options'));
         $this->assertTrue((bool) data_get($blankForm->fresh()->metadata, 'print_layout.shuffle_answer_options'));
+        $this->assertSame(
+            $printedAnswerIds,
+            data_get($blankForm->fresh()->metadata, 'print_layout.answer_order_by_question.' . $question->id)
+        );
 
         $samePages = $service->ensurePersisted($blankForm->fresh('test.questions.answers'));
         $this->assertSame($printedAnswerIds, collect(data_get($samePages, '0.questions.0.cells', []))->pluck('answer_id')->all());
+    }
+
+    public function test_variant_answers_follow_persisted_metadata_order_without_layout_files(): void
+    {
+        Storage::fake('local');
+
+        $teacher = User::factory()->create();
+
+        $test = Test::create([
+            'title' => 'Review survives missing layout files',
+            'subject_name' => 'Programming',
+            'created_by' => $teacher->id,
+            'is_active' => true,
+            'grade_criteria' => [
+                ['label' => '5', 'min_points' => 0],
+            ],
+        ]);
+
+        $question = Question::create([
+            'test_id' => $test->id,
+            'question_text' => 'Какой порядок останется после деплоя?',
+            'type' => 'single',
+            'points' => 1,
+            'order' => 0,
+        ]);
+
+        collect(['A', 'B', 'C', 'D'])
+            ->each(fn (string $letter, int $index) => Answer::create([
+                'question_id' => $question->id,
+                'answer_text' => 'Вариант ' . $letter,
+                'is_correct' => $index === 0,
+                'order' => $index,
+            ]));
+
+        $blankForm = BlankForm::create([
+            'test_id' => $test->id,
+            'form_number' => 'TEST-REVIEW-METADATA-001',
+            'variant_number' => 1,
+            'last_name' => 'Сидоров',
+            'first_name' => 'Павел',
+            'group_name' => '25ИС1-7',
+            'status' => 'generated',
+        ]);
+
+        $pages = app(BlankSheetManifestService::class)->ensurePersisted($blankForm->fresh('test.questions.answers'), true);
+        $printedAnswerIds = collect(data_get($pages, '0.questions.0.cells', []))->pluck('answer_id')->all();
+
+        collect(data_get($blankForm->fresh()->metadata, 'print_layout.pages', []))
+            ->pluck('manifest_path')
+            ->filter()
+            ->each(fn (string $path) => Storage::disk('local')->delete($path));
+
+        $blankForm = app(TestVariantService::class)->attachVariantAnswers($blankForm->fresh('test.questions.answers'));
+        $displayAnswerIds = collect($blankForm->test->questions->first()->variant_answers)
+            ->pluck('id')
+            ->all();
+
+        $this->assertSame($printedAnswerIds, $displayAnswerIds);
     }
 
     public function test_variant_answers_follow_persisted_print_manifest_order(): void

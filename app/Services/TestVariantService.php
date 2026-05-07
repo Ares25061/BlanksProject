@@ -120,6 +120,13 @@ class TestVariantService
     {
         $orders = [];
 
+        foreach ([
+            data_get($blankForm->metadata, 'print_layout.answer_order_by_question', []),
+            data_get($blankForm->metadata, 'scan.answer_order_by_question', []),
+        ] as $metadataOrders) {
+            $orders = array_replace($orders, $this->normalizeAnswerOrderByQuestion($metadataOrders));
+        }
+
         foreach (data_get($blankForm->metadata, 'print_layout.pages', []) as $page) {
             $manifestPath = (string) ($page['manifest_path'] ?? '');
 
@@ -133,7 +140,18 @@ class TestVariantService
                 continue;
             }
 
-            foreach (($manifest['questions'] ?? []) as $question) {
+            $orders = array_replace($orders, $this->answerOrderByQuestionFromPages([$manifest]));
+        }
+
+        return $orders;
+    }
+
+    public function answerOrderByQuestionFromPages(array $pages): array
+    {
+        $orders = [];
+
+        foreach ($pages as $page) {
+            foreach (($page['questions'] ?? []) as $question) {
                 $questionId = (int) ($question['question_id'] ?? 0);
 
                 if ($questionId <= 0) {
@@ -155,6 +173,35 @@ class TestVariantService
         }
 
         return $orders;
+    }
+
+    private function normalizeAnswerOrderByQuestion(mixed $orders): array
+    {
+        if (!is_array($orders)) {
+            return [];
+        }
+
+        $normalized = [];
+
+        foreach ($orders as $questionId => $answerIds) {
+            $questionId = (int) $questionId;
+
+            if ($questionId <= 0 || !is_array($answerIds)) {
+                continue;
+            }
+
+            $normalizedAnswerIds = collect($answerIds)
+                ->map(fn ($answerId) => (int) $answerId)
+                ->filter()
+                ->values()
+                ->all();
+
+            if ($normalizedAnswerIds !== []) {
+                $normalized[$questionId] = $normalizedAnswerIds;
+            }
+        }
+
+        return $normalized;
     }
 
     private function orderedAnswersForPrintedBlank($question, int $variantNumber, bool $shuffle, array $shuffleIdentity, ?array $printedAnswerIds): Collection

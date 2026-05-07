@@ -151,6 +151,15 @@ class GradingService
     public function buildTransientScanReview(BlankForm $blankForm, array $questionAnswers, array $scanMetadata = []): array
     {
         $blankForm->loadMissing('test.questions.answers', 'studentGroup', 'groupStudent');
+
+        if (is_array($scanMetadata['answer_order_by_question'] ?? null)) {
+            $metadata = $blankForm->metadata ?? [];
+            $metadata['scan'] = array_merge($metadata['scan'] ?? [], [
+                'answer_order_by_question' => $scanMetadata['answer_order_by_question'],
+            ]);
+            $blankForm->setAttribute('metadata', $metadata);
+        }
+
         $this->testVariantService->attachVariantAnswers($blankForm);
         $questions = $blankForm->test->questions->values();
 

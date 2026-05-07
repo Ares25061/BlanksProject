@@ -10,6 +10,7 @@ class BlankSheetManifestService
 {
     public function __construct(
         private UnifiedSheetLayoutService $unifiedSheetLayoutService,
+        private TestVariantService $testVariantService,
     ) {
     }
 
@@ -38,11 +39,20 @@ class BlankSheetManifestService
             && $pageEntries->isNotEmpty()
             && $pageEntries->every(fn (array $page) => !empty($page['manifest_path']) && Storage::disk('local')->exists($page['manifest_path']))
         ) {
-            return $pageEntries
+            $pages = $pageEntries
                 ->map(fn (array $page) => $this->loadManifestFromPath((string) $page['manifest_path']))
                 ->filter()
                 ->values()
                 ->all();
+
+            if (!is_array($layoutMetadata['answer_order_by_question'] ?? null)) {
+                $metadata['print_layout'] = array_merge($layoutMetadata, [
+                    'answer_order_by_question' => $this->testVariantService->answerOrderByQuestionFromPages($pages),
+                ]);
+                $blankForm->forceFill(['metadata' => $metadata])->save();
+            }
+
+            return $pages;
         }
 
         $pages = $this->unifiedSheetLayoutService->buildPagesForBlankForm($blankForm);
@@ -68,6 +78,7 @@ class BlankSheetManifestService
             'version' => UnifiedSheetLayout::VERSION,
             'page_count' => count($storedPages),
             'shuffle_answer_options' => $currentShuffleAnswerOptions,
+            'answer_order_by_question' => $this->testVariantService->answerOrderByQuestionFromPages($pages),
             'generated_at' => now()->toIso8601String(),
             'pages' => $storedPages,
         ];

@@ -1238,12 +1238,16 @@ class TeacherWorkflowTest extends TestCase
             2
         );
         $selectedCorrectAnswerId = $variantAnswers->firstWhere('is_correct', true)?->id;
+        $printedAnswerOrder = [$answerTwo->id, $answerOne->id];
 
         $preview = app(GradingService::class)->buildTransientScanReview(
             $blankForm->fresh('test.questions.answers'),
             [$question->id => [$selectedCorrectAnswerId]],
             [
                 'file_name' => 'foreign.jpg',
+                'answer_order_by_question' => [
+                    $question->id => $printedAnswerOrder,
+                ],
                 'recognized_answers' => [
                     ['question_number' => 1, 'selected' => ['A']],
                 ],
@@ -1258,6 +1262,10 @@ class TeacherWorkflowTest extends TestCase
         $this->assertSame(2, $preview['data']['variant_number']);
         $this->assertSame($selectedCorrectAnswerId, $preview['data']['student_answers'][0]['answer_id']);
         $this->assertNull($preview['data']['group_student_id']);
+        $this->assertSame(
+            $printedAnswerOrder,
+            collect($preview['data']['test']['questions'][0]['variant_answers'])->pluck('id')->all()
+        );
     }
 
     public function test_test_service_rejects_more_than_four_answers_in_question(): void
